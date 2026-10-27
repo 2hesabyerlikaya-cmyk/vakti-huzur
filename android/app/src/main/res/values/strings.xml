@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vakt-i Huzur</string>
+    <string name="widget_namaz_title">Vakt-i Huzur: Namaz Vakitleri</string>
+    <string name="widget_namaz_desc">Sıradaki namaz vaktini, kalan süreyi ve günün 6 vaktini ana ekran ve kilit ekranında gösterir.</string>
+    <string name="widget_ayet_title">Vakt-i Huzur: Günün Ayeti &amp; Hadisi</string>
+    <string name="widget_ayet_desc">Her gün seçkin bir Kur’an-ı Kerim ayeti veya Sahih Hadis-i Şerifi ana ekran ve kilit ekranında gösterir.</string>
+</resources>

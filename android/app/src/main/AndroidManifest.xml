@@ -39,6 +39,32 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- 1. Vakt-i Huzur: Namaz Vakitleri Ana Ekran & Kilit Ekranı Widget'ı -->
+        <receiver
+            android:name=".VaktiHuzurNamazWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_namaz_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vakti_huzur_namaz_widget_info" />
+        </receiver>
+
+        <!-- 2. Vakt-i Huzur: Günün Ayeti & Hadisi Ana Ekran & Kilit Ekranı Widget'ı -->
+        <receiver
+            android:name=".VaktiHuzurAyetHadisWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_ayet_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vakti_huzur_ayet_widget_info" />
+        </receiver>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

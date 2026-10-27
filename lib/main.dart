@@ -11,6 +11,7 @@ import 'quran_api_service.dart';
 import 'quran_hadith_data.dart';
 import 'share_story_sheet.dart';
 import 'translations_and_logo.dart';
+import 'widget_ve_kilit_ekrani_servisi.dart';
 import 'zikirmatik_ve_esmaul_husna.dart';
 
 void main() {
@@ -1197,6 +1198,36 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                         ),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                          leading: Icon(Icons.widgets_rounded, color: tema.vurguAltin),
+                          title: Text(
+                            seciliDil == 'EN'
+                                ? 'Lock Screen & Home Widgets'
+                                : seciliDil == 'AR'
+                                    ? 'إعدادات الويدجت وشاشة القفل'
+                                    : 'Kilit Ekranı & Widget Ayarları',
+                            style: TextStyle(
+                              color: tema.yaziRengi,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          trailing: Icon(Icons.chevron_right_rounded, color: tema.ikincilYazi),
+                          onTap: () {
+                            Navigator.pop(context);
+                            VaktiHuzurWidgetServisi.panelGoster(
+                              context,
+                              arkaPlan: tema.arkaPlan,
+                              kartRengi: tema.kartRengi,
+                              vurguAltin: tema.vurguAltin,
+                              yumusakAltin: tema.yumusakAltin,
+                              yaziRengi: tema.yaziRengi,
+                              ikincilYazi: tema.ikincilYazi,
+                              dil: seciliDil,
+                            );
+                          },
+                        ),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: Icon(Icons.calendar_month_rounded, color: tema.vurguAltin),
                           title: Text(
                             Ceviri.m(seciliDil, 'drawer_calendar'),
@@ -1894,7 +1925,24 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
         _pusulaAcisi = 0.0;
         _konumYukleniyor = false;
       });
+      _widgetOtomatikSenkronizeEt();
     }
+  }
+
+  void _widgetOtomatikSenkronizeEt() {
+    try {
+      final sonraki = _sonrakiVaktiHesapla();
+      final siradakiKey = sonraki['key'] as String;
+      final kalanSure = sonraki['kalan'] as Duration;
+      final saat = kalanSure.inHours.toString().padLeft(2, '0');
+      final dk = (kalanSure.inMinutes % 60).toString().padLeft(2, '0');
+      VaktiHuzurWidgetServisi.widgetVerileriniSenkronizeEt(
+        vakitModel: _vakitModel,
+        siradakiVakitAdi: Ceviri.m(widget.dil, siradakiKey),
+        kalanSureMetni: '${saat}s ${dk}dk',
+        dil: widget.dil,
+      );
+    } catch (_) {}
   }
 
   Future<void> _gpsKonumunuBulVeYukle() async {
@@ -1906,6 +1954,7 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
         _pusulaAcisi = 0.0;
         _konumYukleniyor = false;
       });
+      _widgetOtomatikSenkronizeEt();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: widget.tema.kartRengi,
@@ -2593,6 +2642,100 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // KİLİT EKRANI & ANA EKRAN WİDGET AYARLARI KARTI (SAMSUNG/ANDROID & iPHONE)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () {
+                      final sonraki = _sonrakiVaktiHesapla();
+                      final siradakiKey = sonraki['key'] as String;
+                      final kalan = sonraki['kalan'] as Duration;
+                      final s = kalan.inHours.toString().padLeft(2, '0');
+                      final d = (kalan.inMinutes % 60).toString().padLeft(2, '0');
+                      VaktiHuzurWidgetServisi.panelGoster(
+                        context,
+                        arkaPlan: tema.arkaPlan,
+                        kartRengi: tema.kartRengi,
+                        vurguAltin: tema.vurguAltin,
+                        yumusakAltin: tema.yumusakAltin,
+                        yaziRengi: tema.yaziRengi,
+                        ikincilYazi: tema.ikincilYazi,
+                        dil: dil,
+                        vakitModel: _vakitModel,
+                        siradakiVakitAdi: Ceviri.m(dil, siradakiKey),
+                        kalanSureMetni: '${s}s ${d}dk',
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            tema.kartRengi,
+                            tema.vurguAltin.withValues(alpha: 0.14),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: tema.vurguAltin.withValues(alpha: 0.5),
+                          width: 1.1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: tema.vurguAltin.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.widgets_rounded,
+                              color: tema.vurguAltin,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 13),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  dil == 'EN'
+                                      ? 'Lock Screen & Home Widgets'
+                                      : dil == 'AR'
+                                          ? 'إعدادات الويدجت وشاشة القفل'
+                                          : 'Kilit Ekranı & Ana Ekran Widget’ları',
+                                  style: TextStyle(
+                                    fontFamily: 'Lora',
+                                    color: tema.yaziRengi,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  dil == 'EN'
+                                      ? 'Samsung / Android & iPhone Prayer Times & Daily Verse Widgets'
+                                      : 'Samsung / Android & iPhone Namaz Vakti ve Günün Ayeti Widget’ı',
+                                  style: TextStyle(
+                                    color: tema.vurguAltin,
+                                    fontSize: 11.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: tema.vurguAltin,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
 

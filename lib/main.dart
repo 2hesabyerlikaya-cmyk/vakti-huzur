@@ -2738,33 +2738,48 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
                               style: TextStyle(color: tema.ikincilYazi, fontSize: 11.5),
                             ),
                             const SizedBox(height: 14),
-                            Container(
-                              width: 192,
-                              height: 192,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                boxShadow: kibleDogrulandi
-                                    ? [
-                                        BoxShadow(
-                                          color: dogrulamaYesilAltin.withValues(alpha: 0.32),
-                                          blurRadius: 24,
-                                          spreadRadius: 4,
-                                        ),
-                                      ]
-                                    : null,
-                              ),
-                              child: TweenAnimationBuilder<double>(
-                                tween: Tween<double>(begin: 0, end: kibleDerece + _pusulaAcisi),
-                                duration: const Duration(milliseconds: 350),
-                                builder: (context, aci, _) {
-                                  return CustomPaint(
-                                    painter: _KiblePusulasiPainter(
-                                      kibleAcisiDerece: aci,
-                                      altinRenk: aktifPusulaRengi,
-                                      kibleDogrulandi: kibleDogrulandi,
-                                    ),
-                                  );
-                                },
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onPanUpdate: (details) {
+                                final center = const Offset(96, 96);
+                                final localPos = details.localPosition - center;
+                                if (localPos.distance > 12) {
+                                  final touchAngleDeg =
+                                      math.atan2(localPos.dx, -localPos.dy) * (180.0 / math.pi);
+                                  double yeniSapma = (touchAngleDeg - kibleDerece) % 360.0;
+                                  if (yeniSapma > 180.0) yeniSapma -= 360.0;
+                                  if (yeniSapma < -180.0) yeniSapma += 360.0;
+                                  _pusulaAcisiniAyarla(yeniSapma, manuelMi: true);
+                                }
+                              },
+                              child: Container(
+                                width: 192,
+                                height: 192,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: kibleDogrulandi
+                                      ? [
+                                          BoxShadow(
+                                            color: dogrulamaYesilAltin.withValues(alpha: 0.32),
+                                            blurRadius: 24,
+                                            spreadRadius: 4,
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: TweenAnimationBuilder<double>(
+                                  tween: Tween<double>(begin: 0, end: kibleDerece + _pusulaAcisi),
+                                  duration: const Duration(milliseconds: 220),
+                                  builder: (context, aci, _) {
+                                    return CustomPaint(
+                                      painter: _KiblePusulasiPainter(
+                                        kibleAcisiDerece: aci,
+                                        altinRenk: aktifPusulaRengi,
+                                        kibleDogrulandi: kibleDogrulandi,
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
                             const SizedBox(height: 12),

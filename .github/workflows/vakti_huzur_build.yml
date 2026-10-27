@@ -1,0 +1,81 @@
+name: Vakt-i Huzur — Android (.apk / .aab) & iOS (.ipa) Bulut Derleme
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  # 1. ANDROID APK & GOOGLE PLAY AAB DERLEMESİ
+  build-android:
+    name: Android APK & Play Store AAB Üret
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kaynak Kodunu İndir
+        uses: actions/checkout@v4
+
+      - name: Java 17 Kurulumu
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Flutter SDK Kurulumu (Stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Bağımlılıkları Yükle
+        run: flutter pub get
+
+      - name: Android Kurulum Paketi (.apk) Derle
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Google Play Mağaza Paketi (.aab) Derle
+        run: flutter build appbundle --release --no-tree-shake-icons
+
+      - name: APK Dosyasını Vakt-i_Huzur.apk Olarak Hazırla
+        run: cp build/app/outputs/flutter-apk/app-release.apk Vakt-i_Huzur.apk
+
+      - name: Vakt-i_Huzur.apk Dosyasını İndirilebilir Paket Olarak Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vakt-i_Huzur-Android-APK
+          path: Vakt-i_Huzur.apk
+
+      - name: Google Play .aab Dosyasını Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vakt-i_Huzur-GooglePlay-AAB
+          path: build/app/outputs/bundle/release/app-release.aab
+
+  # 2. iOS (.ipa) DERLEMESİ (macOS Bulut Sunucusunda)
+  build-ios:
+    name: iOS (.ipa) Paketi Üret
+    runs-on: macos-latest
+    steps:
+      - name: Kaynak Kodunu İndir
+        uses: actions/checkout@v4
+
+      - name: Flutter SDK Kurulumu (Stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Bağımlılıkları Yükle
+        run: flutter pub get
+
+      - name: iOS Release Derlemesi (İmzasız / Unsigned)
+        run: |
+          flutter build ios --release --no-codesign --no-tree-shake-icons
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r Vakt-i_Huzur_iOS.ipa Payload
+
+      - name: Vakt-i_Huzur_iOS.ipa Dosyasını Yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vakt-i_Huzur-iOS-IPA
+          path: Vakt-i_Huzur_iOS.ipa

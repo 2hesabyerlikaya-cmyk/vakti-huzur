@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Vakt-i Huzur — Kur'an-ı Kerim, Sahih Hadis Akışı, Diyanet Namaz Vakitleri, Kıble Pusulası, Dualar ve Dijital Zikirmatik.">
+  <meta name="theme-color" content="#0D261C">
+  <meta name="background-color" content="#091A13">
+
+  <!-- iOS & Android Tam Ekran PWA Meta Etiketleri -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Vakt-i Huzur">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Vakt-i Huzur</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Scheherazade+New:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    html, body {
+      background-color: #091A13;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+  </style>
+
+  <script>
+    // 1. Mobil Titreşim (Haptic / Vibration API) Köprüsü
+    window.cihazTitret = function(sureMs) {
+      try {
+        if (navigator && navigator.vibrate) {
+          navigator.vibrate(sureMs);
+        }
+      } catch (e) {}
+    };
+
+    // 3. Mobil Cihaz Yönelim Sensörü (Canlı Kıble Pusulası için)
+    window._cihazPusulaDerece = -1;
+    function _pusulaEventIsle(e) {
+      var heading = null;
+      if (typeof e.webkitCompassHeading === 'number') {
+        heading = e.webkitCompassHeading;
+      } else if (typeof e.alpha === 'number') {
+        heading = (360 - e.alpha) % 360;
+      }
+      if (heading !== null && !isNaN(heading)) {
+        window._cihazPusulaDerece = heading;
+      }
+    }
+    window.addEventListener('deviceorientationabsolute', _pusulaEventIsle, true);
+    window.addEventListener('deviceorientation', _pusulaEventIsle, true);
+
+    window.cihazPusulaAcisiOku = function() {
+      return typeof window._cihazPusulaDerece === 'number' ? window._cihazPusulaDerece : -1;
+    };
+
+    window.pusulaSensorIzniIste = function() {
+      try {
+        if (typeof DeviceOrientationEvent !== 'undefined' &&
+            typeof DeviceOrientationEvent.requestPermission === 'function') {
+          DeviceOrientationEvent.requestPermission().then(function(state) {
+            if (state === 'granted') {
+              window.addEventListener('deviceorientation', _pusulaEventIsle, true);
+            }
+          }).catch(function() {});
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    };
+
+    // 4. Çevrimdışı Çalışan Huzurlu Bildirim Sesi (Web Audio API Harmonik Çan / Ney Tınısı)
+    window.bildirimSesiCal = function(baslik, icerik) {
+      try {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          var ctx = new AudioCtx();
+          var notalar = [528, 660, 792];
+          notalar.forEach(function(frekans, idx) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(frekans, ctx.currentTime + idx * 0.16);
+            gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.16);
+            gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + idx * 0.16 + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.16 + 0.75);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + idx * 0.16);
+            osc.stop(ctx.currentTime + idx * 0.16 + 0.8);
+          });
+        }
+      } catch (e) {}
+
+      // Tarayıcı Bildirimi (İzin varsa veya izin verildiğinde)
+      try {
+        if ('Notification' in window) {
+          if (Notification.permission === 'granted') {
+            new Notification(baslik, { body: icerik, icon: 'icons/Icon-192.png' });
+          } else if (Notification.permission !== 'denied') {
+            Notification.requestPermission().then(function(p) {
+              if (p === 'granted') {
+                new Notification(baslik, { body: icerik, icon: 'icons/Icon-192.png' });
+              }
+            });
+          }
+        }
+      } catch (e) {}
+    };
+  </script>
+</head>
+<body>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

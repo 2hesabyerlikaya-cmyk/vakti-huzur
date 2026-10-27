@@ -1,0 +1,28 @@
+workflows:
+  vakti-huzur-all-platforms:
+    name: Vakt-i Huzur (Android APK + AAB & iOS IPA)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Flutter Bağımlılıklarını Yükle
+        script: |
+          flutter pub get
+      - name: Android APK (Vakt-i_Huzur.apk) ve Play Store AAB Üret
+        script: |
+          flutter build apk --release --no-tree-shake-icons
+          cp build/app/outputs/flutter-apk/app-release.apk Vakt-i_Huzur.apk
+          flutter build appbundle --release --no-tree-shake-icons
+      - name: iOS (.ipa) Paketi Üret
+        script: |
+          flutter build ios --release --no-codesign --no-tree-shake-icons
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r Vakt-i_Huzur_iOS.ipa Payload
+    artifacts:
+      - Vakt-i_Huzur.apk
+      - build/app/outputs/bundle/release/*.aab
+      - Vakt-i_Huzur_iOS.ipa

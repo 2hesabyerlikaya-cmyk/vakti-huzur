@@ -7,11 +7,78 @@ import 'quran_api_service.dart';
 import 'quran_hadith_data.dart';
 
 // ============================================================================
-// 1. SESLİ KUR'AN-I KERİM DİNLEME SERVİSİ (MİŞARİ RAŞİD EL-AFASİ MP3 OYNATICI)
+// 1. SESLİ KUR'AN-I KERİM DİNLEME SERVİSİ (ÇOKLU HAFIZ MP3 OYNATICI)
 // ============================================================================
+
+/// Seçilebilir hafızlar (cdn.islamic.network edition kodları ve denenecek bitrate sırası)
+class HafizModel {
+  final String kod;
+  final String adTr;
+  final String adAr;
+  final List<int> bitrateler;
+
+  const HafizModel({
+    required this.kod,
+    required this.adTr,
+    required this.adAr,
+    required this.bitrateler,
+  });
+
+  String get ad => adTr;
+  String get ulke => kod.contains('alafasy')
+      ? 'Kuveyt'
+      : (kod.contains('abdulbasit') ? 'Mısır' : 'Suudi Arabistan');
+}
+
+const List<HafizModel> kHafizlar = [
+  HafizModel(
+    kod: 'ar.alafasy',
+    adTr: 'Mişari Raşid el-Afasi',
+    adAr: 'مشاري راشد العفاسي',
+    bitrateler: [128, 64],
+  ),
+  HafizModel(
+    kod: 'ar.abdulbasitmurattal',
+    adTr: 'Abdulbasit Abdussamed (Murattal)',
+    adAr: 'عبد الباسط عبد الصمد (مرتل)',
+    bitrateler: [192, 64],
+  ),
+  HafizModel(
+    kod: 'ar.yasseraldossari',
+    adTr: 'Yasser Ad-Dossari',
+    adAr: 'ياسر الدوسري',
+    bitrateler: [128, 64],
+  ),
+];
 
 class KuranSesOynaticiServisi {
   static web.HTMLAudioElement? _audioElement;
+  static const String _hafizStorageKey = 'vakti_huzur_secili_hafiz_v1';
+
+  /// Seçili hafız (kalıcı olarak cihaz hafızasında saklanır)
+  static final ValueNotifier<HafizModel> seciliHafiz =
+      ValueNotifier<HafizModel>(_kayitliHafiziYukle());
+
+  /// Ses dosyası yüklenemezse sırayla denenecek yedek URL'ler
+  static List<String> _yedekUrller = [];
+
+  static HafizModel _kayitliHafiziYukle() {
+    try {
+      final kod = web.window.localStorage.getItem(_hafizStorageKey);
+      if (kod != null) {
+        return kHafizlar.firstWhere((h) => h.kod == kod, orElse: () => kHafizlar.first);
+      }
+    } catch (_) {}
+    return kHafizlar.first;
+  }
+
+  static void hafizSec(HafizModel hafiz) {
+    seciliHafiz.value = hafiz;
+    try {
+      web.window.localStorage.setItem(_hafizStorageKey, hafiz.kod);
+    } catch (_) {}
+    tamamenDurdur();
+  }
 
   /// Şu an çalmakta olan globalAyetNo (1..6236)
   static final ValueNotifier<int?> aktifGlobalAyetNo = ValueNotifier<int?>(null);
@@ -29,9 +96,23 @@ class KuranSesOynaticiServisi {
   static int _siradakiIndex = 0;
   static ValueChanged<int>? _onSureAyetDegisti;
 
+  /// Seçili hafıza göre ana MP3 adresini döndürür
   static String mp3UrlOlustur(int globalAyetNo) {
+    return _adayUrller(globalAyetNo).first;
+  }
+
+  /// Seçili hafızın tüm bitrate seçenekleri + son çare olarak Mişari Raşid el-Afasi
+  static List<String> _adayUrller(int globalAyetNo) {
     final gecerli = globalAyetNo.clamp(1, 6236);
-    return 'https://cdn.islamic.network/quran/audio/128/ar.alafasy/$gecerli.mp3';
+    final h = seciliHafiz.value;
+    final liste = <String>[
+      for (final br in h.bitrateler)
+        'https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3',
+    ];
+    if (h.kod != 'ar.alafasy') {
+      liste.add('https://cdn.islamic.network/quran/audio/128/ar.alafasy/$gecerli.mp3');
+    }
+    return liste;
   }
 
   /// Sure numarası (1..114) ve sure içi ayet numarasından (1..N) globalAyetNo (1..6236) hesaplar
@@ -63,6 +144,13 @@ class KuranSesOynaticiServisi {
     }).toJS;
 
     audio.onerror = ((web.Event _) {
+      // Seçili hafızın dosyası bulunamazsa sıradaki bitrate / yedek hafızı dene
+      if (_yedekUrller.isNotEmpty) {
+        final sonraki = _yedekUrller.removeAt(0);
+        _audioElement!.src = sonraki;
+        _audioElement!.play();
+        return;
+      }
       caliyorMu.value = false;
     }).toJS;
 
@@ -75,8 +163,9 @@ class KuranSesOynaticiServisi {
       web.window.speechSynthesis.cancel();
     } catch (_) {}
 
-    final url = mp3UrlOlustur(globalAyetNo);
-    _audioElement!.src = url;
+    final adaylar = _adayUrller(globalAyetNo);
+    _yedekUrller = adaylar.sublist(1);
+    _audioElement!.src = adaylar.first;
     aktifGlobalAyetNo.value = globalAyetNo;
     aktifKartId.value = kartId;
     caliyorMu.value = true;
@@ -1061,10 +1150,14 @@ class CanliPusulaSensorServisi {
     pusulaSensorIzniIsteBridge();
   }
 
-  /// Kıble doğrulandığında (±3°) veya bildirimde belirgin titreşim verir
+  /// Kıble tam hizalandığında (±3°) çift ve belirgin titreşim verir
   static void kibleDogrulandiTitresim() {
     HapticFeedback.heavyImpact();
     cihazTitretBridge(90);
+    Future.delayed(const Duration(milliseconds: 160), () {
+      HapticFeedback.heavyImpact();
+      cihazTitretBridge(90);
+    });
   }
 }
 

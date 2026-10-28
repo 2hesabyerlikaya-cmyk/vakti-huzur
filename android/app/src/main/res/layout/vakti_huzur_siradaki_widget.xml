@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_siradaki_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_emerald_gold"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@+id/tv_siradaki_konum_hicri"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="☪ Vakt-i Huzur • İstanbul"
+        android:textColor="#D9B650"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_siradaki_ad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="İkindi Vakti"
+        android:textColor="#F2E2B6"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_siradaki_kalan"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="01s 24dk"
+        android:textColor="#D4AF37"
+        android:textSize="26sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tv_siradaki_alt_bilgi"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:text="Vaktine Kalan Süre • Diyanet"
+        android:textColor="#B7D4C5"
+        android:textSize="10.5sp" />
+</LinearLayout>

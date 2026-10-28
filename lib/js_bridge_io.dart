@@ -16,6 +16,12 @@ StreamSubscription<AccelerometerEvent>? _accelSub;
 StreamSubscription<MagnetometerEvent>? _magSub;
 AudioPlayer? _bildirimPlayer;
 
+void pusulaSensorleriniKapat() {
+  _accelSub?.cancel();
+  _magSub?.cancel();
+  _sensorBaslatildi = false;
+}
+
 void _sensorleriBaslat() {
   if (_sensorBaslatildi) return;
   _sensorBaslatildi = true;

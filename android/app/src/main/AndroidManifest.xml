@@ -39,7 +39,7 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <!-- 1. Vakt-i Huzur: Namaz Vakitleri Ana Ekran & Kilit Ekranı Widget'ı -->
+        <!-- 1. Vakt-i Huzur: 6 Vakit Çizelgesi Widget'ı -->
         <receiver
             android:name=".VaktiHuzurNamazWidgetProvider"
             android:exported="true"
@@ -52,7 +52,59 @@
                 android:resource="@xml/vakti_huzur_namaz_widget_info" />
         </receiver>
 
-        <!-- 2. Vakt-i Huzur: Günün Ayeti & Hadisi Ana Ekran & Kilit Ekranı Widget'ı -->
+        <!-- 2. Vakt-i Huzur: Günün Ayeti Widget'ı -->
+        <receiver
+            android:name=".VaktiHuzurAyetWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_ayet_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vakti_huzur_ayet_widget_info" />
+        </receiver>
+
+        <!-- 3. Vakt-i Huzur: Günün Hadisi Widget'ı -->
+        <receiver
+            android:name=".VaktiHuzurHadisWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_hadis_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vakti_huzur_hadis_widget_info" />
+        </receiver>
+
+        <!-- 4. Vakt-i Huzur: Sıradaki Namaz Widget'ı -->
+        <receiver
+            android:name=".VaktiHuzurSiradakiWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_siradaki_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vakti_huzur_siradaki_widget_info" />
+        </receiver>
+
+        <!-- 5. Vakt-i Huzur: Günlük Zikir Widget'ı -->
+        <receiver
+            android:name=".VaktiHuzurZikirWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_zikir_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vakti_huzur_zikir_widget_info" />
+        </receiver>
+
+        <!-- Geriye Dönük Uyumluluk: Ayet & Hadis Birleşik -->
         <receiver
             android:name=".VaktiHuzurAyetHadisWidgetProvider"
             android:exported="true"

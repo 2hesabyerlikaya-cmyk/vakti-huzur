@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Vakt-i Huzur</string>
-    <string name="widget_namaz_title">Vakt-i Huzur: Namaz Vakitleri</string>
-    <string name="widget_namaz_desc">Sıradaki namaz vaktini, kalan süreyi ve günün 6 vaktini ana ekran ve kilit ekranında gösterir.</string>
-    <string name="widget_ayet_title">Vakt-i Huzur: Günün Ayeti &amp; Hadisi</string>
-    <string name="widget_ayet_desc">Her gün seçkin bir Kur’an-ı Kerim ayeti veya Sahih Hadis-i Şerifi ana ekran ve kilit ekranında gösterir.</string>
+    <string name="widget_namaz_title">Vakt-i Huzur: 6 Vakit Çizelgesi</string>
+    <string name="widget_namaz_desc">Günün 6 namaz vaktini çizelge halinde ana ekran ve kilit ekranında gösterir.</string>
+    <string name="widget_ayet_title">Vakt-i Huzur: Günün Ayeti</string>
+    <string name="widget_ayet_desc">Her gün seçkin bir Kur’an-ı Kerim ayetini Arapça ve mealiyle gösterir.</string>
+    <string name="widget_hadis_title">Vakt-i Huzur: Günün Hadisi</string>
+    <string name="widget_hadis_desc">Her gün seçkin bir Sahih Hadis-i Şerifi Arapça ve tercümesiyle gösterir.</string>
+    <string name="widget_siradaki_title">Vakt-i Huzur: Sıradaki Namaz</string>
+    <string name="widget_siradaki_desc">Sıradaki namaz vaktini ve kalan süreyi büyük harflerle canlı gösterir.</string>
+    <string name="widget_zikir_title">Vakt-i Huzur: Günlük Zikir</string>
+    <string name="widget_zikir_desc">Günün zikrini, anlamını ve zikirmatik sayacını ana ekranda canlı gösterir.</string>
 </resources>

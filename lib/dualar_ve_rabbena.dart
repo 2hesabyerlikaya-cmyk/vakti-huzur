@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'audio_bookmark_tracker_service.dart';
+import 'dualar_ek_arsiv.dart';
 import 'quran_api_service.dart';
 import 'quran_hadith_data.dart';
 import 'share_story_sheet.dart';
@@ -45,9 +46,17 @@ const List<String> kDuaKategorileriTr = [
   'Sabah & Akşam',
   'Şifa & Afiyet',
   'Rızık & Bereket',
+  'Nazar & Korunma',
+  'Namaz Tesbihatı',
   'Huzur & İnşirah',
   'Sınav & İş Kolaylığı',
   'İstiğfar & Tövbe',
+];
+
+/// Mevcut Rabbena / günlük dualar + genişletilmiş dua arşivi (dualar_ek_arsiv.dart)
+final List<DuaModel> kTumDualar = [
+  ...kGunlukVeRabbenaDualari,
+  ...kEkDuaArsivi,
 ];
 
 const List<DuaModel> kGunlukVeRabbenaDualari = [
@@ -366,7 +375,7 @@ class _DualarVeRabbenaListeWidgetState extends State<DualarVeRabbenaListeWidget>
   @override
   Widget build(BuildContext context) {
     final dil = widget.dil;
-    final filtrelenmis = kGunlukVeRabbenaDualari.where((d) {
+    final filtrelenmis = kTumDualar.where((d) {
       final katUygun = _seciliKategori == 'Tümü' || d.kategoriTr == _seciliKategori;
       if (!katUygun) return false;
       if (_arama.trim().isEmpty) return true;

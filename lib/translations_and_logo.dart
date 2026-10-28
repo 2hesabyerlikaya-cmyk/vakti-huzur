@@ -2,6 +2,38 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 // ============================================================================
+// ============================================================================
+// UYGULAMA TEMA MODELİ
+// ============================================================================
+
+class IslamiTema {
+  final int id;
+  final Color arkaPlan;
+  final Color kartRengi;
+  final Color vurguAltin;
+  final Color yumusakAltin;
+  final Color yaziRengi;
+  final Color ikincilYazi;
+  final bool karanlikMi;
+  final bool gorselTemaMi;
+  final IconData ikon;
+
+  const IslamiTema({
+    required this.id,
+    required this.arkaPlan,
+    required this.kartRengi,
+    required this.vurguAltin,
+    required this.yumusakAltin,
+    required this.yaziRengi,
+    required this.ikincilYazi,
+    required this.karanlikMi,
+    this.gorselTemaMi = false,
+    required this.ikon,
+  });
+}
+
+typedef ModernTema = IslamiTema;
+
 // MODERN İSLAMİ UYGULAMA LOGOSU (RUB EL HİZB 8 KÖŞELİ YILDIZ & ALTIN HİLAL)
 // ============================================================================
 
@@ -131,6 +163,7 @@ class Ceviri {
       'app_subtitle': 'Kurumsal İslami Rehber',
       'tab_reels': 'Akış (Reels)',
       'tab_home': 'Ana Sayfa',
+      'tab_quiz': 'Quiz',
       'tab_library': 'Kütüphane',
       'flow_title': 'Manevi Akış',
       'short_tafsir': 'Kısa Tefsir ve Hikmeti',
@@ -196,6 +229,7 @@ class Ceviri {
       'app_subtitle': 'Official Islamic Guide',
       'tab_reels': 'Spiritual Flow',
       'tab_home': 'Prayer Times',
+      'tab_quiz': 'Quiz',
       'tab_library': 'Library',
       'flow_title': 'Spiritual Flow',
       'short_tafsir': 'Brief Commentary & Wisdom',
@@ -261,6 +295,7 @@ class Ceviri {
       'app_subtitle': 'الدليل الإسلامي المعتمد',
       'tab_reels': 'نفحات إيمانية',
       'tab_home': 'الرئيسية',
+      'tab_quiz': 'المسابقة',
       'tab_library': 'المكتبة الإسلامية',
       'flow_title': 'نفحات إيمانية',
       'short_tafsir': 'التفسير المختصر والحكمة',

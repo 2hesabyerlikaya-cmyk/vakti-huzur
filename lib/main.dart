@@ -12,7 +12,41 @@ import 'quran_hadith_data.dart';
 import 'share_story_sheet.dart';
 import 'translations_and_logo.dart';
 import 'widget_ve_kilit_ekrani_servisi.dart';
+import 'quiz_sekmesi.dart';
 import 'zikirmatik_ve_esmaul_husna.dart';
+import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
+
+class KullaniciProfilServisi {
+  static const String _isimKey = 'vakti_huzur_kullanici_rumuz_v1';
+  static const String _premiumKey = 'vakti_huzur_kullanici_premium_v1';
+
+  static String? rumuzGetir() {
+    try {
+      final val = web.window.localStorage.getItem(_isimKey);
+      if (val != null && val.trim().isNotEmpty) return val.trim();
+    } catch (_) {}
+    return null;
+  }
+
+  static void rumuzKaydet(String rumuz) {
+    try {
+      web.window.localStorage.setItem(_isimKey, rumuz.trim());
+    } catch (_) {}
+  }
+
+  static bool premiumAktifMi() {
+    try {
+      return web.window.localStorage.getItem(_premiumKey) == 'true';
+    } catch (_) {}
+    return false;
+  }
+
+  static void premiumAyarla(bool aktif) {
+    try {
+      web.window.localStorage.setItem(_premiumKey, aktif ? 'true' : 'false');
+    } catch (_) {}
+  }
+}
 
 void main() {
   runApp(const IslamiUygulamaApp());
@@ -27,31 +61,7 @@ class UygulamaScrollBehavior extends MaterialScrollBehavior {
       };
 }
 
-class IslamiTema {
-  final int id;
-  final Color arkaPlan;
-  final Color kartRengi;
-  final Color vurguAltin;
-  final Color yumusakAltin;
-  final Color yaziRengi;
-  final Color ikincilYazi;
-  final bool karanlikMi;
-  final bool gorselTemaMi;
-  final IconData ikon;
 
-  const IslamiTema({
-    required this.id,
-    required this.arkaPlan,
-    required this.kartRengi,
-    required this.vurguAltin,
-    required this.yumusakAltin,
-    required this.yaziRengi,
-    required this.ikincilYazi,
-    required this.karanlikMi,
-    this.gorselTemaMi = false,
-    required this.ikon,
-  });
-}
 
 const List<IslamiTema> kTemalar = [
   // 1. Medine Yeşili & Kubbe (Varsayılan Açılış Teması)
@@ -778,6 +788,11 @@ class _AnaIskeletEkraniState extends State<AnaIskeletEkrani> {
             onMenuAc: _drawerAc,
             begenilenler: _sonsuzReelsListesi.where((e) => e.begenildi).toList(),
           ),
+          GunlukIslamiQuizSekmesi(
+            tema: tema,
+            dil: dil,
+            onMenuAc: _drawerAc,
+          ),
           KutuphaneSekmesi(
             tema: tema,
             dil: dil,
@@ -799,6 +814,7 @@ class _AnaIskeletEkraniState extends State<AnaIskeletEkrani> {
           child: BottomNavigationBar(
             currentIndex: _seciliSekmeIndex,
             onTap: (idx) => setState(() => _seciliSekmeIndex = idx),
+            type: BottomNavigationBarType.fixed,
             backgroundColor: Colors.transparent,
             elevation: 0,
             selectedItemColor: const Color(0xFFD4AF37),
@@ -815,6 +831,11 @@ class _AnaIskeletEkraniState extends State<AnaIskeletEkrani> {
                 icon: const Icon(Icons.mosque_outlined, size: 22),
                 activeIcon: const Icon(Icons.mosque_rounded, size: 22),
                 label: Ceviri.m(dil, 'tab_home'),
+              ),
+              BottomNavigationBarItem(
+                icon: const Icon(Icons.quiz_outlined, size: 22),
+                activeIcon: const Icon(Icons.quiz_rounded, size: 22),
+                label: Ceviri.m(dil, 'tab_quiz'),
               ),
               BottomNavigationBarItem(
                 icon: const Icon(Icons.menu_book_outlined, size: 22),
@@ -1228,6 +1249,70 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                         ),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                          leading: Icon(Icons.record_voice_over_rounded, color: tema.vurguAltin),
+                          title: Text(
+                            seciliDil == 'EN'
+                                ? 'Quran Reciter Selection'
+                                : seciliDil == 'AR'
+                                    ? 'اختيار القارئ'
+                                    : 'Kuran Tilaveti Hafız Seçimi',
+                            style: TextStyle(
+                              color: tema.yaziRengi,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          subtitle: ValueListenableBuilder<HafizModel>(
+                            valueListenable: KuranSesOynaticiServisi.seciliHafiz,
+                            builder: (context, h, _) => Text(
+                              h.ad,
+                              style: TextStyle(color: tema.ikincilYazi, fontSize: 11),
+                            ),
+                          ),
+                          trailing: Icon(Icons.chevron_right_rounded, color: tema.ikincilYazi),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _hafizSeciciSheetGoster(context, tema: tema, dil: seciliDil);
+                          },
+                        ),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 6),
+                          leading: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD4AF37)),
+                          title: Text(
+                            seciliDil == 'EN'
+                                ? 'Ad-Free Package & Support'
+                                : seciliDil == 'AR'
+                                    ? 'الباقة الخالية من الإعلانات ودعم التطبيق'
+                                    : 'Reklamsız Paket & Destek Ol',
+                            style: TextStyle(
+                              color: tema.yaziRengi,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13.5,
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.6)),
+                            ),
+                            child: const Text(
+                              'DESTEK',
+                              style: TextStyle(
+                                color: Color(0xFFD4AF37),
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.pop(context);
+                            _premiumVeDestekSheetGoster(context, tema: tema, dil: seciliDil);
+                          },
+                        ),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: Icon(Icons.calendar_month_rounded, color: tema.vurguAltin),
                           title: Text(
                             Ceviri.m(seciliDil, 'drawer_calendar'),
@@ -1252,6 +1337,377 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+void _hafizSeciciSheetGoster(BuildContext context, {required IslamiTema tema, required String dil}) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (ctx) => Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: BoxDecoration(
+        color: tema.arkaPlan,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.4)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: tema.vurguAltin.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(Icons.record_voice_over_rounded, color: tema.vurguAltin),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    dil == 'EN'
+                        ? 'Select Quran Reciter'
+                        : dil == 'AR'
+                            ? 'اختيار قارئ القرآن الكريم'
+                            : 'Kur’an-ı Kerim Hafız Seçimi',
+                    style: TextStyle(
+                      fontFamily: 'Lora',
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.bold,
+                      color: tema.yaziRengi,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            ValueListenableBuilder<HafizModel>(
+              valueListenable: KuranSesOynaticiServisi.seciliHafiz,
+              builder: (context, secili, _) {
+                return Column(
+                  children: kHafizlar.map((h) {
+                    final aktif = h.kod == secili.kod;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: aktif
+                            ? tema.vurguAltin.withValues(alpha: 0.16)
+                            : tema.kartRengi,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: aktif
+                              ? tema.vurguAltin
+                              : tema.vurguAltin.withValues(alpha: 0.2),
+                          width: aktif ? 1.4 : 0.8,
+                        ),
+                      ),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: tema.vurguAltin.withValues(alpha: 0.2),
+                          child: Icon(
+                            Icons.mic_rounded,
+                            color: tema.vurguAltin,
+                            size: 18,
+                          ),
+                        ),
+                        title: Text(
+                          h.ad,
+                          style: TextStyle(
+                            color: tema.yaziRengi,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${h.ulke} • 128 kbps HD Kalite',
+                          style: TextStyle(
+                            color: tema.ikincilYazi,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                        trailing: aktif
+                            ? Icon(Icons.check_circle_rounded, color: tema.vurguAltin)
+                            : null,
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          KuranSesOynaticiServisi.hafizSec(h);
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _premiumVeDestekSheetGoster(BuildContext context, {required IslamiTema tema, required String dil}) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (ctx) => _PremiumVeDestekIcerik(tema: tema, dil: dil),
+  );
+}
+
+class _PremiumVeDestekIcerik extends StatefulWidget {
+  final IslamiTema tema;
+  final String dil;
+
+  const _PremiumVeDestekIcerik({required this.tema, required this.dil});
+
+  @override
+  State<_PremiumVeDestekIcerik> createState() => _PremiumVeDestekIcerikState();
+}
+
+class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
+  int _seciliPaketIdx = 1;
+
+  final List<Map<String, dynamic>> _secenekler = [
+    {
+      'baslik': 'Aylık Reklamsız',
+      'fiyat': '29,99 TL / ay',
+      'rozet': null,
+      'destekMi': false,
+    },
+    {
+      'baslik': 'Yıllık Reklamsız (%45 Tasarruf)',
+      'fiyat': '199,99 TL / yıl',
+      'rozet': 'EN POPÜLER',
+      'destekMi': false,
+    },
+    {
+      'baslik': 'Ömür Boyu Sınırsız',
+      'fiyat': '399,99 TL (Tek Seferlik)',
+      'rozet': 'ÖMÜR BOYU',
+      'destekMi': false,
+    },
+    {
+      'baslik': 'Bir Çay İkram Et',
+      'fiyat': '20 TL (Gönül Desteği)',
+      'rozet': '☕ DESTEK',
+      'destekMi': true,
+    },
+    {
+      'baslik': 'Hayırlı Hizmet Katkısı',
+      'fiyat': '50 TL (Gönül Desteği)',
+      'rozet': '🌿 BEREKET',
+      'destekMi': true,
+    },
+    {
+      'baslik': 'İlim & Teknoloji Hamisi',
+      'fiyat': '150 TL (Manevi Katkı)',
+      'rozet': '🕌 HAMİ',
+      'destekMi': true,
+    },
+  ];
+
+  void _onayla() {
+    HapticFeedback.heavyImpact();
+    KullaniciProfilServisi.premiumAyarla(true);
+    Navigator.pop(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: widget.tema.kartRengi,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: widget.tema.vurguAltin, width: 1.2),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.volunteer_activism_rounded, color: widget.tema.vurguAltin, size: 26),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.dil == 'EN' ? 'Thank You!' : 'Allah Kabul Eylesin!',
+                style: TextStyle(
+                  fontFamily: 'Lora',
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: widget.tema.yaziRengi,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          widget.dil == 'EN'
+              ? 'Thank you for supporting Vakt-i Huzur! May Allah bless your good deeds and grant peace to your life.'
+              : 'Vakt-i Huzur uygulamamıza ve manevi hizmetlerimize verdiğiniz destek ve dualarınız için teşekkür ederiz. Rabbimiz hayırlarınızı kat kat kabul eylesin.',
+          style: TextStyle(color: widget.tema.yaziRengi.withValues(alpha: 0.9), fontSize: 13, height: 1.45),
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: widget.tema.vurguAltin),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              widget.dil == 'EN' ? 'Close' : 'Âmin, Kapat',
+              style: TextStyle(color: widget.tema.arkaPlan, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = widget.tema;
+    final dil = widget.dil;
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      decoration: BoxDecoration(
+        color: tema.arkaPlan,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.4)),
+      ),
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 44,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: tema.vurguAltin.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD4AF37), size: 26),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    dil == 'EN' ? 'Ad-Free Package & Support' : 'Reklamsız Paket & Destek Ol',
+                    style: TextStyle(
+                      fontFamily: 'Lora',
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: tema.yaziRengi,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close_rounded, color: tema.ikincilYazi),
+                ),
+              ],
+            ),
+            Text(
+              dil == 'EN'
+                  ? 'Enjoy seamless, ad-free spiritual tranquility and contribute to Islamic education & apps.'
+                  : 'Tamamen reklamsız, kesintisiz manevi huzur yaşayın ve İslami ilim-rehberlik hizmetimize katkı sağlayın.',
+              style: TextStyle(color: tema.ikincilYazi, fontSize: 12),
+            ),
+            const SizedBox(height: 14),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _secenekler.length,
+                itemBuilder: (context, idx) {
+                  final item = _secenekler[idx];
+                  final secili = _seciliPaketIdx == idx;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: secili ? tema.vurguAltin.withValues(alpha: 0.16) : tema.kartRengi,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: secili ? tema.vurguAltin : tema.vurguAltin.withValues(alpha: 0.22),
+                        width: secili ? 1.6 : 0.8,
+                      ),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      onTap: () {
+                        HapticFeedback.selectionClick();
+                        setState(() => _seciliPaketIdx = idx);
+                      },
+                      leading: Icon(
+                        secili ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+                        color: secili ? tema.vurguAltin : tema.ikincilYazi,
+                        size: 20,
+                      ),
+                      title: Text(
+                        item['baslik'] as String,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: tema.yaziRengi,
+                        ),
+                      ),
+                      subtitle: Text(
+                        item['fiyat'] as String,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                          color: tema.vurguAltin,
+                        ),
+                      ),
+                      trailing: item['rozet'] != null
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: tema.vurguAltin.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.5)),
+                              ),
+                              child: Text(
+                                item['rozet'] as String,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: tema.vurguAltin,
+                                ),
+                              ),
+                            )
+                          : null,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: tema.vurguAltin,
+                foregroundColor: tema.arkaPlan,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: _onayla,
+              icon: const Icon(Icons.check_circle_rounded, size: 20),
+              label: Text(
+                _secenekler[_seciliPaketIdx]['destekMi'] == true
+                    ? (dil == 'EN' ? 'Support Now' : 'Gönülden Destek Ol')
+                    : (dil == 'EN' ? 'Activate Ad-Free Package' : 'Seçimi Onayla & Aktifleştir'),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1315,6 +1771,116 @@ class _AkisReelsSekmesiState extends State<AkisReelsSekmesi> {
 
   void _paylas(DinamikReelsKart item) {
     PaylasimStoryBottomSheet.goster(context, item, widget.dil);
+  }
+
+  void _begeniYap(DinamikReelsKart item) {
+    final kayitliIsim = KullaniciProfilServisi.rumuzGetir();
+    if (kayitliIsim == null || kayitliIsim.isEmpty) {
+      _rumuzGirisiDialogGoster(onOnay: (yeniRumuz) {
+        KullaniciProfilServisi.rumuzKaydet(yeniRumuz);
+        HapticFeedback.mediumImpact();
+        setState(() {
+          item.begenildi = true;
+          item.begeniSayisi++;
+        });
+        widget.onDurumGuncelle();
+      });
+    } else {
+      HapticFeedback.mediumImpact();
+      setState(() {
+        item.begenildi = !item.begenildi;
+        item.begeniSayisi = item.begenildi
+            ? item.begeniSayisi + 1
+            : (item.begeniSayisi > 0 ? item.begeniSayisi - 1 : 0);
+      });
+      widget.onDurumGuncelle();
+    }
+  }
+
+  void _rumuzGirisiDialogGoster({required ValueChanged<String> onOnay}) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: widget.tema.kartRengi,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: widget.tema.vurguAltin, width: 1.2),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.person_pin_rounded, color: widget.tema.vurguAltin, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.dil == 'EN' ? 'Add Your Name / Handle' : 'Adınızı / Rumuzunuzu Girin',
+                style: TextStyle(
+                  fontFamily: 'Lora',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: widget.tema.yaziRengi,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.dil == 'EN'
+                  ? 'No password or sign-up needed. Enter your name to appear as "Ahmet Y. and 120 others liked this".'
+                  : 'Şifre veya üyelik gerekmez. Beğendiğiniz ayet ve hadislerde "Ahmet Y. ve 120 kişi beğendi" şeklinde görünmesi için adınızı veya rumuzunuzu giriniz.',
+              style: TextStyle(color: widget.tema.ikincilYazi, fontSize: 12.5),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: ctrl,
+              autofocus: true,
+              style: TextStyle(color: widget.tema.yaziRengi, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                hintText: widget.dil == 'EN' ? 'Your Name (e.g. Ahmet Y.)' : 'Adınız / Rumuz (Örn: Ahmet Y.)',
+                hintStyle: TextStyle(color: widget.tema.ikincilYazi.withValues(alpha: 0.6)),
+                filled: true,
+                fillColor: widget.tema.arkaPlan,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: widget.tema.vurguAltin.withValues(alpha: 0.5)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: widget.tema.vurguAltin, width: 1.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              widget.dil == 'EN' ? 'Cancel' : 'Vazgeç',
+              style: TextStyle(color: widget.tema.ikincilYazi),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: widget.tema.vurguAltin),
+            onPressed: () {
+              final girilen = ctrl.text.trim();
+              if (girilen.isNotEmpty) {
+                Navigator.pop(ctx);
+                onOnay(girilen);
+              }
+            },
+            child: Text(
+              widget.dil == 'EN' ? 'Save & Like' : 'Kaydet ve Beğen',
+              style: TextStyle(color: widget.tema.arkaPlan, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -1594,6 +2160,74 @@ class _AkisReelsSekmesiState extends State<AkisReelsSekmesi> {
                                               ],
                                             ),
                                           ),
+
+                                          // İsimli Beğeni Alanı ("Ahmet Y. ve 120 kişi beğendi")
+                                          Builder(
+                                            builder: (context) {
+                                              final rumuz = KullaniciProfilServisi.rumuzGetir();
+                                              String begeniSatiri;
+                                              if (item.begenildi) {
+                                                final ad = rumuz ?? (dil == 'EN' ? 'You' : 'Siz');
+                                                final digerleri = item.begeniSayisi > 1 ? item.begeniSayisi - 1 : 0;
+                                                begeniSatiri = digerleri > 0
+                                                    ? (dil == 'EN'
+                                                        ? '$ad and $digerleri others liked this'
+                                                        : '$ad ve $digerleri kişi beğendi')
+                                                    : (dil == 'EN' ? '$ad liked this' : '$ad beğendi');
+                                              } else {
+                                                final ornekIsim = item.id.hashCode.abs() % 2 == 0 ? 'Ahmet Y.' : 'Hilal K.';
+                                                final digerleri = item.begeniSayisi > 1 ? item.begeniSayisi - 1 : item.begeniSayisi;
+                                                begeniSatiri = item.begeniSayisi > 0
+                                                    ? (dil == 'EN'
+                                                        ? '$ornekIsim and $digerleri others liked this'
+                                                        : '$ornekIsim ve $digerleri kişi beğendi')
+                                                    : (dil == 'EN' ? 'Be the first to like' : 'İlk beğenen siz olun');
+                                              }
+
+                                              return Padding(
+                                                padding: const EdgeInsets.only(top: 8),
+                                                child: InkWell(
+                                                  borderRadius: BorderRadius.circular(10),
+                                                  onTap: () => _begeniYap(item),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFF0A291E).withValues(alpha: 0.72),
+                                                      borderRadius: BorderRadius.circular(10),
+                                                      border: Border.all(
+                                                        color: item.begenildi
+                                                            ? const Color(0xFFE57373).withValues(alpha: 0.75)
+                                                            : goldAccent.withValues(alpha: 0.28),
+                                                        width: 0.8,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          item.begenildi ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                                          color: item.begenildi ? const Color(0xFFE57373) : softGold,
+                                                          size: 14,
+                                                        ),
+                                                        const SizedBox(width: 6),
+                                                        Flexible(
+                                                          child: Text(
+                                                            begeniSatiri,
+                                                            style: TextStyle(
+                                                              color: item.begenildi ? const Color(0xFFFFCDD2) : softGold.withValues(alpha: 0.92),
+                                                              fontSize: 11,
+                                                              fontWeight: item.begenildi ? FontWeight.bold : FontWeight.w500,
+                                                            ),
+                                                            overflow: TextOverflow.ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -1686,15 +2320,7 @@ class _AkisReelsSekmesiState extends State<AkisReelsSekmesi> {
                             etiket: '${item.begeniSayisi}',
                             aktif: item.begenildi,
                             aktifRenk: const Color(0xFFE57373),
-                            onTap: () {
-                              setState(() {
-                                item.begenildi = !item.begenildi;
-                                item.begeniSayisi = item.begenildi
-                                    ? item.begeniSayisi + 1
-                                    : (item.begeniSayisi > 0 ? item.begeniSayisi - 1 : 0);
-                              });
-                              widget.onDurumGuncelle();
-                            },
+                            onTap: () => _begeniYap(item),
                           ),
                           const SizedBox(height: 14),
                           _ZarifCamButon(
@@ -3997,31 +4623,54 @@ class _SureDetayOkumaEkraniState extends State<SureDetayOkumaEkrani> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          dil == 'EN'
-                              ? 'Listen to Full Surah (Mishary Rashid Alafasy)'
-                              : dil == 'AR'
-                                  ? 'استمع إلى السورة كاملة (مشاري راشد العفاسي)'
-                                  : 'Tüm Sureyi Sırayla Dinle (Mişari Raşid el-Afasi)',
-                          style: TextStyle(
-                            color: tema.yaziRengi,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12.5,
-                          ),
-                        ),
-                        Text(
-                          buSureOkunuyor
-                              ? (dil == 'EN'
-                                  ? 'Now Reciting: Verse $okunanAyetNo / ${ayetler.length}'
-                                  : dil == 'AR'
-                                      ? 'يُتلى الآن: الآية $okunanAyetNo من ${ayetler.length}'
-                                      : 'Şu an okunan: $okunanAyetNo. Ayet / ${ayetler.length}')
-                              : (dil == 'EN'
-                                  ? 'Sequential recitation with automatic verse highlight'
-                                  : dil == 'AR'
-                                      ? 'تلاوة متسلسلة مع تمييز الآية'
-                                  : 'Ayetleri altın çerçeveyle vurgulayarak sırayla okur'),
-                          style: TextStyle(color: tema.ikincilYazi, fontSize: 11),
+                        ValueListenableBuilder<HafizModel>(
+                          valueListenable: KuranSesOynaticiServisi.seciliHafiz,
+                          builder: (context, hafiz, _) {
+                            return InkWell(
+                              onTap: () => _hafizSeciciSheetGoster(context, tema: tema, dil: dil),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          dil == 'EN'
+                                              ? 'Reciter: ${hafiz.ad}'
+                                              : dil == 'AR'
+                                                  ? 'القارئ: ${hafiz.ad}'
+                                                  : 'Hafız: ${hafiz.ad}',
+                                          style: TextStyle(
+                                            color: tema.yaziRengi,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12.5,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(Icons.tune_rounded, size: 14, color: tema.vurguAltin),
+                                    ],
+                                  ),
+                                  Text(
+                                    buSureOkunuyor
+                                        ? (dil == 'EN'
+                                            ? 'Now Reciting: Verse $okunanAyetNo / ${ayetler.length}'
+                                            : dil == 'AR'
+                                                ? 'يُتلى الآن: الآية $okunanAyetNo من ${ayetler.length}'
+                                                : 'Şu an okunan: $okunanAyetNo. Ayet / ${ayetler.length}')
+                                        : (dil == 'EN'
+                                            ? 'Sequential recitation • Tap to change reciter'
+                                            : dil == 'AR'
+                                                ? 'تلاوة متسلسلة • انقر لتغيير القارئ'
+                                                : 'Sırayla okur • Hafızı değiştirmek için dokunun'),
+                                    style: TextStyle(color: tema.ikincilYazi, fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),

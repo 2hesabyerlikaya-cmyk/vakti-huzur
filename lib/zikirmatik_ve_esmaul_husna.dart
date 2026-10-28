@@ -241,9 +241,10 @@ class ZikirmatikHafizaServisi {
   static final ValueNotifier<int> toplamZikirNotifier =
       ValueNotifier<int>(_baslangicToplamYukle());
 
+  /// Zikirmatik'te her basışta orta şiddette titreşim
   static void hafifTitresim() {
-    HapticFeedback.lightImpact();
-    cihazTitretBridge(18);
+    HapticFeedback.mediumImpact();
+    cihazTitretBridge(30);
   }
 
   static void belirginTitresim() {
@@ -367,7 +368,7 @@ class _ZikirmatikTamEkranState extends State<ZikirmatikTamEkran>
   }
 
   void _zikirTikla() {
-    HapticFeedback.lightImpact();
+    HapticFeedback.mediumImpact();
     ZikirmatikHafizaServisi.hafifTitresim();
     _animCtrl.forward(from: 0.0);
     ZikirmatikHafizaServisi.toplamZikirArtir();

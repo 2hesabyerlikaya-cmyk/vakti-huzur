@@ -176,6 +176,67 @@ Future<void> bildirimSesiCalBridge(String baslik, String icerik) async {
   }
 }
 
+AudioPlayer? _tesbihPlayer;
+Uint8List? _tesbihWavBytes;
+
+Uint8List _olusturTokTesbihTikWav() {
+  if (_tesbihWavBytes != null) return _tesbihWavBytes!;
+  const int sampleRate = 22050;
+  const double durationSec = 0.04;
+  final int numSamples = (sampleRate * durationSec).toInt();
+  final int dataSize = numSamples * 2;
+  final ByteData buffer = ByteData(44 + dataSize);
+
+  // RIFF Header
+  const List<int> riff = [0x52, 0x49, 0x46, 0x46]; // "RIFF"
+  for (int i = 0; i < 4; i++) {
+    buffer.setUint8(i, riff[i]);
+  }
+  buffer.setUint32(4, 36 + dataSize, Endian.little);
+  const List<int> wave = [0x57, 0x41, 0x56, 0x45, 0x66, 0x6d, 0x74, 0x20];
+  for (int i = 0; i < 8; i++) {
+    buffer.setUint8(8 + i, wave[i]);
+  }
+  buffer.setUint32(16, 16, Endian.little);
+  buffer.setUint16(20, 1, Endian.little); // PCM
+  buffer.setUint16(22, 1, Endian.little); // Mono
+  buffer.setUint32(24, sampleRate, Endian.little);
+  buffer.setUint32(28, sampleRate * 2, Endian.little);
+  buffer.setUint16(32, 2, Endian.little);
+  buffer.setUint16(34, 16, Endian.little);
+  const List<int> dataH = [0x64, 0x61, 0x74, 0x61]; // "data"
+  for (int i = 0; i < 4; i++) {
+    buffer.setUint8(36 + i, dataH[i]);
+  }
+  buffer.setUint32(40, dataSize, Endian.little);
+
+  // Tok ahşap tesbih tıkı darbesi
+  for (int i = 0; i < numSamples; i++) {
+    final double t = i / sampleRate;
+    final double decay = math.exp(-t * 110.0);
+    final double tone = math.sin(2.0 * math.pi * 560.0 * t) * 0.75 +
+        math.sin(2.0 * math.pi * 1200.0 * t) * 0.25;
+    final double sample = (tone * decay).clamp(-1.0, 1.0);
+    final int pcm = (sample * 32767).toInt();
+    buffer.setInt16(44 + i * 2, pcm, Endian.little);
+  }
+
+  _tesbihWavBytes = buffer.buffer.asUint8List();
+  return _tesbihWavBytes!;
+}
+
+void tesbihSesiCalBridge() {
+  try {
+    SystemSound.play(SystemSoundType.click);
+    _tesbihPlayer ??= AudioPlayer();
+    final bytes = _olusturTokTesbihTikWav();
+    _tesbihPlayer!.stop();
+    _tesbihPlayer!.play(BytesSource(bytes, mimeType: 'audio/wav'), volume: 0.85);
+  } catch (_) {
+    SystemSound.play(SystemSoundType.click);
+  }
+}
+
 extension DartFuncToJsIoExt<T extends Function> on T {
   T get toJS => this;
 }

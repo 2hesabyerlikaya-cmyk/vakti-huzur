@@ -247,10 +247,23 @@ class HTMLAudioElement {
     _initGlobalContext();
     _player.setReleaseMode(ReleaseMode.stop);
     _completeSub = _player.onPlayerComplete.listen((_) {
-      if (onended is void Function(Event)) {
-        (onended as void Function(Event))(Event());
-      }
+      _tetikle(onended);
     });
+  }
+
+  void _tetikle(dynamic handler) {
+    if (handler == null) return;
+    try {
+      if (handler is Function) {
+        try {
+          (handler as dynamic)(Event());
+        } catch (_) {
+          try {
+            (handler as dynamic)();
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
   }
 
   static void _initGlobalContext() {
@@ -280,9 +293,7 @@ class HTMLAudioElement {
       await _player.stop();
       await _player.play(UrlSource(src));
     } catch (_) {
-      if (onerror is void Function(Event)) {
-        (onerror as void Function(Event))(Event());
-      }
+      _tetikle(onerror);
     }
   }
 

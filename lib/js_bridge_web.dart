@@ -40,3 +40,7 @@ void bildirimSesiCalBridge(String baslik, String icerik) {
     _bildirimSesiCalJs(baslik, icerik);
   } catch (_) {}
 }
+
+void tesbihSesiCalBridge() {
+  // Web ortamında sistem tıklama sesi
+}

@@ -243,13 +243,17 @@ class ZikirmatikHafizaServisi {
 
   /// Zikirmatik'te her basışta orta şiddette titreşim
   static void hafifTitresim() {
-    HapticFeedback.mediumImpact();
-    cihazTitretBridge(30);
+    HapticFeedback.heavyImpact();
+    HapticFeedback.vibrate();
+    tesbihSesiCalBridge();
+    cihazTitretBridge(40);
   }
 
   static void belirginTitresim() {
     HapticFeedback.heavyImpact();
-    cihazTitretBridge(120);
+    HapticFeedback.vibrate();
+    tesbihSesiCalBridge();
+    cihazTitretBridge(150);
   }
 
   static int _baslangicToplamYukle() {
@@ -368,8 +372,9 @@ class _ZikirmatikTamEkranState extends State<ZikirmatikTamEkran>
   }
 
   void _zikirTikla() {
-    HapticFeedback.mediumImpact();
-    ZikirmatikHafizaServisi.hafifTitresim();
+    HapticFeedback.heavyImpact();
+    HapticFeedback.vibrate();
+    tesbihSesiCalBridge();
     _animCtrl.forward(from: 0.0);
     ZikirmatikHafizaServisi.toplamZikirArtir();
 

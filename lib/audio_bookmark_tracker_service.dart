@@ -102,16 +102,75 @@ class KuranSesOynaticiServisi {
   }
 
   /// Seçili hafızın tüm bitrate seçenekleri + son çare olarak Mişari Raşid el-Afasi
+  /// Global ayet numarasından (1..6236) (sureNo, ayetNo) çiftini bulur
+  static (int sureNo, int ayetNo) globaldenSureVeAyet(int globalAyetNo) {
+    int kalan = globalAyetNo.clamp(1, 6236);
+    for (int i = 0; i < kTum114Sure.length; i++) {
+      final sure = kTum114Sure[i];
+      if (kalan <= sure.ayetSayisi) {
+        return (sure.no, kalan);
+      }
+      kalan -= sure.ayetSayisi;
+    }
+    return (114, 6);
+  }
+
+  /// Seçili hafıza göre sure bazlı doğrudan MP3 URL'si
+  static String sureMp3Url(int sureNo, {HafizModel? hafiz}) {
+    final h = hafiz ?? seciliHafiz.value;
+    final sure3 = sureNo.toString().padLeft(3, '0');
+    if (h.kod == 'ar.yasseraldossari') {
+      return 'https://server11.mp3quran.net/yasser/$sure3.mp3';
+    } else if (h.kod == 'ar.abdulbasitmurattal') {
+      return 'https://server7.mp3quran.net/basit/Almusshaf-Al-Murattal/$sure3.mp3';
+    } else {
+      return 'https://server8.mp3quran.net/afs/$sure3.mp3';
+    }
+  }
+
+  /// Seçili hafızın tüm doğrudan ve yedek ses adresleri
   static List<String> _adayUrller(int globalAyetNo) {
     final gecerli = globalAyetNo.clamp(1, 6236);
     final h = seciliHafiz.value;
-    final liste = <String>[
-      for (final br in h.bitrateler)
-        'https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3',
-    ];
+    final (sureNo, ayetNo) = globaldenSureVeAyet(gecerli);
+    final sure3 = sureNo.toString().padLeft(3, '0');
+    final ayet3 = ayetNo.toString().padLeft(3, '0');
+
+    final liste = <String>[];
+
+    if (h.kod == 'ar.yasseraldossari') {
+      // 1. EveryAyah Yasser Ad-Dossari doğrudan ve kesintisiz çalışan 128kbps CDN
+      liste.add('https://everyayah.com/data/Yasser_Ad-Dossari_128kbps/$sure3$ayet3.mp3');
+      // 2. Mp3Quran Yasser Ad-Dossari doğrudan çalışan sure sunucusu
+      if (ayetNo == 1) {
+        liste.add('https://server11.mp3quran.net/yasser/$sure3.mp3');
+      }
+      // 3. AlQuran Cloud CDN
+      for (final br in h.bitrateler) {
+        liste.add('https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3');
+      }
+    } else if (h.kod == 'ar.abdulbasitmurattal') {
+      // 1. EveryAyah Abdulbasit Murattal
+      liste.add('https://everyayah.com/data/Abdul_Basit_Murattal_192kbps/$sure3$ayet3.mp3');
+      liste.add('https://everyayah.com/data/Abdul_Basit_Murattal_64kbps/$sure3$ayet3.mp3');
+      // 2. AlQuran Cloud CDN
+      for (final br in h.bitrateler) {
+        liste.add('https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3');
+      }
+    } else {
+      // Mişari Raşid el-Afasi
+      for (final br in h.bitrateler) {
+        liste.add('https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3');
+      }
+      liste.add('https://everyayah.com/data/Alafasy_128kbps/$sure3$ayet3.mp3');
+    }
+
+    // Ortak güvenilir yedek: Mişari Raşid el-Afasi
     if (h.kod != 'ar.alafasy') {
+      liste.add('https://everyayah.com/data/Alafasy_128kbps/$sure3$ayet3.mp3');
       liste.add('https://cdn.islamic.network/quran/audio/128/ar.alafasy/$gecerli.mp3');
     }
+
     return liste;
   }
 

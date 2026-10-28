@@ -27,10 +27,14 @@ class KullaniciProfilServisi {
     return false;
   }
 
+  static final ValueNotifier<bool> premiumNotifier =
+      ValueNotifier<bool>(premiumAktifMi());
+
   static void premiumAyarla(bool aktif) {
     try {
       web.window.localStorage.setItem(_premiumKey, aktif ? 'true' : 'false');
     } catch (_) {}
+    premiumNotifier.value = aktif;
   }
 }
 

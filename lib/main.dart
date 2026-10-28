@@ -1754,6 +1754,22 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
                           ),
                         ),
                       ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: tema.vurguAltin.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.6)),
+                        ),
+                        child: Text(
+                          '150,00 TL',
+                          style: TextStyle(
+                            color: tema.vurguAltin,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -1776,11 +1792,45 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
                     onPressed: _destekOlOnayla,
                     icon: const Icon(Icons.favorite_rounded, size: 16),
                     label: Text(
-                      dil == 'EN' ? 'Support Now' : dil == 'AR' ? 'تبرع الآن' : 'Destekte Bulun',
+                      dil == 'EN'
+                          ? 'Support Now (150 TL)'
+                          : dil == 'AR'
+                              ? 'تبرع الآن (150 TL)'
+                              : 'Destekte Bulun (150 TL)',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            // REKLAM DURUMUNU SIFIRLA (TEST BUTONU)
+            Center(
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: tema.ikincilYazi.withValues(alpha: 0.75),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                ),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  KullaniciProfilServisi.premiumAyarla(false);
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: tema.kartRengi,
+                      behavior: SnackBarBehavior.floating,
+                      content: Text(
+                        '🔄 Reklam durumu sıfırlandı. Test reklamları aktif!',
+                        style: TextStyle(color: tema.vurguAltin, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.restart_alt_rounded, size: 14),
+                label: const Text(
+                  'Reklam Durumunu Sıfırla (Test)',
+                  style: TextStyle(fontSize: 11),
+                ),
               ),
             ),
           ],

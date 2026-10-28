@@ -1,3 +1,4 @@
+import 'reklam_servisi.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -520,6 +521,8 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
       setState(() {
         _tamamlandi = true;
       });
+      // Günlük 5 soru tamamlandığında İslami / Aile Güvenlikli Geçiş Reklamı
+      InterstitialReklamYoneticisi.goster();
     }
   }
 

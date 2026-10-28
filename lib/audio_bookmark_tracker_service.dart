@@ -43,12 +43,6 @@ const List<HafizModel> kHafizlar = [
     adAr: 'عبد الباسط عبد الصمد (مرتل)',
     bitrateler: [192, 64],
   ),
-  HafizModel(
-    kod: 'ar.yasseraldossari',
-    adTr: 'Yasser Ad-Dossari',
-    adAr: 'ياسر الدوسري',
-    bitrateler: [128, 64],
-  ),
 ];
 
 class KuranSesOynaticiServisi {

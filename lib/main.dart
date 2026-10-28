@@ -13,42 +13,17 @@ import 'share_story_sheet.dart';
 import 'translations_and_logo.dart';
 import 'widget_ve_kilit_ekrani_servisi.dart';
 import 'quiz_sekmesi.dart';
+import 'reklam_servisi.dart';
 import 'zikirmatik_ve_esmaul_husna.dart';
-import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 
-class KullaniciProfilServisi {
-  static const String _isimKey = 'vakti_huzur_kullanici_rumuz_v1';
-  static const String _premiumKey = 'vakti_huzur_kullanici_premium_v1';
 
-  static String? rumuzGetir() {
-    try {
-      final val = web.window.localStorage.getItem(_isimKey);
-      if (val != null && val.trim().isNotEmpty) return val.trim();
-    } catch (_) {}
-    return null;
-  }
 
-  static void rumuzKaydet(String rumuz) {
-    try {
-      web.window.localStorage.setItem(_isimKey, rumuz.trim());
-    } catch (_) {}
-  }
-
-  static bool premiumAktifMi() {
-    try {
-      return web.window.localStorage.getItem(_premiumKey) == 'true';
-    } catch (_) {}
-    return false;
-  }
-
-  static void premiumAyarla(bool aktif) {
-    try {
-      web.window.localStorage.setItem(_premiumKey, aktif ? 'true' : 'false');
-    } catch (_) {}
-  }
-}
-
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await reklamServisiniBaslat();
+    InterstitialReklamYoneticisi.oncedenYukle();
+  } catch (_) {}
   runApp(const IslamiUygulamaApp());
 }
 
@@ -800,9 +775,15 @@ class _AnaIskeletEkraniState extends State<AnaIskeletEkrani> {
           ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: tema.karanlikMi ? tema.arkaPlan : const Color(0xFF0F3D2E),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Sadece Ana Sayfa (1) ve Kütüphane (3) ekranlarında Helal Banner Reklam
+          if (_seciliSekmeIndex == 1 || _seciliSekmeIndex == 3)
+            InceBannerReklamWidget(tema: tema),
+          Container(
+            decoration: BoxDecoration(
+              color: tema.karanlikMi ? tema.arkaPlan : const Color(0xFF0F3D2E),
           border: Border(
             top: BorderSide(
               color: tema.vurguAltin.withValues(alpha: 0.3),
@@ -845,6 +826,8 @@ class _AnaIskeletEkraniState extends State<AnaIskeletEkrani> {
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }
@@ -1483,39 +1466,67 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
       'baslik': 'Aylık Reklamsız',
       'fiyat': '29,99 TL / ay',
       'rozet': null,
-      'destekMi': false,
     },
     {
       'baslik': 'Yıllık Reklamsız (%45 Tasarruf)',
       'fiyat': '199,99 TL / yıl',
       'rozet': 'EN POPÜLER',
-      'destekMi': false,
     },
     {
       'baslik': 'Ömür Boyu Sınırsız',
       'fiyat': '399,99 TL (Tek Seferlik)',
       'rozet': 'ÖMÜR BOYU',
-      'destekMi': false,
-    },
-    {
-      'baslik': 'Bir Çay İkram Et',
-      'fiyat': '20 TL (Gönül Desteği)',
-      'rozet': '☕ DESTEK',
-      'destekMi': true,
-    },
-    {
-      'baslik': 'Hayırlı Hizmet Katkısı',
-      'fiyat': '50 TL (Gönül Desteği)',
-      'rozet': '🌿 BEREKET',
-      'destekMi': true,
-    },
-    {
-      'baslik': 'İlim & Teknoloji Hamisi',
-      'fiyat': '150 TL (Manevi Katkı)',
-      'rozet': '🕌 HAMİ',
-      'destekMi': true,
     },
   ];
+
+  void _destekOlOnayla() {
+    HapticFeedback.heavyImpact();
+    KullaniciProfilServisi.premiumAyarla(true);
+    Navigator.pop(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: widget.tema.kartRengi,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: widget.tema.vurguAltin, width: 1.2),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.volunteer_activism_rounded, color: widget.tema.vurguAltin, size: 26),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                widget.dil == 'EN' ? 'Thank You!' : 'Allah Kabul Eylesin!',
+                style: TextStyle(
+                  fontFamily: 'Lora',
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: widget.tema.yaziRengi,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          widget.dil == 'EN'
+              ? 'Thank you for supporting Vakt-i Huzur! May Allah bless your good deeds and grant peace to your life.'
+              : 'Vakt-i Huzur uygulamamızın gelişimine verdiğiniz destek ve dualarınız için teşekkür ederiz. Rabbimiz hayırlarınızı kat kat kabul eylesin.',
+          style: TextStyle(color: widget.tema.yaziRengi.withValues(alpha: 0.9), fontSize: 13, height: 1.45),
+        ),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: widget.tema.vurguAltin),
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              widget.dil == 'EN' ? 'Close' : 'Âmin, Kapat',
+              style: TextStyle(color: widget.tema.arkaPlan, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _onayla() {
     HapticFeedback.heavyImpact();
@@ -1699,10 +1710,77 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
               onPressed: _onayla,
               icon: const Icon(Icons.check_circle_rounded, size: 20),
               label: Text(
-                _secenekler[_seciliPaketIdx]['destekMi'] == true
-                    ? (dil == 'EN' ? 'Support Now' : 'Gönülden Destek Ol')
-                    : (dil == 'EN' ? 'Activate Ad-Free Package' : 'Seçimi Onayla & Aktifleştir'),
+                dil == 'EN' ? 'Confirm & Go Ad-Free' : 'Seçimi Onayla & Reklamsız Kullan',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+            const SizedBox(height: 14),
+            // SADELEŞTİRİLMİŞ DESTEK OL BÖLÜMÜ
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: tema.kartRengi,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: tema.vurguAltin.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: tema.vurguAltin.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.volunteer_activism_rounded, color: tema.vurguAltin, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          dil == 'EN'
+                              ? 'Support the App'
+                              : dil == 'AR'
+                                  ? 'دعم التطبيق'
+                                  : 'Uygulamaya Destek Ol',
+                          style: TextStyle(
+                            color: tema.yaziRengi,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    dil == 'EN'
+                        ? 'You can support the ongoing development of the app.'
+                        : dil == 'AR'
+                            ? 'يمكنك التبرع لدعم وتطوير هذا التطبيق.'
+                            : 'Uygulamanın gelişimi için destekte bulunabilirsiniz.',
+                    style: TextStyle(color: tema.ikincilYazi, fontSize: 12, height: 1.35),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tema.vurguAltin,
+                      side: BorderSide(color: tema.vurguAltin, width: 1.3),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: _destekOlOnayla,
+                    icon: const Icon(Icons.favorite_rounded, size: 16),
+                    label: Text(
+                      dil == 'EN' ? 'Support Now' : dil == 'AR' ? 'تبرع الآن' : 'Destekte Bulun',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

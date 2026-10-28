@@ -1,5 +1,38 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
+
+class KullaniciProfilServisi {
+  static const String _isimKey = 'vakti_huzur_kullanici_rumuz_v1';
+  static const String _premiumKey = 'vakti_huzur_kullanici_premium_v1';
+
+  static String? rumuzGetir() {
+    try {
+      final val = web.window.localStorage.getItem(_isimKey);
+      if (val != null && val.trim().isNotEmpty) return val.trim();
+    } catch (_) {}
+    return null;
+  }
+
+  static void rumuzKaydet(String rumuz) {
+    try {
+      web.window.localStorage.setItem(_isimKey, rumuz.trim());
+    } catch (_) {}
+  }
+
+  static bool premiumAktifMi() {
+    try {
+      return web.window.localStorage.getItem(_premiumKey) == 'true';
+    } catch (_) {}
+    return false;
+  }
+
+  static void premiumAyarla(bool aktif) {
+    try {
+      web.window.localStorage.setItem(_premiumKey, aktif ? 'true' : 'false');
+    } catch (_) {}
+  }
+}
 
 // ============================================================================
 // ============================================================================

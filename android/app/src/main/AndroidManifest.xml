@@ -25,7 +25,7 @@
         <!-- Google AdMob Resmi İslami & Aileye Uygun Uygulama Kimliği -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-7648850787661176~9164657037"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"

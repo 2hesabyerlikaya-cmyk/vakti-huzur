@@ -79,8 +79,8 @@ class _InceBannerReklamWidgetState extends State<InceBannerReklamWidget>
     _bannerAd = null;
 
     final String adUnitId = Platform.isAndroid
-        ? 'ca-app-pub-3940256099942544/6300978111'
-        : 'ca-app-pub-3940256099942544/2934735716';
+        ? 'ca-app-pub-7648850787661176/5857956515'
+        : 'ca-app-pub-7648850787661176/1118646053';
 
     _bannerAd = BannerAd(
       adUnitId: adUnitId,
@@ -192,8 +192,8 @@ class InterstitialReklamYoneticisi {
     _yukleniyor = true;
 
     final String adUnitId = Platform.isAndroid
-        ? 'ca-app-pub-3940256099942544/1033173712'
-        : 'ca-app-pub-3940256099942544/4411468910';
+        ? 'ca-app-pub-7648850787661176/4375364783'
+        : 'ca-app-pub-7648850787661176/1366058061';
 
     InterstitialAd.load(
       adUnitId: adUnitId,

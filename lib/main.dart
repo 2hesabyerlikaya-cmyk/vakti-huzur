@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
@@ -778,8 +778,8 @@ class _AnaIskeletEkraniState extends State<AnaIskeletEkrani> {
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Sadece Ana Sayfa (1) ve Kütüphane (3) ekranlarında Helal Banner Reklam
-          if (_seciliSekmeIndex == 1 || _seciliSekmeIndex == 3)
+          // Ana Sayfa (1), Quiz (2) ve Kütüphane (3) ekranlarında Helal Banner Reklam
+          if (_seciliSekmeIndex == 1 || _seciliSekmeIndex == 2 || _seciliSekmeIndex == 3)
             InceBannerReklamWidget(tema: tema),
           Container(
             decoration: BoxDecoration(

@@ -640,8 +640,11 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
       setState(() {
         _tamamlandi = true;
       });
-      // Günlük 5 soru tamamlandığında İslami / Aile Güvenlikli Geçiş Reklamı
-      InterstitialReklamYoneticisi.goster();
+      // Günlük 5 soru tamamlandığında İslami / Aile Güvenlikli Geçiş Reklamı göster
+      // ve kapanınca bir sonrakini önceden hazırla
+      InterstitialReklamYoneticisi.goster(onKapatildi: () {
+        InterstitialReklamYoneticisi.oncedenYukle();
+      });
     }
   }
 

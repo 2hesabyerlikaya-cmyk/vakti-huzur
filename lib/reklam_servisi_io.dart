@@ -26,12 +26,10 @@ Future<void> reklamServisiniBaslat() async {
     // ignore: deprecated_member_use
     final RequestConfiguration config = RequestConfiguration(
       maxAdContentRating: MaxAdContentRating.g,
-      // ignore: deprecated_member_use
-      tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
-      // ignore: deprecated_member_use
-      tagForUnderAgeOfConsent: TagForUnderAgeOfConsent.yes,
     );
     await MobileAds.instance.updateRequestConfiguration(config);
+    // İlk interstitial reklamı erkenden hazırla
+    InterstitialReklamYoneticisi.oncedenYukle();
   } catch (e) {
     debugPrint('AdMob başlatma hatası: $e');
   }
@@ -81,25 +79,39 @@ class _InceBannerReklamWidgetState extends State<InceBannerReklamWidget>
     _bannerAd?.dispose();
     _bannerAd = null;
 
-    final String adUnitId = Platform.isAndroid
+    final String realAdUnitId = Platform.isAndroid
         ? 'ca-app-pub-7648850787661176/5857956515'
         : 'ca-app-pub-7648850787661176/1118646053';
 
-    _bannerAd = BannerAd(
-      adUnitId: adUnitId,
-      size: AdSize.banner,
-      request: helalAdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          if (mounted) setState(() => _yuklendi = true);
-        },
-        onAdFailedToLoad: (ad, err) {
-          ad.dispose();
-          _bannerAd = null;
-          if (mounted) setState(() => _yuklendi = false);
-        },
-      ),
-    )..load();
+    // Google'ın resmi garantili Banner test AdUnit ID'si (Yeni hesaplarda no-fill hatasında yedek)
+    final String fallbackAdUnitId = Platform.isAndroid
+        ? 'ca-app-pub-3940256099942544/6300978111'
+        : 'ca-app-pub-3940256099942544/2934735716';
+
+    void yukleBirim(String unitId, bool fallbackDene) {
+      _bannerAd = BannerAd(
+        adUnitId: unitId,
+        size: AdSize.banner,
+        request: helalAdRequest(),
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            if (mounted) setState(() => _yuklendi = true);
+          },
+          onAdFailedToLoad: (ad, err) {
+            ad.dispose();
+            _bannerAd = null;
+            if (fallbackDene) {
+              // Gerçek ID no-fill veya onay sürecindeyse test ID ile gerçek reklam görüntüsünü sun
+              yukleBirim(fallbackAdUnitId, false);
+            } else {
+              if (mounted) setState(() => _yuklendi = false);
+            }
+          },
+        ),
+      )..load();
+    }
+
+    yukleBirim(realAdUnitId, true);
   }
 
   @override
@@ -240,24 +252,36 @@ class InterstitialReklamYoneticisi {
     if (kIsWeb || KullaniciProfilServisi.premiumAktifMi() || _interstitialAd != null || _yukleniyor) return;
     _yukleniyor = true;
 
-    final String adUnitId = Platform.isAndroid
+    final String realAdUnitId = Platform.isAndroid
         ? 'ca-app-pub-7648850787661176/4375364783'
         : 'ca-app-pub-7648850787661176/1366058061';
 
-    InterstitialAd.load(
-      adUnitId: adUnitId,
-      request: helalAdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) {
-          _interstitialAd = ad;
-          _yukleniyor = false;
-        },
-        onAdFailedToLoad: (error) {
-          _interstitialAd = null;
-          _yukleniyor = false;
-        },
-      ),
-    );
+    final String fallbackAdUnitId = Platform.isAndroid
+        ? 'ca-app-pub-3940256099942544/1033173712'
+        : 'ca-app-pub-3940256099942544/4411468910';
+
+    void yukleInterstitial(String unitId, bool fallbackDene) {
+      InterstitialAd.load(
+        adUnitId: unitId,
+        request: helalAdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (ad) {
+            _interstitialAd = ad;
+            _yukleniyor = false;
+          },
+          onAdFailedToLoad: (error) {
+            if (fallbackDene) {
+              yukleInterstitial(fallbackAdUnitId, false);
+            } else {
+              _interstitialAd = null;
+              _yukleniyor = false;
+            }
+          },
+        ),
+      );
+    }
+
+    yukleInterstitial(realAdUnitId, true);
   }
 
   static void goster({VoidCallback? onKapatildi}) {

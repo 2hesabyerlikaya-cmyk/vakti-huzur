@@ -154,7 +154,8 @@ class KuranApiServisi {
 
     // 1. ÖNCE ÇEVRİMDIŞI (İNTERNETSİZ) YEREL ASSET'LERDEN YÜKLE
     try {
-      final assetJson = await rootBundle.loadString('assets/quran/$sureNo.json');
+      final byteData = await rootBundle.load('assets/quran/$sureNo.json');
+      final assetJson = utf8.decode(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
       if (assetJson.isNotEmpty) {
         final decodedList = jsonDecode(assetJson) as List<dynamic>;
         final List<CanliAyetModel> yerelAyetler = [];

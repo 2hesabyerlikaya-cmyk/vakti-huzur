@@ -26,6 +26,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  assets:
+    - assets/quran/
+
   fonts:
     - family: Amiri
       fonts:

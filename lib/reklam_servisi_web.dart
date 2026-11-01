@@ -5,7 +5,8 @@ Future<void> reklamServisiniBaslat() async {}
 
 class InceBannerReklamWidget extends StatelessWidget {
   final IslamiTema tema;
-  const InceBannerReklamWidget({super.key, required this.tema});
+  final bool ortaKart;
+  const InceBannerReklamWidget({super.key, required this.tema, this.ortaKart = false});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,12 @@ class InceBannerReklamWidget extends StatelessWidget {
           width: double.infinity,
           height: 52,
           alignment: Alignment.center,
-          color: tema.karanlikMi ? tema.arkaPlan : const Color(0xFF0F3D2E),
+          decoration: BoxDecoration(
+            color: ortaKart
+                ? Colors.transparent
+                : (tema.karanlikMi ? tema.arkaPlan : const Color(0xFF0F3D2E)),
+            borderRadius: ortaKart ? BorderRadius.circular(16) : null,
+          ),
           child: Container(
             width: 320,
             height: 50,

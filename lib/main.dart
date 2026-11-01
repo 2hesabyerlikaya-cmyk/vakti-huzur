@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
@@ -1762,7 +1762,7 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
                           border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.6)),
                         ),
                         child: Text(
-                          '150,00 TL',
+                          '250,00 TL',
                           style: TextStyle(
                             color: tema.vurguAltin,
                             fontSize: 12.5,
@@ -1790,13 +1790,13 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: _destekOlOnayla,
-                    icon: const Icon(Icons.favorite_rounded, size: 16),
+                    icon: const SizedBox.shrink(),
                     label: Text(
                       dil == 'EN'
-                          ? 'Support Now (150 TL)'
+                          ? '♥ Support Now (250 TL)'
                           : dil == 'AR'
-                              ? 'تبرع الآن (150 TL)'
-                              : 'Destekte Bulun (150 TL)',
+                              ? '♥ تبرع الآن (250 TL)'
+                              : '♥ Destekte Bulun (250 TL)',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
@@ -2599,11 +2599,7 @@ class AnaSayfaSekmesi extends StatefulWidget {
 
 class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
   late Timer _timer;
-  Timer? _sensorTimer;
   DateTime _simdi = DateTime.now();
-  double _pusulaAcisi = 0.0;
-  bool _oncekiKibleDogrulandi = true;
-  bool _canliSensorAktif = true;
   bool _konumYukleniyor = false;
 
   CanliNamazVakitleriModel _vakitModel = CanliNamazVakitleriModel(
@@ -2639,35 +2635,6 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _simdi = DateTime.now());
     });
-
-    // Mobil cihaz yönelim sensörü dinleyicisi (Canlı Kıble Pusulası)
-    _sensorTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      if (!mounted || !_canliSensorAktif) return;
-      final cihazYonu = CanliPusulaSensorServisi.cihazPusulaAcisiOku();
-      if (cihazYonu >= 0) {
-        double fark = (_vakitModel.kibleAcisiDerece - cihazYonu) % 360.0;
-        if (fark > 180.0) fark -= 360.0;
-        if (fark < -180.0) fark += 360.0;
-        if ((fark - _pusulaAcisi).abs() >= 0.8) {
-          _pusulaAcisiniAyarla(fark, manuelMi: false);
-        }
-      }
-    });
-  }
-
-  void _pusulaAcisiniAyarla(double yeniAci, {bool manuelMi = true}) {
-    final sinirli = yeniAci.clamp(-180.0, 180.0);
-    final simdiDogrulandi = sinirli.abs() <= 3.0;
-    if (simdiDogrulandi && !_oncekiKibleDogrulandi) {
-      CanliPusulaSensorServisi.kibleDogrulandiTitresim();
-    } else if (manuelMi) {
-      HapticFeedback.selectionClick();
-    }
-    setState(() {
-      if (manuelMi) _canliSensorAktif = false;
-      _pusulaAcisi = sinirli;
-      _oncekiKibleDogrulandi = simdiDogrulandi;
-    });
   }
 
   Future<void> _sehirVakitleriniYukle(String sehirSorgu) async {
@@ -2676,7 +2643,6 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
     if (mounted) {
       setState(() {
         _vakitModel = yeniModel;
-        _pusulaAcisi = 0.0;
         _konumYukleniyor = false;
       });
       _widgetOtomatikSenkronizeEt();
@@ -2705,7 +2671,6 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
     if (mounted) {
       setState(() {
         _vakitModel = yeniModel;
-        _pusulaAcisi = 0.0;
         _konumYukleniyor = false;
       });
       _widgetOtomatikSenkronizeEt();
@@ -2744,7 +2709,6 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
   @override
   void dispose() {
     _timer.cancel();
-    _sensorTimer?.cancel();
     super.dispose();
   }
 
@@ -2802,7 +2766,6 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
     final sonraki = _sonrakiVaktiHesapla();
     final int sonrakiIdx = sonraki['index'] as int;
     final String sonrakiAd = Ceviri.m(dil, sonraki['key'] as String);
-    final double kibleDerece = _vakitModel.kibleAcisiDerece;
     final yaklasanDiniGunler =
         DiyanetDiniGunlerServisi.diniGunleriHesapla(sadeceYaklasanlar: true).take(6).toList();
 
@@ -3232,6 +3195,10 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
                       ),
                     );
                   }),
+                  const SizedBox(height: 8),
+
+                  // ANA SAYFA ORTA BANNER REKLAMI (Yatsı satırı altı / Namaz Takibim kartı üstü)
+                  InceBannerReklamWidget(tema: tema, ortaKart: true),
                   const SizedBox(height: 16),
 
                   // GÜNLÜK 5 VAKİT NAMAZ TAKİP ÇİZELGESİ KARTI
@@ -3553,263 +3520,97 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 3. KONUMA GÖRE GERÇEK KIBLE PUSULASI (CANLI SENSÖR + AÇI KAYDIRICISI + ±3° DOĞRULAMA)
-                  Builder(
-                    builder: (context) {
-                      final bool kibleDogrulandi = _pusulaAcisi.abs() <= 3.0;
-                      const Color dogrulamaYesilAltin = Color(0xFF2ECC71);
-                      final Color aktifPusulaRengi =
-                          kibleDogrulandi ? dogrulamaYesilAltin : tema.vurguAltin;
-
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: tema.kartRengi,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: kibleDogrulandi
-                                ? dogrulamaYesilAltin.withValues(alpha: 0.85)
-                                : tema.vurguAltin.withValues(alpha: 0.45),
-                            width: kibleDogrulandi ? 1.8 : 1.0,
-                          ),
-                          boxShadow: kibleDogrulandi
-                              ? [
-                                  BoxShadow(
-                                    color: dogrulamaYesilAltin.withValues(alpha: 0.22),
-                                    blurRadius: 18,
-                                    spreadRadius: 2,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.explore_outlined, color: aktifPusulaRengi, size: 22),
-                                      const SizedBox(width: 8),
-                                      Flexible(
-                                        child: Text(
-                                          Ceviri.m(dil, 'qibla_title'),
-                                          style: TextStyle(
-                                            fontFamily: 'Lora',
-                                            color: aktifPusulaRengi,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: aktifPusulaRengi.withValues(alpha: 0.16),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${_vakitModel.konumAdi}: ${kibleDerece.toStringAsFixed(1)}°',
-                                    style: TextStyle(
-                                      color: aktifPusulaRengi,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              dil == 'EN'
-                                  ? 'Coordinates: ${_vakitModel.enlem.toStringAsFixed(3)}°N, ${_vakitModel.boylam.toStringAsFixed(3)}°E  •  Distance to Kaaba: ${_vakitModel.kabeMesafeKm.round()} km'
-                                  : dil == 'AR'
-                                      ? 'الإحداثيات: ${_vakitModel.enlem.toStringAsFixed(2)}°، ${_vakitModel.boylam.toStringAsFixed(2)}°  •  المسافة للكعبة: ${_vakitModel.kabeMesafeKm.round()} كم'
-                                      : 'Koordinat: ${_vakitModel.enlem.toStringAsFixed(3)}°K, ${_vakitModel.boylam.toStringAsFixed(3)}°D  •  Kâbe’ye Mesafe: ${_vakitModel.kabeMesafeKm.round()} km',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: tema.ikincilYazi, fontSize: 11.5),
-                            ),
-                            const SizedBox(height: 14),
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onPanUpdate: (details) {
-                                final center = const Offset(96, 96);
-                                final localPos = details.localPosition - center;
-                                if (localPos.distance > 12) {
-                                  final touchAngleDeg =
-                                      math.atan2(localPos.dx, -localPos.dy) * (180.0 / math.pi);
-                                  double yeniSapma = (touchAngleDeg - kibleDerece) % 360.0;
-                                  if (yeniSapma > 180.0) yeniSapma -= 360.0;
-                                  if (yeniSapma < -180.0) yeniSapma += 360.0;
-                                  _pusulaAcisiniAyarla(yeniSapma, manuelMi: true);
-                                }
-                              },
-                              child: Container(
-                                width: 192,
-                                height: 192,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: kibleDogrulandi
-                                      ? [
-                                          BoxShadow(
-                                            color: dogrulamaYesilAltin.withValues(alpha: 0.32),
-                                            blurRadius: 24,
-                                            spreadRadius: 4,
-                                          ),
-                                        ]
-                                      : null,
-                                ),
-                                child: TweenAnimationBuilder<double>(
-                                  tween: Tween<double>(begin: 0, end: kibleDerece + _pusulaAcisi),
-                                  duration: const Duration(milliseconds: 220),
-                                  builder: (context, aci, _) {
-                                    return CustomPaint(
-                                      painter: _KiblePusulasiPainter(
-                                        kibleAcisiDerece: aci,
-                                        altinRenk: aktifPusulaRengi,
-                                        kibleDogrulandi: kibleDogrulandi,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // KIBLE YÖNÜ DOĞRULANDI (±3°) DURUM ROZETİ
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: kibleDogrulandi
-                                    ? dogrulamaYesilAltin.withValues(alpha: 0.18)
-                                    : tema.arkaPlan.withValues(alpha: 0.45),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: kibleDogrulandi
-                                      ? dogrulamaYesilAltin
-                                      : tema.vurguAltin.withValues(alpha: 0.3),
-                                  width: kibleDogrulandi ? 1.4 : 0.9,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    kibleDogrulandi
-                                        ? Icons.verified_rounded
-                                        : Icons.compass_calibration_rounded,
-                                    color: aktifPusulaRengi,
-                                    size: 17,
-                                  ),
-                                  const SizedBox(width: 7),
-                                  Flexible(
-                                    child: Text(
-                                      kibleDogrulandi
-                                          ? (dil == 'EN'
-                                              ? 'Qibla Direction Verified (±${_pusulaAcisi.abs().toStringAsFixed(1)}°)'
-                                              : dil == 'AR'
-                                                  ? 'تم التحقق من اتجاه القبلة (±${_pusulaAcisi.abs().toStringAsFixed(1)}°)'
-                                                  : 'Kıble Yönü Doğrulandı (Sapma: ${_pusulaAcisi.toStringAsFixed(0)}°)')
-                                          : (dil == 'EN'
-                                              ? 'Turn ${(_pusulaAcisi > 0 ? "Left" : "Right")} by ${_pusulaAcisi.abs().toStringAsFixed(0)}° to align with Qibla'
-                                              : dil == 'AR'
-                                                  ? 'قم بالمحاذاة بمقدار ${_pusulaAcisi.abs().toStringAsFixed(0)}° نحو القبلة'
-                                                  : 'Kıble için ${_pusulaAcisi.abs().toStringAsFixed(0)}° ${_pusulaAcisi > 0 ? "Sola" : "Sağa"} Hizalayın'),
-                                      style: TextStyle(
-                                        color: kibleDogrulandi ? dogrulamaYesilAltin : tema.yaziRengi,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12.5,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-
-                            // MASAÜSTÜ VE HASSAS TEST İÇİN CANLI AÇI KAYDIRICISI (SLIDER: -180° .. +180°)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    '-180°',
-                                    style: TextStyle(color: tema.ikincilYazi, fontSize: 11),
-                                  ),
-                                  Expanded(
-                                    child: Slider(
-                                      value: _pusulaAcisi.clamp(-180.0, 180.0),
-                                      min: -180.0,
-                                      max: 180.0,
-                                      divisions: 120,
-                                      activeColor: aktifPusulaRengi,
-                                      label: '${_pusulaAcisi.round()}°',
-                                      onChanged: (val) => _pusulaAcisiniAyarla(val, manuelMi: true),
-                                    ),
-                                  ),
-                                  Text(
-                                    '+180°',
-                                    style: TextStyle(color: tema.ikincilYazi, fontSize: 11),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                OutlinedButton.icon(
-                                  onPressed: () =>
-                                      _pusulaAcisiniAyarla(_pusulaAcisi - 15, manuelMi: true),
-                                  icon: const Icon(Icons.rotate_left_rounded, size: 17),
-                                  label: Text(
-                                    Ceviri.m(dil, 'turn_left'),
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                                FilledButton.icon(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: aktifPusulaRengi,
-                                    foregroundColor: tema.arkaPlan,
-                                  ),
-                                  onPressed: () {
-                                    CanliPusulaSensorServisi.sensorIzniIste();
-                                    _canliSensorAktif = true;
-                                    _oncekiKibleDogrulandi = false;
-                                    _pusulaAcisiniAyarla(0.0, manuelMi: false);
-                                  },
-                                  icon: const Icon(Icons.my_location_rounded, size: 16),
-                                  label: Text(
-                                    Ceviri.m(dil, 'align_qibla'),
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                OutlinedButton.icon(
-                                  onPressed: () =>
-                                      _pusulaAcisiniAyarla(_pusulaAcisi + 15, manuelMi: true),
-                                  icon: const Icon(Icons.rotate_right_rounded, size: 17),
-                                  label: Text(
-                                    Ceviri.m(dil, 'turn_right'),
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+                  // 3. KIBLEMİ BUL KARTI (GPS + GREAT CIRCLE KIBLE AÇISI + CİHAZ PUSULASI EKRANI)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => KibleBulucuEkrani(tema: tema, dil: dil),
                         ),
                       );
                     },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            tema.kartRengi,
+                            tema.vurguAltin.withValues(alpha: 0.18),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: tema.vurguAltin.withValues(alpha: 0.6),
+                          width: 1.2,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: tema.vurguAltin.withValues(alpha: 0.16),
+                              border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.6)),
+                            ),
+                            child: Icon(Icons.explore_rounded, color: tema.vurguAltin, size: 30),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  dil == 'EN'
+                                      ? 'Find My Qibla'
+                                      : dil == 'AR'
+                                          ? 'اتجاه القبلة'
+                                          : 'Kıblemi Bul',
+                                  style: TextStyle(
+                                    fontFamily: 'Lora',
+                                    color: tema.yaziRengi,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  dil == 'EN'
+                                      ? 'GPS location + device compass • Accurate Kaaba direction'
+                                      : dil == 'AR'
+                                          ? 'موقع GPS وبوصلة الجهاز لتحديد اتجاه الكعبة'
+                                          : 'GPS konumu + cihaz pusulası ile hassas Kâbe yönü',
+                                  style: TextStyle(color: tema.vurguAltin, fontSize: 11.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: tema.vurguAltin,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              dil == 'EN' ? 'Open' : dil == 'AR' ? 'افتح' : 'Aç',
+                              style: TextStyle(
+                                color: tema.arkaPlan,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
-
                   // 4. DİYANET TAKVİMİNE UYGUN GERÇEK DİNİ GÜNLER VE BAYRAMLAR KARTI
                   Container(
                     padding: const EdgeInsets.all(20),
@@ -4041,15 +3842,357 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
   }
 }
 
-class _KiblePusulasiPainter extends CustomPainter {
-  final double kibleAcisiDerece;
-  final Color altinRenk;
-  final bool kibleDogrulandi;
+// ============================================================================
 
-  _KiblePusulasiPainter({
+// ============================================================================
+// HASSAS VE DOĞRU KIBLE BULUCU TAM EKRANI (GREAT CIRCLE + DÖNEN PUSULA KADRANI)
+// ============================================================================
+
+class KibleBulucuEkrani extends StatefulWidget {
+  final IslamiTema tema;
+  final String dil;
+
+  const KibleBulucuEkrani({super.key, required this.tema, required this.dil});
+
+  @override
+  State<KibleBulucuEkrani> createState() => _KibleBulucuEkraniState();
+}
+
+class _KibleBulucuEkraniState extends State<KibleBulucuEkrani> {
+  Timer? _sensorTimer;
+  double _cihazAcisi = 0.0;
+  double _enlem = 41.0082;
+  double _boylam = 28.9784;
+  String _konumAdi = 'İstanbul';
+  double _kibleAcisi = 151.6;
+  double _kabeMesafeKm = 2415.0;
+  bool _konumYukleniyor = false;
+  bool _oncekiKibleDogrulandi = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _varsayilanVakitleriYukle();
+    _konumuGuncelle();
+    _sensoruBaslat();
+  }
+
+  void _varsayilanVakitleriYukle() {
+    final kayitli = NamazVeKonumServisi.hafizadakiSonVakitleriGetir();
+    if (kayitli != null) {
+      _enlem = kayitli.enlem;
+      _boylam = kayitli.boylam;
+      _konumAdi = kayitli.konumAdi;
+      _kibleAcisi = kayitli.kibleAcisiDerece;
+      _kabeMesafeKm = kayitli.kabeMesafeKm;
+    } else {
+      _kibleAcisi = NamazVeKonumServisi.kibleAcisiHesapla(_enlem, _boylam);
+      _kabeMesafeKm = NamazVeKonumServisi.kabeMesafeHesaplaKm(_enlem, _boylam);
+    }
+  }
+
+  void _sensoruBaslat() {
+    CanliPusulaSensorServisi.sensorIzniIste();
+    _sensorTimer = Timer.periodic(const Duration(milliseconds: 100), (_) {
+      if (!mounted) return;
+      final aci = CanliPusulaSensorServisi.cihazPusulaAcisiOku();
+      if (aci >= 0) {
+        setState(() {
+          _cihazAcisi = aci;
+        });
+
+        // Cihaz yönü ile Kıble açısı arasındaki fark (±3° hiza)
+        double fark = (_kibleAcisi - _cihazAcisi) % 360.0;
+        if (fark > 180.0) fark -= 360.0;
+        if (fark < -180.0) fark += 360.0;
+        final simdiDogrulandi = fark.abs() <= 3.0;
+
+        if (simdiDogrulandi && !_oncekiKibleDogrulandi) {
+          CanliPusulaSensorServisi.kibleDogrulandiTitresim();
+        }
+        _oncekiKibleDogrulandi = simdiDogrulandi;
+      }
+    });
+  }
+
+  Future<void> _konumuGuncelle() async {
+    setState(() => _konumYukleniyor = true);
+    try {
+      final model = await NamazVeKonumServisi.gpsKonumundanVakitleriGetir();
+      if (mounted) {
+        setState(() {
+          _enlem = model.enlem;
+          _boylam = model.boylam;
+          _konumAdi = model.konumAdi;
+          _kibleAcisi = NamazVeKonumServisi.kibleAcisiHesapla(_enlem, _boylam);
+          _kabeMesafeKm = NamazVeKonumServisi.kabeMesafeHesaplaKm(_enlem, _boylam);
+          _konumYukleniyor = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _konumYukleniyor = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _sensorTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tema = widget.tema;
+    final dil = widget.dil;
+
+    // Kıble açısı ile cihazın baktığı açı arasındaki sapma
+    double sapma = (_kibleAcisi - _cihazAcisi) % 360.0;
+    if (sapma > 180.0) sapma -= 360.0;
+    if (sapma < -180.0) sapma += 360.0;
+
+    final bool kibleyeHizalandi = sapma.abs() <= 3.0;
+    const Color dogrulamaYesil = Color(0xFF2ECC71);
+    final Color anaVurgu = kibleyeHizalandi ? dogrulamaYesil : tema.vurguAltin;
+
+    return Scaffold(
+      backgroundColor: tema.arkaPlan,
+      appBar: AppBar(
+        backgroundColor: tema.karanlikMi ? tema.arkaPlan : const Color(0xFF0F3D2E),
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: tema.vurguAltin),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          dil == 'EN'
+              ? 'Qibla Finder'
+              : dil == 'AR'
+                  ? 'بوصلة القبلة'
+                  : 'Kıbleyi Bul (Kıble Pusulası)',
+          style: TextStyle(
+            fontFamily: 'Lora',
+            color: tema.yaziRengi,
+            fontWeight: FontWeight.bold,
+            fontSize: 17.5,
+          ),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'GPS Konumu Yenile',
+            icon: _konumYukleniyor
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: tema.vurguAltin),
+                  )
+                : Icon(Icons.my_location_rounded, color: tema.vurguAltin),
+            onPressed: _konumYukleniyor ? null : _konumuGuncelle,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Konum ve Koordinat Bilgi Kartı
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: tema.kartRengi,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.35)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.location_on_rounded, size: 18, color: tema.vurguAltin),
+                        const SizedBox(width: 6),
+                        Text(
+                          _konumAdi,
+                          style: TextStyle(
+                            color: tema.yaziRengi,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'GPS: ${_enlem.toStringAsFixed(4)}°K, ${_boylam.toStringAsFixed(4)}°D  •  Kâbe: ${_kabeMesafeKm.round()} km',
+                      style: TextStyle(color: tema.ikincilYazi, fontSize: 11.5),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: tema.vurguAltin.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Kıble Açısı: ${_kibleAcisi.toStringAsFixed(1)}° (Kuzeyden Saat Yönünde)',
+                        style: TextStyle(
+                          color: tema.vurguAltin,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // BÜYÜK DÖNEN PUSULA KADRANI
+              Center(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 280,
+                  height: 280,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: kibleyeHizalandi
+                        ? [
+                            BoxShadow(
+                              color: dogrulamaYesil.withValues(alpha: 0.35),
+                              blurRadius: 32,
+                              spreadRadius: 6,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 1. Dönen Pusula Kadranı (Cihaz açısıyla döner: Kuzey her zaman gerçek kuzeyi gösterir)
+                      Transform.rotate(
+                        angle: -_cihazAcisi * (math.pi / 180.0),
+                        child: CustomPaint(
+                          size: const Size(280, 280),
+                          painter: _KibleDaireKadraniPainter(
+                            tema: tema,
+                            kibleAcisiDerece: _kibleAcisi,
+                            kibleyeHizalandi: kibleyeHizalandi,
+                          ),
+                        ),
+                      ),
+
+                      // 2. Telefonun baktığı sabit üst hiza oku
+                      Positioned(
+                        top: 2,
+                        child: Icon(
+                          Icons.arrow_drop_down_rounded,
+                          size: 38,
+                          color: anaVurgu,
+                        ),
+                      ),
+
+                      // 3. Ortadaki Kâbe İkonu ve Durum Rozeti
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: tema.kartRengi,
+                          border: Border.all(color: anaVurgu, width: 2.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: anaVurgu.withValues(alpha: 0.25),
+                              blurRadius: 12,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          kibleyeHizalandi ? Icons.check_circle_rounded : Icons.explore_rounded,
+                          color: anaVurgu,
+                          size: 34,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // KIBLE YÖNÜ HİZALAMA DURUMU (CANLI GERİ BİLDİRİM)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                decoration: BoxDecoration(
+                  color: kibleyeHizalandi
+                      ? dogrulamaYesil.withValues(alpha: 0.18)
+                      : tema.kartRengi,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: kibleyeHizalandi ? dogrulamaYesil : tema.vurguAltin.withValues(alpha: 0.4),
+                    width: kibleyeHizalandi ? 1.6 : 1.0,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      kibleyeHizalandi ? Icons.verified_rounded : Icons.compass_calibration_rounded,
+                      color: anaVurgu,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        kibleyeHizalandi
+                            ? (dil == 'EN'
+                                ? 'Qibla Direction Aligned! (±${sapma.abs().toStringAsFixed(1)}°)'
+                                : dil == 'AR'
+                                    ? 'تمت المحاذاة مع اتجاه القبلة بنجاح!'
+                                    : 'Kıble Yönü Tam Hizalandı! (±${sapma.abs().toStringAsFixed(1)}°)')
+                            : (dil == 'EN'
+                                ? 'Turn ${sapma > 0 ? "Right" : "Left"} by ${sapma.abs().toStringAsFixed(0)}°'
+                                : dil == 'AR'
+                                    ? 'أدر الجهاز بمقدار ${sapma.abs().toStringAsFixed(0)}°'
+                                    : 'Kıble için ${sapma.abs().toStringAsFixed(0)}° ${sapma > 0 ? "Sağa" : "Sola"} dönün'),
+                        style: TextStyle(
+                          color: kibleyeHizalandi ? dogrulamaYesil : tema.yaziRengi,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Text(
+                dil == 'EN'
+                    ? 'Place your phone flat on a horizontal surface for accurate compass calibration.'
+                    : dil == 'AR'
+                        ? 'ضع هاتفك على سطح مستوٍ للحصول على أعلى دقة للبوصلة.'
+                        : 'En yüksek pusula hassasiyeti için telefonunuzu yere veya masaya paralel düz tutunuz.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: tema.ikincilYazi, fontSize: 11.5, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _KibleDaireKadraniPainter extends CustomPainter {
+  final IslamiTema tema;
+  final double kibleAcisiDerece;
+  final bool kibleyeHizalandi;
+
+  _KibleDaireKadraniPainter({
+    required this.tema,
     required this.kibleAcisiDerece,
-    required this.altinRenk,
-    this.kibleDogrulandi = false,
+    required this.kibleyeHizalandi,
   });
 
   @override
@@ -4057,90 +4200,103 @@ class _KiblePusulasiPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2 - 8;
 
-    if (kibleDogrulandi) {
-      canvas.drawCircle(
-        center,
-        radius,
-        Paint()
-          ..color = altinRenk.withValues(alpha: 0.14)
-          ..style = PaintingStyle.fill,
-      );
-    }
+    final bgPaint = Paint()
+      ..color = tema.kartRengi
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius, bgPaint);
 
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = altinRenk.withValues(alpha: kibleDogrulandi ? 0.85 : 0.45)
-        ..strokeWidth = kibleDogrulandi ? 2.8 : 2.0
-        ..style = PaintingStyle.stroke,
-    );
-    canvas.drawCircle(
-      center,
-      radius - 14,
-      Paint()
-        ..color = altinRenk.withValues(alpha: 0.18)
-        ..strokeWidth = 1
-        ..style = PaintingStyle.stroke,
-    );
+    final borderPaint = Paint()
+      ..color = kibleyeHizalandi
+          ? const Color(0xFF2ECC71).withValues(alpha: 0.9)
+          : tema.vurguAltin.withValues(alpha: 0.5)
+      ..strokeWidth = kibleyeHizalandi ? 3.0 : 1.5
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, radius, borderPaint);
 
-    for (int i = 0; i < 36; i++) {
-      final rad = (i * 10) * math.pi / 180;
-      final anaYon = i % 9 == 0;
+    // Derece Çentikleri (Her 5 derecede bir)
+    for (int deg = 0; deg < 360; deg += 5) {
+      final rad = (deg - 90) * math.pi / 180.0;
+      final bool anaYon = deg % 90 == 0;
+      final bool araYon = deg % 30 == 0;
+      final double centikBoyu = anaYon ? 16 : (araYon ? 10 : 5);
+
       final p1 = Offset(
-        center.dx + (radius - (anaYon ? 12 : 6)) * math.cos(rad),
-        center.dy + (radius - (anaYon ? 12 : 6)) * math.sin(rad),
+        center.dx + (radius - centikBoyu) * math.cos(rad),
+        center.dy + (radius - centikBoyu) * math.sin(rad),
       );
       final p2 = Offset(
         center.dx + radius * math.cos(rad),
         center.dy + radius * math.sin(rad),
       );
-      canvas.drawLine(
-        p1,
-        p2,
-        Paint()
-          ..color = altinRenk.withValues(alpha: anaYon ? 0.85 : 0.35)
-          ..strokeWidth = anaYon ? 2 : 1,
-      );
+
+      final tickPaint = Paint()
+        ..color = anaYon
+            ? (deg == 0 ? Colors.redAccent : tema.vurguAltin)
+            : tema.vurguAltin.withValues(alpha: araYon ? 0.6 : 0.25)
+        ..strokeWidth = anaYon ? 2.5 : 1.0;
+
+      canvas.drawLine(p1, p2, tickPaint);
     }
 
-    final kibleRad = (kibleAcisiDerece - 90) * math.pi / 180;
-    final ucNokta = Offset(
-      center.dx + (radius - 22) * math.cos(kibleRad),
-      center.dy + (radius - 22) * math.sin(kibleRad),
+    // Ana Yön Harfleri (N, E, S, W)
+    final yonler = {0: 'K (N)', 90: 'D (E)', 180: 'G (S)', 270: 'B (W)'};
+    for (final entry in yonler.entries) {
+      final deg = entry.key;
+      final text = entry.value;
+      final rad = (deg - 90) * math.pi / 180.0;
+      final textPos = Offset(
+        center.dx + (radius - 28) * math.cos(rad),
+        center.dy + (radius - 28) * math.sin(rad),
+      );
+
+      final textSpan = TextSpan(
+        text: text,
+        style: TextStyle(
+          color: deg == 0 ? Colors.redAccent : tema.yaziRengi,
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
+        ),
+      );
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr)..layout();
+      tp.paint(canvas, textPos - Offset(tp.width / 2, tp.height / 2));
+    }
+
+    // KÂBE YÖNÜ İŞARETÇİSİ (Kıble Açısı Doğrultusunda Yeşil/Altın Çizgi ve Kâbe Küpü)
+    final kibleRad = (kibleAcisiDerece - 90) * math.pi / 180.0;
+    final kabeNokta = Offset(
+      center.dx + (radius - 20) * math.cos(kibleRad),
+      center.dy + (radius - 20) * math.sin(kibleRad),
     );
 
-    canvas.drawLine(
-      center,
-      ucNokta,
-      Paint()
-        ..color = altinRenk
-        ..strokeWidth = 3.2
-        ..strokeCap = StrokeCap.round,
-    );
+    final kibleCizgiPaint = Paint()
+      ..color = kibleyeHizalandi ? const Color(0xFF2ECC71) : const Color(0xFFE67E22)
+      ..strokeWidth = 3.5
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(center, kabeNokta, kibleCizgiPaint);
 
-    canvas.drawRect(
-      Rect.fromCenter(center: ucNokta, width: 14, height: 14),
-      Paint()..color = const Color(0xFF111111),
+    // Kâbe Sembolü (Siyah Küp + Altın Kemer)
+    final kabeKutuRect = Rect.fromCenter(center: kabeNokta, width: 22, height: 22);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(kabeKutuRect, const Radius.circular(4)),
+      Paint()..color = const Color(0xFF1A1A1A),
     );
-    canvas.drawRect(
-      Rect.fromCenter(center: ucNokta, width: 14, height: 14),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(kabeKutuRect, const Radius.circular(4)),
       Paint()
-        ..color = altinRenk
+        ..color = tema.vurguAltin
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.6,
+        ..strokeWidth = 1.5,
     );
-    canvas.drawCircle(center, 5, Paint()..color = altinRenk);
   }
 
   @override
-  bool shouldRepaint(covariant _KiblePusulasiPainter oldDelegate) =>
+  bool shouldRepaint(covariant _KibleDaireKadraniPainter oldDelegate) =>
       oldDelegate.kibleAcisiDerece != kibleAcisiDerece ||
-      oldDelegate.kibleDogrulandi != kibleDogrulandi ||
-      oldDelegate.altinRenk != altinRenk;
+      oldDelegate.kibleyeHizalandi != kibleyeHizalandi ||
+      oldDelegate.tema != tema;
 }
 
-// ============================================================================
+
 // 3. SEKME: KÜTÜPHANE (114 SURENİN TAMAMI + ARAMA ÇUBUĞU + HADİS KÜLLİYATI)
 // ============================================================================
 

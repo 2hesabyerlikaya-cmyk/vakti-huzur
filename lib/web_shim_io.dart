@@ -39,6 +39,14 @@ class IoLocalStorage {
       _file.writeAsStringSync(jsonEncode(_cache));
     } catch (_) {}
   }
+
+  void removeItem(String key) {
+    _ensureLoaded();
+    _cache.remove(key);
+    try {
+      _file.writeAsStringSync(jsonEncode(_cache));
+    } catch (_) {}
+  }
 }
 
 class SpeechSynthesisUtterance {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 import 'translations_and_logo.dart';
+import 'quiz_soru_havuzu.dart';
 
 // ============================================================================
 // GÜNLÜK İSLAMİ QUİZ MODELİ VE SORU HAVUZU
@@ -45,6 +46,43 @@ class QuizSoruModel {
   String kategori(String dil) => dil == 'EN' ? kategoriEn : dil == 'AR' ? kategoriAr : kategoriTr;
   List<String> secenekler(String dil) => dil == 'EN' ? seceneklerEn : dil == 'AR' ? seceneklerAr : seceneklerTr;
   String aciklama(String dil) => dil == 'EN' ? aciklamaEn : aciklamaTr;
+
+  /// Şıkları ve doğru cevabı rastgele karıştırılmış (shuffled) yeni bir QuizSoruModel döndürür.
+  QuizSoruModel karistir({int? seed}) {
+    final List<int> siraliIndeksler = [0, 1, 2, 3];
+    if (seed != null) {
+      // Deterministik karıştırma (aynı gün aynı sırayla kalsın)
+      for (int i = siraliIndeksler.length - 1; i > 0; i--) {
+        final j = (seed * (i + 1) + id * 7 + i) % (i + 1);
+        final temp = siraliIndeksler[i];
+        siraliIndeksler[i] = siraliIndeksler[j];
+        siraliIndeksler[j] = temp;
+      }
+    } else {
+      siraliIndeksler.shuffle();
+    }
+
+    final yeniSecTr = siraliIndeksler.map((i) => seceneklerTr[i]).toList();
+    final yeniSecEn = siraliIndeksler.map((i) => seceneklerEn[i]).toList();
+    final yeniSecAr = siraliIndeksler.map((i) => seceneklerAr[i]).toList();
+    final yeniDogru = siraliIndeksler.indexOf(dogruIndex);
+
+    return QuizSoruModel(
+      id: id,
+      kategoriTr: kategoriTr,
+      kategoriEn: kategoriEn,
+      kategoriAr: kategoriAr,
+      soruTr: soruTr,
+      soruEn: soruEn,
+      soruAr: soruAr,
+      seceneklerTr: yeniSecTr,
+      seceneklerEn: yeniSecEn,
+      seceneklerAr: yeniSecAr,
+      dogruIndex: yeniDogru,
+      aciklamaTr: aciklamaTr,
+      aciklamaEn: aciklamaEn,
+    );
+  }
 }
 
 /// Zengin İslami Soru Havuzu (Siyer, Kur'an-ı Kerim, Fıkıh, Akâid, Sahabe, Ahlak)
@@ -372,23 +410,104 @@ const List<QuizSoruModel> kIslamiSoruHavuzu = [
 
 class GunlukQuizServisi {
   static const String _storagePrefix = 'vakti_huzur_quiz_gun_';
+  static const String _cozulenSorularKey = 'vakti_huzur_cozulen_sorular_v2';
 
   static String bugunKodu() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
-  /// Her gün için deterministik (aynı gün herkes aynı 5 soruyu çözer) 5 soru seçer
+  /// 100 soruluk havuzdan 20 gün boyunca tekrarsız 5 soru seçer ve şıkları karıştırır.
+  /// 100 soru tamamlandığında liste sıfırlanıp baştan yeniden karıştırılır.
   static List<QuizSoruModel> bugununSorulari() {
     final now = DateTime.now();
-    final gunSayisi = now.year * 365 + now.month * 31 + now.day;
-    final havuz = List<QuizSoruModel>.from(kIslamiSoruHavuzu);
-    final secilenler = <QuizSoruModel>[];
+    final bugunTarihKodu = bugunKodu();
+    final gunSeed = now.year * 10000 + now.month * 100 + now.day;
 
-    int index = gunSayisi % havuz.length;
-    for (int i = 0; i < 5; i++) {
-      secilenler.add(havuz[(index + i * 3) % havuz.length]);
+    // Eğer bugünün soruları zaten hafızaya kaydedilmişse aynısını getir (şıklar ve sıra değişmesin)
+    final bugunCacheKey = 'vakti_huzur_quiz_sorular_$bugunTarihKodu';
+    try {
+      final rawCache = web.window.localStorage.getItem(bugunCacheKey);
+      if (rawCache != null && rawCache.isNotEmpty) {
+        final decodedList = jsonDecode(rawCache) as List<dynamic>;
+        final List<QuizSoruModel> onbellekSorular = [];
+        for (final item in decodedList) {
+          final m = item as Map<String, dynamic>;
+          onbellekSorular.add(QuizSoruModel(
+            id: (m['id'] as num).toInt(),
+            kategoriTr: m['kategoriTr'] ?? '',
+            kategoriEn: m['kategoriEn'] ?? '',
+            kategoriAr: m['kategoriAr'] ?? '',
+            soruTr: m['soruTr'] ?? '',
+            soruEn: m['soruEn'] ?? '',
+            soruAr: m['soruAr'] ?? '',
+            seceneklerTr: (m['seceneklerTr'] as List).cast<String>(),
+            seceneklerEn: (m['seceneklerEn'] as List).cast<String>(),
+            seceneklerAr: (m['seceneklerAr'] as List).cast<String>(),
+            dogruIndex: (m['dogruIndex'] as num).toInt(),
+            aciklamaTr: m['aciklamaTr'] ?? '',
+            aciklamaEn: m['aciklamaEn'] ?? '',
+          ));
+        }
+        if (onbellekSorular.length == 5) return onbellekSorular;
+      }
+    } catch (_) {}
+
+    // 100 soruluk havuzu al
+    final tumHavuz = List<QuizSoruModel>.from(kYuzlukIslamiSoruHavuzu);
+
+    // Çözülmüş soru id'lerini oku
+    List<int> cozulenler = [];
+    try {
+      final rawCozulen = web.window.localStorage.getItem(_cozulenSorularKey);
+      if (rawCozulen != null && rawCozulen.isNotEmpty) {
+        cozulenler = (jsonDecode(rawCozulen) as List).cast<int>();
+      }
+    } catch (_) {}
+
+    // Eğer 100 soru tamamlandıysa veya kalan soru < 5 ise havuzu sıfırla
+    if (cozulenler.length >= tumHavuz.length || (tumHavuz.length - cozulenler.length) < 5) {
+      cozulenler.clear();
+      try {
+        web.window.localStorage.removeItem(_cozulenSorularKey);
+      } catch (_) {}
     }
+
+    // Henüz çözülmemiş soruları ayıkla
+    final cozulecekAdaylar = tumHavuz.where((s) => !cozulenler.contains(s.id)).toList();
+
+    // Seçilen 5 soru
+    final List<QuizSoruModel> secilenler = [];
+    for (int i = 0; i < 5 && i < cozulecekAdaylar.length; i++) {
+      final hamSoru = cozulecekAdaylar[i];
+      // Şıkları dinamik karıştır (seed ile gün boyu tutarlı kalsın)
+      final karisikSoru = hamSoru.karistir(seed: gunSeed + i * 13);
+      secilenler.add(karisikSoru);
+      cozulenler.add(hamSoru.id);
+    }
+
+    // Yeni çözülenler listesini kalıcı kaydet
+    try {
+      web.window.localStorage.setItem(_cozulenSorularKey, jsonEncode(cozulenler));
+      // Bugünün karıştırılmış sorularını da kaydet ki gün boyu sabit kalsın
+      final serbestJson = secilenler.map((s) => {
+        'id': s.id,
+        'kategoriTr': s.kategoriTr,
+        'kategoriEn': s.kategoriEn,
+        'kategoriAr': s.kategoriAr,
+        'soruTr': s.soruTr,
+        'soruEn': s.soruEn,
+        'soruAr': s.soruAr,
+        'seceneklerTr': s.seceneklerTr,
+        'seceneklerEn': s.seceneklerEn,
+        'seceneklerAr': s.seceneklerAr,
+        'dogruIndex': s.dogruIndex,
+        'aciklamaTr': s.aciklamaTr,
+        'aciklamaEn': s.aciklamaEn,
+      }).toList();
+      web.window.localStorage.setItem(bugunCacheKey, jsonEncode(serbestJson));
+    } catch (_) {}
+
     return secilenler;
   }
 

@@ -31,9 +31,11 @@ void _sensorleriBaslat() {
       samplingPeriod: SensorInterval.uiInterval,
     ).listen(
       (AccelerometerEvent e) {
-        _ax = e.x;
-        _ay = e.y;
-        _az = e.z;
+        // Yerçekimi vektörünü düşük geçiren filtre ile ayıkla (titreşim gürültüsünü azaltır)
+        const double k = 0.2;
+        _ax = _ax + k * (e.x - _ax);
+        _ay = _ay + k * (e.y - _ay);
+        _az = _az + k * (e.z - _az);
       },
       onError: (_) {},
       cancelOnError: false,
@@ -47,29 +49,29 @@ void _sensorleriBaslat() {
         final my = m.y;
         final mz = m.z;
 
-        // Eğim kompanzasyonlu (Tilt-Compensated) gerçek pusula azimut hesabı
-        final normA = math.sqrt(_ax * _ax + _ay * _ay + _az * _az);
+        // Eğim kompanzasyonlu gerçek pusula azimutu
+        // (Android SensorManager.getRotationMatrix + getOrientation ile aynı matematik):
+        // H = E x A (doğu vektörü), M = A x H (kuzey vektörü), azimut = atan2(Hy, My)
         double headingDeg;
-        if (normA > 0.5) {
+        final normA = math.sqrt(_ax * _ax + _ay * _ay + _az * _az);
+        double hx = my * _az - mz * _ay;
+        double hy = mz * _ax - mx * _az;
+        double hz = mx * _ay - my * _ax;
+        final normH = math.sqrt(hx * hx + hy * hy + hz * hz);
+
+        if (normA > 0.5 && normH > 0.1) {
+          hx /= normH;
+          hy /= normH;
+          hz /= normH;
           final axN = _ax / normA;
           final ayN = _ay / normA;
-          final pitch = math.asin((-axN).clamp(-1.0, 1.0));
-          final cosPitch = math.cos(pitch);
-          final roll = cosPitch.abs() > 0.001
-              ? math.asin((ayN / cosPitch).clamp(-1.0, 1.0))
-              : 0.0;
-
-          final xh = mx * math.cos(pitch) + mz * math.sin(pitch);
-          final yh = mx * math.sin(roll) * math.sin(pitch) +
-              my * math.cos(roll) -
-              mz * math.sin(roll) * math.cos(pitch);
-
-          // Android/iOS koordinat sisteminde Y ekseni telefonun üst kısmını gösterir
-          headingDeg = math.atan2(-mx, my) * (180.0 / math.pi);
-          if (xh.abs() > 0.01 || yh.abs() > 0.01) {
-            headingDeg = math.atan2(-mx, my) * (180.0 / math.pi);
-          }
+          final azN = _az / normA;
+          final myN = azN * hx - axN * hz; // M = A x H (y bileşeni)
+          headingDeg = math.atan2(hy, myN) * (180.0 / math.pi);
+          // ayN yalnızca matris bütünlüğü içindir
+          if (ayN.isNaN) headingDeg = math.atan2(-mx, my) * (180.0 / math.pi);
         } else {
+          // Telefon düz tutuluyorsa basit azimut
           headingDeg = math.atan2(-mx, my) * (180.0 / math.pi);
         }
 

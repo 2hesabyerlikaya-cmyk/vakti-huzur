@@ -45,7 +45,10 @@ AdRequest helalAdRequest() {
 
 class InceBannerReklamWidget extends StatefulWidget {
   final IslamiTema tema;
-  const InceBannerReklamWidget({super.key, required this.tema});
+
+  /// true ise sayfa içi (Ana Sayfa orta alanı) için yuvarlak köşeli şık kart görünümünde çizilir.
+  final bool ortaKart;
+  const InceBannerReklamWidget({super.key, required this.tema, this.ortaKart = false});
 
   @override
   State<InceBannerReklamWidget> createState() => _InceBannerReklamWidgetState();
@@ -117,14 +120,63 @@ class _InceBannerReklamWidgetState extends State<InceBannerReklamWidget>
           return const SizedBox.shrink();
         }
 
+        final Widget reklamIcerik = _yuklendi && _bannerAd != null
+            ? SizedBox(width: 320, height: 50, child: AdWidget(ad: _bannerAd!))
+            : _yedekAlan();
+
+        if (widget.ortaKart) {
+          return _ortaKartCercevesi(reklamIcerik);
+        }
+
         return Container(
           width: double.infinity,
           height: 52,
           alignment: Alignment.center,
           color: widget.tema.karanlikMi ? widget.tema.arkaPlan : const Color(0xFF0F3D2E),
-          child: _yuklendi && _bannerAd != null
-              ? AdWidget(ad: _bannerAd!)
-              : Container(
+          child: reklamIcerik,
+        );
+      },
+    );
+  }
+
+  /// Ana Sayfa orta alanı için yuvarlak köşeli, altın çerçeveli reklam kartı
+  Widget _ortaKartCercevesi(Widget icerik) {
+    final tema = widget.tema;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+      decoration: BoxDecoration(
+        color: tema.kartRengi,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: tema.vurguAltin.withValues(alpha: 0.35), width: 0.9),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.campaign_outlined, size: 12, color: tema.ikincilYazi),
+              const SizedBox(width: 4),
+              Text(
+                'Reklam',
+                style: TextStyle(
+                  color: tema.ikincilYazi,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.6,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Center(child: icerik),
+        ],
+      ),
+    );
+  }
+
+  Widget _yedekAlan() {
+    return Container(
                   width: 320,
                   height: 50,
                   margin: const EdgeInsets.symmetric(vertical: 1),
@@ -176,10 +228,7 @@ class _InceBannerReklamWidgetState extends State<InceBannerReklamWidget>
                       ),
                     ],
                   ),
-                ),
-        );
-      },
-    );
+                );
   }
 }
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 import 'quran_hadith_data.dart';
@@ -144,12 +145,58 @@ class KuranApiServisi {
     return t;
   }
 
-  /// Seçilen surenin (1..114) tüm ayetlerini canlı olarak çeker
+  /// Seçilen surenin (1..114) tüm ayetlerini önce yerel çevrimdışı assets içinden yükler,
+  /// internet varsa veya güncellenmesi gerekirse API'den senkronize eder.
   static Future<List<CanliAyetModel>> sureAyetleriniGetir(int sureNo) async {
     if (_sureOnbellek.containsKey(sureNo)) {
       return _sureOnbellek[sureNo]!;
     }
 
+    // 1. ÖNCE ÇEVRİMDIŞI (İNTERNETSİZ) YEREL ASSET'LERDEN YÜKLE
+    try {
+      final assetJson = await rootBundle.loadString('assets/quran/$sureNo.json');
+      if (assetJson.isNotEmpty) {
+        final decodedList = jsonDecode(assetJson) as List<dynamic>;
+        final List<CanliAyetModel> yerelAyetler = [];
+        for (final item in decodedList) {
+          final m = item as Map<String, dynamic>;
+          final ayetNo = (m['ayetNo'] as num?)?.toInt() ?? 1;
+          final hamArapca = m['arapca']?.toString() ?? '';
+          yerelAyetler.add(
+            CanliAyetModel(
+              ayetNo: ayetNo,
+              globalAyetNo: (m['globalAyetNo'] as num?)?.toInt() ?? 1,
+              arapca: besmeleTemizle(hamArapca, sureNo, ayetNo),
+              mealTr: m['mealTr']?.toString() ?? '',
+              mealEn: m['mealEn']?.toString() ?? '',
+              cuz: (m['cuz'] as num?)?.toInt() ?? 1,
+              sayfa: (m['sayfa'] as num?)?.toInt() ?? 1,
+            ),
+          );
+        }
+        if (yerelAyetler.isNotEmpty) {
+          _sureOnbellek[sureNo] = yerelAyetler;
+          return yerelAyetler;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Cihaz hafızasındaki (localStorage) önbelleği kontrol et
+    try {
+      final kayitliRaw = web.window.localStorage.getItem('nur_huzur_sure_cache_v1_$sureNo');
+      if (kayitliRaw != null && kayitliRaw.isNotEmpty) {
+        final decodedList = jsonDecode(kayitliRaw) as List<dynamic>;
+        final kayitliAyetler = decodedList
+            .map((e) => CanliAyetModel.fromJson(e as Map<String, dynamic>))
+            .toList();
+        if (kayitliAyetler.isNotEmpty) {
+          _sureOnbellek[sureNo] = kayitliAyetler;
+          return kayitliAyetler;
+        }
+      }
+    } catch (_) {}
+
+    // 3. Çevrimiçi API üzerinden çek
     final url = Uri.parse(
       'https://api.alquran.cloud/v1/surah/$sureNo/editions/quran-uthmani,tr.diyanet,en.sahih',
     );
@@ -186,7 +233,6 @@ class KuranApiServisi {
           }
 
           _sureOnbellek[sureNo] = sonuc;
-          // Çevrimdışı (internetsiz) okuma için cihaz hafızasına (localStorage) otomatik kaydet
           try {
             web.window.localStorage.setItem(
               'nur_huzur_sure_cache_v1_$sureNo',
@@ -194,21 +240,6 @@ class KuranApiServisi {
             );
           } catch (_) {}
           return sonuc;
-        }
-      }
-    } catch (_) {}
-
-    // İnternet yoksa önce cihaz hafızasına (localStorage) kaydedilmiş sure verisini oku
-    try {
-      final kayitliRaw = web.window.localStorage.getItem('nur_huzur_sure_cache_v1_$sureNo');
-      if (kayitliRaw != null && kayitliRaw.isNotEmpty) {
-        final decodedList = jsonDecode(kayitliRaw) as List<dynamic>;
-        final kayitliAyetler = decodedList
-            .map((e) => CanliAyetModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-        if (kayitliAyetler.isNotEmpty) {
-          _sureOnbellek[sureNo] = kayitliAyetler;
-          return kayitliAyetler;
         }
       }
     } catch (_) {}

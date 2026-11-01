@@ -11,7 +11,13 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 bool _sensorBaslatildi = false;
 double _sonCihazPusulaDerece = -1.0;
+double _sinSmooth = 0.0;
+double _cosSmooth = 1.0;
+bool _ilkOkumaYapildi = false;
 double _ax = 0.0, _ay = 0.0, _az = 9.8;
+double _mx = 0.0, _my = 25.0, _mz = -40.0;
+bool _magIlkOkuma = false;
+double _sonManyetikAlanMicroTesla = 46.5;
 StreamSubscription<AccelerometerEvent>? _accelSub;
 StreamSubscription<MagnetometerEvent>? _magSub;
 AudioPlayer? _bildirimPlayer;
@@ -28,64 +34,84 @@ void _sensorleriBaslat() {
 
   try {
     _accelSub = accelerometerEventStream(
-      samplingPeriod: SensorInterval.uiInterval,
+      samplingPeriod: SensorInterval.gameInterval,
     ).listen(
       (AccelerometerEvent e) {
-        // Yerçekimi vektörünü düşük geçiren filtre ile ayıkla (titreşim gürültüsünü azaltır)
-        const double k = 0.2;
-        _ax = _ax + k * (e.x - _ax);
-        _ay = _ay + k * (e.y - _ay);
-        _az = _az + k * (e.z - _az);
+        // 1. Aşama Low-Pass Filtre: İvmeölçer (yerçekimi vektörü) titreşim sönümleme
+        const double alphaA = 0.16;
+        _ax = _ax + alphaA * (e.x - _ax);
+        _ay = _ay + alphaA * (e.y - _ay);
+        _az = _az + alphaA * (e.z - _az);
       },
       onError: (_) {},
       cancelOnError: false,
     );
 
     _magSub = magnetometerEventStream(
-      samplingPeriod: SensorInterval.uiInterval,
+      samplingPeriod: SensorInterval.gameInterval,
     ).listen(
       (MagnetometerEvent m) {
-        final mx = m.x;
-        final my = m.y;
-        final mz = m.z;
+        // 2. Aşama Low-Pass Filtre: Ham manyetometre gürültü ve sıçrama sönümleme
+        const double alphaM = 0.22;
+        if (!_magIlkOkuma) {
+          _mx = m.x;
+          _my = m.y;
+          _mz = m.z;
+          _magIlkOkuma = true;
+        } else {
+          _mx = _mx + alphaM * (m.x - _mx);
+          _my = _my + alphaM * (m.y - _my);
+          _mz = _mz + alphaM * (m.z - _mz);
+        }
 
-        // Eğim kompanzasyonlu gerçek pusula azimutu
-        // (Android SensorManager.getRotationMatrix + getOrientation ile aynı matematik):
-        // H = E x A (doğu vektörü), M = A x H (kuzey vektörü), azimut = atan2(Hy, My)
+        // Manyetik alan şiddeti (µT) — Kalibrasyon doğruluğu kontrolü için
+        final fieldNorm = math.sqrt(_mx * _mx + _my * _my + _mz * _mz);
+        if (!fieldNorm.isNaN && !fieldNorm.isInfinite) {
+          _sonManyetikAlanMicroTesla = fieldNorm;
+        }
+
+        // Eğim kompanzasyonlu (Tilt-Compensated) gerçek manyetik azimut:
+        // H = M x A (Doğu vektörü), N = A x H (Kuzey vektörü)
         double headingDeg;
         final normA = math.sqrt(_ax * _ax + _ay * _ay + _az * _az);
-        double hx = my * _az - mz * _ay;
-        double hy = mz * _ax - mx * _az;
-        double hz = mx * _ay - my * _ax;
+        double hx = _my * _az - _mz * _ay;
+        double hy = _mz * _ax - _mx * _az;
+        double hz = _mx * _ay - _my * _ax;
         final normH = math.sqrt(hx * hx + hy * hy + hz * hz);
 
-        if (normA > 0.5 && normH > 0.1) {
+        if (normA > 0.5 && normH > 0.05) {
           hx /= normH;
           hy /= normH;
           hz /= normH;
           final axN = _ax / normA;
           final ayN = _ay / normA;
           final azN = _az / normA;
-          final myN = azN * hx - axN * hz; // M = A x H (y bileşeni)
+          final myN = azN * hx - axN * hz;
           headingDeg = math.atan2(hy, myN) * (180.0 / math.pi);
-          // ayN yalnızca matris bütünlüğü içindir
-          if (ayN.isNaN) headingDeg = math.atan2(-mx, my) * (180.0 / math.pi);
+          if (ayN.isNaN || headingDeg.isNaN) {
+            headingDeg = math.atan2(-_mx, _my) * (180.0 / math.pi);
+          }
         } else {
-          // Telefon düz tutuluyorsa basit azimut
-          headingDeg = math.atan2(-mx, my) * (180.0 / math.pi);
+          // Cihaz yatay düzlemdeyken doğrudan azimut
+          headingDeg = math.atan2(-_mx, _my) * (180.0 / math.pi);
         }
 
         headingDeg = (headingDeg + 360.0) % 360.0;
+        final rad = headingDeg * (math.pi / 180.0);
 
-        // Yumuşak geçiş (Low-pass filtre)
-        if (_sonCihazPusulaDerece < 0) {
-          _sonCihazPusulaDerece = headingDeg;
+        // 3. Aşama Dairesel Trigonometrik Low-Pass Filtre (0°-360° geçişinde takılmayı %100 önler)
+        const double alphaHeading = 0.20;
+        if (!_ilkOkumaYapildi) {
+          _sinSmooth = math.sin(rad);
+          _cosSmooth = math.cos(rad);
+          _ilkOkumaYapildi = true;
         } else {
-          double diff = headingDeg - _sonCihazPusulaDerece;
-          if (diff > 180.0) diff -= 360.0;
-          if (diff < -180.0) diff += 360.0;
-          _sonCihazPusulaDerece = (_sonCihazPusulaDerece + diff * 0.25 + 360.0) % 360.0;
+          _sinSmooth = _sinSmooth + alphaHeading * (math.sin(rad) - _sinSmooth);
+          _cosSmooth = _cosSmooth + alphaHeading * (math.cos(rad) - _cosSmooth);
         }
+
+        _sonCihazPusulaDerece =
+            (math.atan2(_sinSmooth, _cosSmooth) * (180.0 / math.pi) + 360.0) % 360.0;
       },
       onError: (_) {},
       cancelOnError: false,
@@ -96,6 +122,17 @@ void _sensorleriBaslat() {
 double cihazPusulaAcisiOkuBridge() {
   _sensorleriBaslat();
   return _sonCihazPusulaDerece;
+}
+
+double pusulaManyetikAlanSiddetiOkuBridge() {
+  _sensorleriBaslat();
+  return _sonManyetikAlanMicroTesla;
+}
+
+bool pusulaKalibrasyonGerekliMiBridge() {
+  // Dünya manyetik alanı normalde 25 µT - 65 µT arasındadır.
+  // Bunun dışındaysa yakınlarda mıknatıs/metal kılıf vardır veya 8 çizerek kalibrasyon gerekir.
+  return _sonManyetikAlanMicroTesla < 22.0 || _sonManyetikAlanMicroTesla > 68.0;
 }
 
 bool pusulaSensorIzniIsteBridge() {

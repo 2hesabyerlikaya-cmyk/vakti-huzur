@@ -172,6 +172,128 @@ class NamazVeKonumServisi {
     return dunyaYaricapiKm * c;
   }
 
+  /// NOAA WMM (World Magnetic Model 2025/2026) küresel harmonik katsayılarıyla
+  /// verilen koordinattaki Manyetik Sapma (Magnetic Declination) açısını derece cinsinden hesaplar.
+  /// (+ değerler Doğu sapmasını, - değerler Batı sapmasını ifade eder; Türkiye'de ~ +5.8° ile +6.7° arasıdır)
+  static double manyetikSapmaHesapla(double enlem, double boylam) {
+    final double clampedLat = enlem.clamp(-85.0, 85.0);
+    final double theta = (90.0 - clampedLat) * math.pi / 180.0; // Co-latitude
+    final double lambda = boylam * math.pi / 180.0;
+
+    final double ct = math.cos(theta);
+    final double st = math.sin(theta).abs() < 1e-6 ? 1e-6 : math.sin(theta);
+
+    // WMM2025/2026 Epoch Gauss katsayıları (n = 1..3, nT)
+    const double g10 = -29351.8, g11 = -1410.8, h11 = 4545.4;
+    const double g20 = -2556.6, g21 = 2951.1, h21 = -3133.6, g22 = 1649.3, h22 = -815.1;
+    const double g30 = 1361.0,
+        g31 = -2404.1,
+        h31 = -56.6,
+        g32 = 1243.8,
+        h32 = 237.5,
+        g33 = 453.6,
+        h33 = -549.5;
+
+    final double c1 = math.cos(lambda), s1 = math.sin(lambda);
+    final double c2 = math.cos(2 * lambda), s2 = math.sin(2 * lambda);
+    final double c3 = math.cos(3 * lambda), s3 = math.sin(3 * lambda);
+
+    // Schmidt yarı-normalize Legendre polinomları P_n^m ve türevleri dP_n^m/d(theta)
+    final double p11 = st;
+    final double dp10 = -st;
+    final double dp11 = ct;
+
+    const double sqrt3 = 1.7320508075688772;
+    final double p21 = sqrt3 * st * ct;
+    final double p22 = 0.5 * sqrt3 * st * st;
+    final double dp20 = -3.0 * st * ct;
+    final double dp21 = sqrt3 * (ct * ct - st * st);
+    final double dp22 = sqrt3 * st * ct;
+
+    const double sqrt6 = 2.449489742783178;
+    const double sqrt15 = 3.872983346207417;
+    const double sqrt10 = 3.1622776601683795;
+    final double p31 = 0.25 * sqrt6 * st * (5.0 * ct * ct - 1.0);
+    final double p32 = 0.5 * sqrt15 * st * st * ct;
+    final double p33 = 0.25 * sqrt10 * st * st * st;
+    final double dp30 = -1.5 * st * (5.0 * ct * ct - 1.0);
+    final double dp31 = 0.25 * sqrt6 * ct * (5.0 * ct * ct - 1.0) - 2.5 * sqrt6 * st * st * ct;
+    final double dp32 = 0.5 * sqrt15 * (2.0 * st * ct * ct - st * st * st);
+    final double dp33 = 0.75 * sqrt10 * st * st * ct;
+
+    // Kuzey (Bx) ve Doğu (By) manyetik alan bileşenleri
+    final double bx = -(g10 * dp10 +
+        (g11 * c1 + h11 * s1) * dp11 +
+        g20 * dp20 +
+        (g21 * c1 + h21 * s1) * dp21 +
+        (g22 * c2 + h22 * s2) * dp22 +
+        g30 * dp30 +
+        (g31 * c1 + h31 * s1) * dp31 +
+        (g32 * c2 + h32 * s2) * dp32 +
+        (g33 * c3 + h33 * s3) * dp33);
+
+    final double by = (1.0 / st) *
+        (1.0 * (g11 * s1 - h11 * c1) * p11 +
+            1.0 * (g21 * s1 - h21 * c1) * p21 +
+            2.0 * (g22 * s2 - h22 * c2) * p22 +
+            1.0 * (g31 * s1 - h31 * c1) * p31 +
+            2.0 * (g32 * s2 - h32 * c2) * p32 +
+            3.0 * (g33 * s3 - h33 * c3) * p33);
+
+    return math.atan2(by, bx) * 180.0 / math.pi;
+  }
+
+  /// Açıyı (0°-360°) 8 ana/ara yön kısaltmasına çevirir (örn: GD, SE)
+  static String yonKoduGetir(double derece, String dil) {
+    final norm = ((derece % 360.0) + 360.0) % 360.0;
+    final idx = ((norm + 22.5) ~/ 45.0) % 8;
+    const tr = ['K', 'KD', 'D', 'GD', 'G', 'GB', 'B', 'KB'];
+    const en = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const ar = ['ش', 'ش.ش', 'شرق', 'ج.ش', 'ج', 'ج.غ', 'غرب', 'ش.غ'];
+    if (dil == 'EN') return en[idx];
+    if (dil == 'AR') return ar[idx];
+    return tr[idx];
+  }
+
+  /// Açıyı (0°-360°) tam yön adına çevirir (örn: Güneydoğu)
+  static String yonTamAdiGetir(double derece, String dil) {
+    final norm = ((derece % 360.0) + 360.0) % 360.0;
+    final idx = ((norm + 22.5) ~/ 45.0) % 8;
+    const tr = [
+      'Kuzey',
+      'Kuzeydoğu',
+      'Doğu',
+      'Güneydoğu',
+      'Güney',
+      'Güneybatı',
+      'Batı',
+      'Kuzeybatı',
+    ];
+    const en = [
+      'North',
+      'Northeast',
+      'East',
+      'Southeast',
+      'South',
+      'Southwest',
+      'West',
+      'Northwest',
+    ];
+    const ar = [
+      'الشمال',
+      'الشمال الشرقي',
+      'الشرق',
+      'الجنوب الشرقي',
+      'الجنوب',
+      'الجنوب الغربي',
+      'الغرب',
+      'الشمال الغربي',
+    ];
+    if (dil == 'EN') return en[idx];
+    if (dil == 'AR') return ar[idx];
+    return tr[idx];
+  }
+
   static String _saatTemizle(String? ham) {
     if (ham == null || ham.isEmpty) return '00:00';
     final temiz = ham.split(' ').first.trim();

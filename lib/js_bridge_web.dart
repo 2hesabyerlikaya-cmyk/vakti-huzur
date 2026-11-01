@@ -21,6 +21,10 @@ double cihazPusulaAcisiOkuBridge() {
   }
 }
 
+double pusulaManyetikAlanSiddetiOkuBridge() => 46.5;
+
+bool pusulaKalibrasyonGerekliMiBridge() => false;
+
 bool pusulaSensorIzniIsteBridge() {
   try {
     return _pusulaSensorIzniIsteJs();

@@ -1,7 +1,12 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest_all.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 import 'js_bridge.dart';
+import 'prayer_location_calendar_service.dart';
 import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 import 'quran_api_service.dart';
 import 'quran_hadith_data.dart';
@@ -1198,6 +1203,16 @@ class CanliPusulaSensorServisi {
     return cihazPusulaAcisiOkuBridge();
   }
 
+  /// Anlık manyetik alan şiddetini (µT) döndürür (normal Dünya alanı: 25-65 µT).
+  static double manyetikAlanSiddetiOku() {
+    return pusulaManyetikAlanSiddetiOkuBridge();
+  }
+
+  /// Cihazın manyetik sensör kalibrasyonuna (8 hareketi) ihtiyacı olup olmadığını döndürür.
+  static bool kalibrasyonGerekliMi() {
+    return pusulaKalibrasyonGerekliMiBridge();
+  }
+
   /// iOS 13+ cihazlarda pusula sensörü iznini ister
   static void sensorIzniIste() {
     pusulaSensorIzniIsteBridge();
@@ -1215,69 +1230,510 @@ class CanliPusulaSensorServisi {
 }
 
 // ============================================================================
-// 7. NAMAZ VAKTİ VE GÜNLÜK AYET BİLDİRİM PANELİ (KALICI + SESLİ/GÖRSEL TEST)
+// 7. GERÇEK ANDROID & iOS YEREL BİLDİRİM ALTYAPISI (flutter_local_notifications + timezone)
 // ============================================================================
 
 class BildirimAyarlariModel {
-  final bool ezanVaktindeBildir;
-  final bool onBesDkOnceHatirlat;
+  static const List<String> vakitAnahtarlari = [
+    'imsak',
+    'gunes',
+    'ogle',
+    'ikindi',
+    'aksam',
+    'yatsi',
+  ];
+
+  final Map<String, bool> tamVaktinde;
+  final Map<String, bool> vakitCikmadanOnce;
   final bool gununAyetiBildirimi;
 
   const BildirimAyarlariModel({
-    this.ezanVaktindeBildir = true,
-    this.onBesDkOnceHatirlat = true,
+    required this.tamVaktinde,
+    required this.vakitCikmadanOnce,
     this.gununAyetiBildirimi = true,
   });
 
+  factory BildirimAyarlariModel.varsayilan() {
+    return const BildirimAyarlariModel(
+      tamVaktinde: {
+        'imsak': true,
+        'gunes': true,
+        'ogle': true,
+        'ikindi': true,
+        'aksam': true,
+        'yatsi': true,
+      },
+      vakitCikmadanOnce: {
+        'imsak': true,
+        'gunes': false,
+        'ogle': true,
+        'ikindi': true,
+        'aksam': true,
+        'yatsi': true,
+      },
+      gununAyetiBildirimi: true,
+    );
+  }
+
+  bool vakitTamAktifMi(String key) => tamVaktinde[key] ?? true;
+  bool vakitCikmadanAktifMi(String key) => vakitCikmadanOnce[key] ?? true;
+
+  BildirimAyarlariModel vakitGuncelle({
+    required String vakitKey,
+    bool? tamVaktindeDeger,
+    bool? vakitCikmadanDeger,
+  }) {
+    final yeniTam = Map<String, bool>.from(tamVaktinde);
+    final yeniCikmadan = Map<String, bool>.from(vakitCikmadanOnce);
+    if (tamVaktindeDeger != null) {
+      yeniTam[vakitKey] = tamVaktindeDeger;
+    }
+    if (vakitCikmadanDeger != null) {
+      yeniCikmadan[vakitKey] = vakitCikmadanDeger;
+    }
+    return BildirimAyarlariModel(
+      tamVaktinde: yeniTam,
+      vakitCikmadanOnce: yeniCikmadan,
+      gununAyetiBildirimi: gununAyetiBildirimi,
+    );
+  }
+
   BildirimAyarlariModel copyWith({
-    bool? ezanVaktindeBildir,
-    bool? onBesDkOnceHatirlat,
+    Map<String, bool>? tamVaktinde,
+    Map<String, bool>? vakitCikmadanOnce,
     bool? gununAyetiBildirimi,
   }) {
     return BildirimAyarlariModel(
-      ezanVaktindeBildir: ezanVaktindeBildir ?? this.ezanVaktindeBildir,
-      onBesDkOnceHatirlat: onBesDkOnceHatirlat ?? this.onBesDkOnceHatirlat,
+      tamVaktinde: tamVaktinde ?? Map<String, bool>.from(this.tamVaktinde),
+      vakitCikmadanOnce: vakitCikmadanOnce ?? Map<String, bool>.from(this.vakitCikmadanOnce),
       gununAyetiBildirimi: gununAyetiBildirimi ?? this.gununAyetiBildirimi,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'ezanVaktindeBildir': ezanVaktindeBildir,
-        'onBesDkOnceHatirlat': onBesDkOnceHatirlat,
+        'tamVaktinde': tamVaktinde,
+        'vakitCikmadanOnce': vakitCikmadanOnce,
         'gununAyetiBildirimi': gununAyetiBildirimi,
       };
 
   factory BildirimAyarlariModel.fromJson(Map<String, dynamic> m) {
+    final def = BildirimAyarlariModel.varsayilan();
+    final tam = Map<String, bool>.from(def.tamVaktinde);
+    final cikmadan = Map<String, bool>.from(def.vakitCikmadanOnce);
+
+    if (m['tamVaktinde'] is Map) {
+      final rawTam = m['tamVaktinde'] as Map;
+      for (final k in vakitAnahtarlari) {
+        if (rawTam.containsKey(k)) {
+          tam[k] = rawTam[k] == true;
+        }
+      }
+    } else if (m.containsKey('ezanVaktindeBildir')) {
+      final legacyTam = m['ezanVaktindeBildir'] != false;
+      for (final k in vakitAnahtarlari) {
+        tam[k] = legacyTam;
+      }
+    }
+
+    if (m['vakitCikmadanOnce'] is Map) {
+      final rawCik = m['vakitCikmadanOnce'] as Map;
+      for (final k in vakitAnahtarlari) {
+        if (rawCik.containsKey(k)) {
+          cikmadan[k] = rawCik[k] == true;
+        }
+      }
+    } else if (m.containsKey('onBesDkOnceHatirlat')) {
+      final legacyCik = m['onBesDkOnceHatirlat'] != false;
+      for (final k in vakitAnahtarlari) {
+        cikmadan[k] = legacyCik;
+      }
+    }
+
     return BildirimAyarlariModel(
-      ezanVaktindeBildir: m['ezanVaktindeBildir'] != false,
-      onBesDkOnceHatirlat: m['onBesDkOnceHatirlat'] != false,
+      tamVaktinde: tam,
+      vakitCikmadanOnce: cikmadan,
       gununAyetiBildirimi: m['gununAyetiBildirimi'] != false,
     );
   }
 }
 
 class BildirimAyarlariServisi {
-  static const String _storageKey = 'nur_huzur_bildirim_ayarlari_v1';
+  static const String _storageKey = 'nur_huzur_bildirim_ayarlari_v2';
+  static const String _kanalTamVakitId = 'vakti_huzur_ezan_vakti_kanali';
+  static const String _kanalCikmadanId = 'vakti_huzur_vakit_cikmadan_kanali';
+
+  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  static bool _baslatildi = false;
+  static bool _tzHazir = false;
+  static final ValueNotifier<bool> izinDurumuNotifier = ValueNotifier<bool>(false);
 
   static final ValueNotifier<BildirimAyarlariModel> ayarlarNotifier =
       ValueNotifier<BildirimAyarlariModel>(_yukle());
 
   static BildirimAyarlariModel _yukle() {
     try {
-      final raw = web.window.localStorage.getItem(_storageKey);
+      final raw = web.window.localStorage.getItem(_storageKey) ??
+          web.window.localStorage.getItem('nur_huzur_bildirim_ayarlari_v1');
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw) as Map<String, dynamic>;
         return BildirimAyarlariModel.fromJson(decoded);
       }
     } catch (_) {}
-    return const BildirimAyarlariModel();
+    return BildirimAyarlariModel.varsayilan();
   }
 
-  static void guncelle(BildirimAyarlariModel yeni) {
+  static void _timezoneHazirla() {
+    if (_tzHazir) return;
+    _tzHazir = true;
+    try {
+      tz_data.initializeTimeZones();
+      final offsetHours = DateTime.now().timeZoneOffset.inHours;
+      if (offsetHours == 3) {
+        tz.setLocalLocation(tz.getLocation('Europe/Istanbul'));
+      } else {
+        for (final loc in tz.timeZoneDatabase.locations.values) {
+          if (loc.currentTimeZone.offset.inMilliseconds ==
+              DateTime.now().timeZoneOffset.inMilliseconds) {
+            tz.setLocalLocation(loc);
+            break;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  /// Uygulama ilk açıldığında veya Bildirim Ayarları'na girildiğinde:
+  /// 1. flutter_local_notifications ve timezone altyapısını başlatır
+  /// 2. Android bildirim kanallarını oluşturur (cihazın Bildirim Ayarları'nda görünmesini sağlar)
+  /// 3. Android 13+ (requestNotificationsPermission) ve iOS sistem bildirim izni penceresini tetikler
+  /// 4. Kayıtlı namaz vakitlerine göre bildirimleri zamanlar
+  static Future<bool> baslatVeIzinIste({bool alarmIzniDeIste = false}) async {
+    if (kIsWeb) return true;
+    try {
+      _timezoneHazirla();
+
+      if (!_baslatildi) {
+        const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+        const iosSettings = DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+        const initSettings = InitializationSettings(
+          android: androidSettings,
+          iOS: iosSettings,
+        );
+        await _plugin.initialize(settings: initSettings);
+        _baslatildi = true;
+      }
+
+      final androidPlugin =
+          _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        // Android 8.0+ Bildirim Kanallarını hemen kaydet (Ayarlar -> Uygulamalar -> Vakt-i Huzur -> Bildirimler için zorunlu)
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _kanalTamVakitId,
+            'Ezan ve Namaz Vakti Bildirimleri',
+            description: 'Diyanet namaz vakitleri girdiğinde tam vaktinde sesli ve görsel bildirim gönderir.',
+            importance: Importance.max,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _kanalCikmadanId,
+            'Vakit Çıkmadan Önce Hatırlatıcı',
+            description: 'Namaz vakti çıkmadan önce hatırlatma bildirimi gönderir.',
+            importance: Importance.high,
+            playSound: true,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+
+        // Android 13+ (API 33+) resmi sistem bildirim izni penceresini tetikle
+        final izinVerildi = await androidPlugin.requestNotificationsPermission();
+        if (alarmIzniDeIste) {
+          try {
+            await androidPlugin.requestExactAlarmsPermission();
+          } catch (_) {}
+        }
+        final aktifMi = await androidPlugin.areNotificationsEnabled() ?? (izinVerildi ?? true);
+        izinDurumuNotifier.value = aktifMi;
+        return aktifMi;
+      }
+
+      final iosPlugin =
+          _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+      if (iosPlugin != null) {
+        final iosIzin = await iosPlugin.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        izinDurumuNotifier.value = iosIzin ?? true;
+        return iosIzin ?? true;
+      }
+
+      izinDurumuNotifier.value = true;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Kayıtlı veya güncel Diyanet namaz vakitlerine göre tüm seçili vakitlerin
+  /// "Tam Vaktinde" ve "Vakit Çıkmadan Önce" bildirimlerini gerçek zamanlı planlar.
+  static Future<void> gunlukBildirimleriZamanla({
+    CanliNamazVakitleriModel? vakitModel,
+    String dil = 'TR',
+  }) async {
+    if (kIsWeb) return;
+    try {
+      await baslatVeIzinIste();
+      await _plugin.cancelAll();
+
+      final model = vakitModel ?? NamazVeKonumServisi.hafizadakiSonVakitleriGetir();
+      if (model == null) return;
+
+      final ayar = ayarlarNotifier.value;
+      final konum = model.konumAdi;
+
+      final vakitVerileri = <Map<String, String>>[
+        {'key': 'imsak', 'adTr': 'İmsak', 'adEn': 'Fajr (Imsak)', 'saat': model.imsak},
+        {'key': 'gunes', 'adTr': 'Güneş', 'adEn': 'Sunrise', 'saat': model.gunes},
+        {'key': 'ogle', 'adTr': 'Öğle', 'adEn': 'Dhuhr', 'saat': model.ogle},
+        {'key': 'ikindi', 'adTr': 'İkindi', 'adEn': 'Asr', 'saat': model.ikindi},
+        {'key': 'aksam', 'adTr': 'Akşam', 'adEn': 'Maghrib', 'saat': model.aksam},
+        {'key': 'yatsi', 'adTr': 'Yatsı', 'adEn': 'Isha', 'saat': model.yatsi},
+      ];
+
+      (int, int)? saatParcala(String s) {
+        final temiz = s.split(' ').first.trim();
+        final p = temiz.split(':');
+        if (p.length >= 2) {
+          final h = int.tryParse(p[0]);
+          final m = int.tryParse(p[1]);
+          if (h != null && m != null) return (h.clamp(0, 23), m.clamp(0, 59));
+        }
+        return null;
+      }
+
+      tz.TZDateTime gelecekZamanOlustur(int saat, int dakika) {
+        final simdi = tz.TZDateTime.now(tz.local);
+        var hedef = tz.TZDateTime(tz.local, simdi.year, simdi.month, simdi.day, saat, dakika);
+        if (hedef.isBefore(simdi)) {
+          hedef = hedef.add(const Duration(days: 1));
+        }
+        return hedef;
+      }
+
+      const tamVakitDetay = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _kanalTamVakitId,
+          'Ezan ve Namaz Vakti Bildirimleri',
+          channelDescription: 'Diyanet namaz vakitleri girdiğinde tam vaktinde bildirim verir.',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+
+      const cikmadanDetay = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _kanalCikmadanId,
+          'Vakit Çıkmadan Önce Hatırlatıcı',
+          channelDescription: 'Namaz vakti çıkmadan önce hatırlatma bildirimi gönderir.',
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+
+      Future<void> guvenliZamanla({
+        required int id,
+        required String baslik,
+        required String icerik,
+        required tz.TZDateTime zaman,
+        required NotificationDetails detay,
+      }) async {
+        try {
+          await _plugin.zonedSchedule(
+            id: id,
+            title: baslik,
+            body: icerik,
+            scheduledDate: zaman,
+            notificationDetails: detay,
+            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+            matchDateTimeComponents: DateTimeComponents.time,
+          );
+        } catch (_) {
+          try {
+            await _plugin.zonedSchedule(
+              id: id,
+              title: baslik,
+              body: icerik,
+              scheduledDate: zaman,
+              notificationDetails: detay,
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              matchDateTimeComponents: DateTimeComponents.time,
+            );
+          } catch (_) {}
+        }
+      }
+
+      for (int i = 0; i < vakitVerileri.length; i++) {
+        final v = vakitVerileri[i];
+        final key = v['key']!;
+        final ad = dil == 'EN' ? v['adEn']! : v['adTr']!;
+        final saatStr = v['saat']!;
+        final hm = saatParcala(saatStr);
+        if (hm == null) continue;
+
+        // 1. TAM VAKTİNDE BİLDİRİMİ (ID: 100..105)
+        if (ayar.vakitTamAktifMi(key)) {
+          final zaman = gelecekZamanOlustur(hm.$1, hm.$2);
+          final baslik = dil == 'EN'
+              ? '🕌 $konum • $ad Time ($saatStr)'
+              : '🕌 $konum • $ad Vakti Girdi ($saatStr)';
+          final icerik = dil == 'EN'
+              ? '$ad time has entered for $konum. May Allah accept your prayers.'
+              : '$konum için $ad vakti girdi ($saatStr). Rabbimiz ibadetlerinizi ve dualarınızı kabul eylesin.';
+          await guvenliZamanla(
+            id: 100 + i,
+            baslik: baslik,
+            icerik: icerik,
+            zaman: zaman,
+            detay: tamVakitDetay,
+          );
+        }
+
+        // 2. VAKİT ÇIKMADAN ÖNCE BİLDİRİMİ (Sonraki vakitten 25 dakika önce — ID: 200..205)
+        if (ayar.vakitCikmadanAktifMi(key)) {
+          final sonrakiV = vakitVerileri[(i + 1) % vakitVerileri.length];
+          final sonrakiHm = saatParcala(sonrakiV['saat']!);
+          if (sonrakiHm != null) {
+            final simdi = tz.TZDateTime.now(tz.local);
+            var sonrakiZaman = tz.TZDateTime(
+              tz.local,
+              simdi.year,
+              simdi.month,
+              simdi.day,
+              sonrakiHm.$1,
+              sonrakiHm.$2,
+            );
+            var uyariZaman = sonrakiZaman.subtract(const Duration(minutes: 25));
+            if (uyariZaman.isBefore(simdi)) {
+              uyariZaman = uyariZaman.add(const Duration(days: 1));
+            }
+            final sonrakiAd = dil == 'EN' ? sonrakiV['adEn']! : sonrakiV['adTr']!;
+            final baslik = dil == 'EN'
+                ? '⏳ $konum • $ad Time Ending Soon'
+                : '⏳ $konum • $ad Vakti Çıkmak Üzere';
+            final icerik = dil == 'EN'
+                ? '25 minutes remaining until $sonrakiAd (${sonrakiV['saat']}). Remember to complete your $ad prayer.'
+                : '$sonrakiAd vaktine (${sonrakiV['saat']}) 25 dakika kaldı. $ad vaktini çıkmadan eda etmeyi unutmayın.';
+            await guvenliZamanla(
+              id: 200 + i,
+              baslik: baslik,
+              icerik: icerik,
+              zaman: uyariZaman,
+              detay: cikmadanDetay,
+            );
+          }
+        }
+      }
+
+      // 3. GÜNÜN AYETİ & HADİSİ BİLDİRİMİ (Her gün 10:00 — ID: 300)
+      if (ayar.gununAyetiBildirimi) {
+        final ayetZaman = gelecekZamanOlustur(10, 0);
+        await guvenliZamanla(
+          id: 300,
+          baslik: dil == 'EN'
+              ? '✨ Vakt-i Huzur • Verse & Hadith of the Day'
+              : '✨ Vakt-i Huzur • Günün Ayeti ve Hadis-i Şerifi',
+          icerik: dil == 'EN'
+              ? '“Verily, in the remembrance of Allah do hearts find rest.” (Surah Ar-Ra’d, 28)'
+              : '“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.” (Ra’d Suresi, 28. Ayet)',
+          zaman: ayetZaman,
+          detay: tamVakitDetay,
+        );
+      }
+    } catch (_) {}
+  }
+
+  /// Kullanıcının "🔔 Bildirim Sesini ve İznini Kontrol Et" butonuna bastığında
+  /// anında gerçek bir Android/iOS sistem bildirimi düşürür ve bildirim sesini çalar.
+  static Future<bool> anindaGercekSistemBildirimiGonder({
+    required String baslik,
+    required String icerik,
+  }) async {
+    CanliPusulaSensorServisi.kibleDogrulandiTitresim();
+    try {
+      bildirimSesiCalBridge(baslik, icerik);
+    } catch (_) {}
+
+    if (kIsWeb) return true;
+
+    try {
+      final izinTamam = await baslatVeIzinIste(alarmIzniDeIste: true);
+      const detay = NotificationDetails(
+        android: AndroidNotificationDetails(
+          _kanalTamVakitId,
+          'Ezan ve Namaz Vakti Bildirimleri',
+          channelDescription: 'Diyanet namaz vakitleri girdiğinde tam vaktinde bildirim verir.',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+          styleInformation: BigTextStyleInformation(''),
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
+      await _plugin.show(
+        id: 999,
+        title: baslik,
+        body: icerik,
+        notificationDetails: detay,
+      );
+      return izinTamam;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static void guncelle(
+    BildirimAyarlariModel yeni, {
+    CanliNamazVakitleriModel? vakitModel,
+    String dil = 'TR',
+  }) {
     ayarlarNotifier.value = yeni;
     try {
       web.window.localStorage.setItem(_storageKey, jsonEncode(yeni.toJson()));
     } catch (_) {}
+    gunlukBildirimleriZamanla(vakitModel: vakitModel, dil: dil);
   }
 
   static void panelGoster(
@@ -1293,6 +1749,51 @@ class BildirimAyarlariServisi {
     String siradakiVakitAdi = 'Akşam',
     String siradakiVakitSaat = '18:24',
   }) {
+    // Bildirim Ayarları ekranı açılır açılmaz resmi sistem iznini (Android 13+) kontrol et / tetikle
+    baslatVeIzinIste();
+
+    final kayitliVakit = NamazVeKonumServisi.hafizadakiSonVakitleriGetir();
+    final aktifKonum = kayitliVakit?.konumAdi ?? konumAdi;
+
+    final vakitSatirlari = [
+      {
+        'key': 'imsak',
+        'ad': dil == 'EN' ? 'Fajr (Imsak)' : dil == 'AR' ? 'الفجر (الإمساك)' : 'İmsak',
+        'saat': kayitliVakit?.imsak ?? '05:48',
+        'ikon': Icons.nightlight_outlined,
+      },
+      {
+        'key': 'gunes',
+        'ad': dil == 'EN' ? 'Sunrise' : dil == 'AR' ? 'الشروق' : 'Güneş',
+        'saat': kayitliVakit?.gunes ?? '07:14',
+        'ikon': Icons.wb_twilight_rounded,
+      },
+      {
+        'key': 'ogle',
+        'ad': dil == 'EN' ? 'Dhuhr' : dil == 'AR' ? 'الظهر' : 'Öğle',
+        'saat': kayitliVakit?.ogle ?? '12:56',
+        'ikon': Icons.wb_sunny_outlined,
+      },
+      {
+        'key': 'ikindi',
+        'ad': dil == 'EN' ? 'Asr' : dil == 'AR' ? 'العصر' : 'İkindi',
+        'saat': kayitliVakit?.ikindi ?? '15:52',
+        'ikon': Icons.sunny_snowing,
+      },
+      {
+        'key': 'aksam',
+        'ad': dil == 'EN' ? 'Maghrib' : dil == 'AR' ? 'المغرب' : 'Akşam',
+        'saat': kayitliVakit?.aksam ?? '18:24',
+        'ikon': Icons.nights_stay_outlined,
+      },
+      {
+        'key': 'yatsi',
+        'ad': dil == 'EN' ? 'Isha' : dil == 'AR' ? 'العشاء' : 'Yatsı',
+        'saat': kayitliVakit?.yatsi ?? '19:44',
+        'ikon': Icons.bedtime_outlined,
+      },
+    ];
+
     showModalBottomSheet(
       context: context,
       backgroundColor: kartRengi,
@@ -1305,269 +1806,378 @@ class BildirimAyarlariServisi {
           valueListenable: ayarlarNotifier,
           builder: (context, ayar, _) {
             return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 22),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 44,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: vurguAltin.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.88,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 4,
                           decoration: BoxDecoration(
-                            color: vurguAltin.withValues(alpha: 0.16),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: vurguAltin.withValues(alpha: 0.5)),
-                          ),
-                          child: Icon(Icons.notifications_active_rounded, color: vurguAltin, size: 22),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                dil == 'EN'
-                                    ? 'Vakt-i Huzur • Notification Settings'
-                                    : dil == 'AR'
-                                        ? 'Vakt-i Huzur • إعدادات التنبيهات'
-                                        : 'Vakt-i Huzur • Bildirim Ayarları',
-                                style: TextStyle(
-                                  fontFamily: 'Lora',
-                                  fontSize: 17.5,
-                                  fontWeight: FontWeight.bold,
-                                  color: yaziRengi,
-                                ),
-                              ),
-                              Text(
-                                dil == 'EN'
-                                    ? 'Diyanet Adhan Times & Spiritual Reminders'
-                                    : dil == 'AR'
-                                        ? 'مواقيت الأذان والتذكيرات اليومية'
-                                        : 'Diyanet Ezan Vakitleri & Manevi Hatırlatmalar',
-                                style: TextStyle(color: ikincilYazi, fontSize: 12),
-                              ),
-                            ],
+                            color: vurguAltin.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 1. Ezan Vaktinde Bildir
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: arkaPlan.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: vurguAltin.withValues(alpha: 0.28)),
                       ),
-                      child: SwitchListTile(
-                        dense: true,
-                        activeThumbColor: vurguAltin,
-                        secondary: Icon(Icons.mosque_rounded, color: vurguAltin, size: 20),
-                        title: Text(
-                          dil == 'EN'
-                              ? 'Notify at Adhan Time'
-                              : dil == 'AR'
-                                  ? 'التنبيه عند دخول وقت الأذان'
-                                  : 'Ezan Vaktinde Bildir',
-                          style: TextStyle(
-                            color: yaziRengi,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                          ),
-                        ),
-                        subtitle: Text(
-                          dil == 'EN'
-                              ? 'Exact Diyanet prayer time alert for $konumAdi'
-                              : dil == 'AR'
-                                  ? 'تنبيه عند دخول وقت الصلاة حسب الشؤون الدينية'
-                                  : '$konumAdi için vakit girdiğinde anında sesli/görsel bildirim',
-                          style: TextStyle(color: ikincilYazi, fontSize: 11.5),
-                        ),
-                        value: ayar.ezanVaktindeBildir,
-                        onChanged: (val) {
-                          HapticFeedback.lightImpact();
-                          guncelle(ayar.copyWith(ezanVaktindeBildir: val));
-                        },
-                      ),
-                    ),
-
-                    // 2. Vakitten 15 Dk Önce Hatırlat
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: arkaPlan.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: vurguAltin.withValues(alpha: 0.28)),
-                      ),
-                      child: SwitchListTile(
-                        dense: true,
-                        activeThumbColor: vurguAltin,
-                        secondary: Icon(Icons.alarm_rounded, color: vurguAltin, size: 20),
-                        title: Text(
-                          dil == 'EN'
-                              ? 'Remind 15 Minutes Before Prayer'
-                              : dil == 'AR'
-                                  ? 'التذكير قبل الوقت بـ ١٥ دقيقة'
-                                  : 'Vakitten 15 Dk Önce Hatırlat',
-                          style: TextStyle(
-                            color: yaziRengi,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                          ),
-                        ),
-                        subtitle: Text(
-                          dil == 'EN'
-                              ? 'Preparation & Wudu reminder before next prayer'
-                              : dil == 'AR'
-                                  ? 'تذكير للوضوء والاستعداد قبل دخول الوقت'
-                                  : 'Abdest ve namaz hazırlığı için vakitten 15 dakika önce uyar',
-                          style: TextStyle(color: ikincilYazi, fontSize: 11.5),
-                        ),
-                        value: ayar.onBesDkOnceHatirlat,
-                        onChanged: (val) {
-                          HapticFeedback.lightImpact();
-                          guncelle(ayar.copyWith(onBesDkOnceHatirlat: val));
-                        },
-                      ),
-                    ),
-
-                    // 3. Günün Ayeti Bildirimi
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: arkaPlan.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: vurguAltin.withValues(alpha: 0.28)),
-                      ),
-                      child: SwitchListTile(
-                        dense: true,
-                        activeThumbColor: vurguAltin,
-                        secondary: Icon(Icons.auto_awesome_rounded, color: vurguAltin, size: 20),
-                        title: Text(
-                          dil == 'EN'
-                              ? 'Verse of the Day Notification'
-                              : dil == 'AR'
-                                  ? 'تنبيه آية وحديث اليوم'
-                                  : 'Günün Ayeti Bildirimi',
-                          style: TextStyle(
-                            color: yaziRengi,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
-                          ),
-                        ),
-                        subtitle: Text(
-                          dil == 'EN'
-                              ? 'Daily inspiring Qur’an verse and Sahih Hadith'
-                              : dil == 'AR'
-                                  ? 'آية كريمة وحديث شريف كل صباح'
-                                  : 'Her gün seçkin bir Kur’an-ı Kerim ayeti ve Sahih Hadis bildirimi',
-                          style: TextStyle(color: ikincilYazi, fontSize: 11.5),
-                        ),
-                        value: ayar.gununAyetiBildirimi,
-                        onChanged: (val) {
-                          HapticFeedback.lightImpact();
-                          guncelle(ayar.copyWith(gununAyetiBildirimi: val));
-                        },
-                      ),
-                    ),
-
-                    // ÖRNEK BİLDİRİMİ TEST ET BUTONU (SESLİ + GÖRSEL + TİTREŞİMLİ)
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: vurguAltin,
-                        foregroundColor: arkaPlan,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () {
-                        CanliPusulaSensorServisi.kibleDogrulandiTitresim();
-                        final testBaslik = dil == 'EN'
-                            ? '🕌 Vakt-i Huzur • $konumAdi $siradakiVakitAdi Adhan ($siradakiVakitSaat)'
-                            : dil == 'AR'
-                                ? '🕌 Vakt-i Huzur • $konumAdi أذان $siradakiVakitAdi ($siradakiVakitSaat)'
-                                : '🕌 Vakt-i Huzur • $konumAdi $siradakiVakitAdi Vakti ($siradakiVakitSaat)';
-                        final testIcerik = dil == 'EN'
-                            ? '“Verily, in the remembrance of Allah do hearts find rest.” (Ar-Ra’d, 28)'
-                            : dil == 'AR'
-                                ? '«أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ» (سورة الرعد، ٢٨)'
-                                : '“Kalpler ancak Allah’ı zikretmekle huzur bulur.” (Ra’d Suresi, 28. Ayet)';
-
-                        try {
-                          bildirimSesiCalBridge(testBaslik, testIcerik);
-                        } catch (_) {}
-
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            backgroundColor: kartRengi,
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(color: vurguAltin, width: 1.4),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: vurguAltin.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: vurguAltin.withValues(alpha: 0.5)),
                             ),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
+                            child: Icon(
+                              Icons.notifications_active_rounded,
+                              color: vurguAltin,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
+                                Text(
+                                  dil == 'EN'
+                                      ? 'Vakt-i Huzur • Notification Settings'
+                                      : dil == 'AR'
+                                          ? 'Vakt-i Huzur • إعدادات التنبيهات'
+                                          : 'Vakt-i Huzur • Bildirim Ayarları',
+                                  style: TextStyle(
+                                    fontFamily: 'Lora',
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.bold,
+                                    color: yaziRengi,
+                                  ),
+                                ),
+                                Text(
+                                  dil == 'EN'
+                                      ? '$aktifKonum • Exact Time & Before End Alerts'
+                                      : dil == 'AR'
+                                          ? '$aktifKonum • تنبيهات دخول وخروج الوقت'
+                                          : '$aktifKonum • 6 Vakit Tam Vaktinde & Çıkmadan Önce',
+                                  style: TextStyle(color: ikincilYazi, fontSize: 11.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            icon: Icon(Icons.close_rounded, color: ikincilYazi),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Tablo Üst Başlığı: Vakit | Tam Vaktinde | Çıkmadan Önce
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: vurguAltin.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: vurguAltin.withValues(alpha: 0.35)),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: Text(
+                                dil == 'EN'
+                                    ? 'Prayer Time'
+                                    : dil == 'AR'
+                                        ? 'وقت الصلاة'
+                                        : 'Namaz Vakti',
+                                style: TextStyle(
+                                  color: vurguAltin,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                dil == 'EN'
+                                    ? 'Exact Time'
+                                    : dil == 'AR'
+                                        ? 'في الوقت'
+                                        : 'Tam Vaktinde',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: vurguAltin,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                dil == 'EN'
+                                    ? 'Before End'
+                                    : dil == 'AR'
+                                        ? 'قبل الخروج'
+                                        : 'Vakit Çıkmadan',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: vurguAltin,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+
+                      // 6 Vakit Listesi (Kaydırılabilir)
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            ...vakitSatirlari.map((v) {
+                              final key = v['key'] as String;
+                              final ad = v['ad'] as String;
+                              final saat = v['saat'] as String;
+                              final ikon = v['ikon'] as IconData;
+                              final tamAktif = ayar.vakitTamAktifMi(key);
+                              final cikmadanAktif = ayar.vakitCikmadanAktifMi(key);
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: arkaPlan.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(13),
+                                  border: Border.all(
+                                    color: (tamAktif || cikmadanAktif)
+                                        ? vurguAltin.withValues(alpha: 0.35)
+                                        : vurguAltin.withValues(alpha: 0.14),
+                                  ),
+                                ),
+                                child: Row(
                                   children: [
-                                    Icon(Icons.notifications_active_rounded, color: vurguAltin, size: 19),
-                                    const SizedBox(width: 8),
                                     Expanded(
-                                      child: Text(
-                                        testBaslik,
-                                        style: TextStyle(
-                                          color: vurguAltin,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13.5,
+                                      flex: 5,
+                                      child: Row(
+                                        children: [
+                                          Icon(ikon, color: vurguAltin, size: 18),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  ad,
+                                                  style: TextStyle(
+                                                    color: yaziRengi,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13.5,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  saat,
+                                                  style: TextStyle(
+                                                    color: vurguAltin,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 11.5,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Center(
+                                        child: Switch.adaptive(
+                                          value: tamAktif,
+                                          activeThumbColor: vurguAltin,
+                                          activeTrackColor: vurguAltin.withValues(alpha: 0.35),
+                                          onChanged: (val) {
+                                            HapticFeedback.lightImpact();
+                                            guncelle(
+                                              ayar.vakitGuncelle(
+                                                vakitKey: key,
+                                                tamVaktindeDeger: val,
+                                              ),
+                                              vakitModel: kayitliVakit,
+                                              dil: dil,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Center(
+                                        child: Switch.adaptive(
+                                          value: cikmadanAktif,
+                                          activeThumbColor: vurguAltin,
+                                          activeTrackColor: vurguAltin.withValues(alpha: 0.35),
+                                          onChanged: (val) {
+                                            HapticFeedback.lightImpact();
+                                            guncelle(
+                                              ayar.vakitGuncelle(
+                                                vakitKey: key,
+                                                vakitCikmadanDeger: val,
+                                              ),
+                                              vakitModel: kayitliVakit,
+                                              dil: dil,
+                                            );
+                                          },
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  testIcerik,
+                              );
+                            }),
+
+                            // Günün Ayeti Bildirimi Anahtarı
+                            Container(
+                              margin: const EdgeInsets.only(top: 2, bottom: 8),
+                              decoration: BoxDecoration(
+                                color: arkaPlan.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(13),
+                                border: Border.all(color: vurguAltin.withValues(alpha: 0.28)),
+                              ),
+                              child: SwitchListTile(
+                                dense: true,
+                                activeThumbColor: vurguAltin,
+                                secondary: Icon(
+                                  Icons.auto_awesome_rounded,
+                                  color: vurguAltin,
+                                  size: 20,
+                                ),
+                                title: Text(
+                                  dil == 'EN'
+                                      ? 'Daily Verse & Hadith Notification'
+                                      : dil == 'AR'
+                                          ? 'تنبيه آية وحديث اليوم'
+                                          : 'Günün Ayeti & Hadisi Bildirimi',
                                   style: TextStyle(
                                     color: yaziRengi,
-                                    fontSize: 12.5,
-                                    height: 1.35,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
                                   ),
                                 ),
-                              ],
+                                subtitle: Text(
+                                  dil == 'EN'
+                                      ? 'Daily inspiring Qur’an verse and Sahih Hadith at 10:00'
+                                      : dil == 'AR'
+                                          ? 'آية كريمة وحديث شريف كل صباح الساعة ١٠:٠٠'
+                                          : 'Her gün saat 10:00’da seçkin bir ayet ve hadis bildirimi',
+                                  style: TextStyle(color: ikincilYazi, fontSize: 11),
+                                ),
+                                value: ayar.gununAyetiBildirimi,
+                                onChanged: (val) {
+                                  HapticFeedback.lightImpact();
+                                  guncelle(
+                                    ayar.copyWith(gununAyetiBildirimi: val),
+                                    vakitModel: kayitliVakit,
+                                    dil: dil,
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.volume_up_rounded, size: 20),
-                      label: Text(
-                        dil == 'EN'
-                            ? 'Test Sample Notification (Audio & Visual)'
-                            : dil == 'AR'
-                                ? 'تجربة التنبيه الصوتي والمرئي'
-                                : 'Örnek Bildirimi Test Et',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+
+                      // BİLDİRİM SESİNİ VE İZNİNİ KONTROL ET BUTONU (GERÇEK SİSTEM BİLDİRİMİ DÜŞÜRÜR)
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: vurguAltin,
+                          foregroundColor: arkaPlan,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final kontrolBaslik = dil == 'EN'
+                              ? '🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi ($siradakiVakitSaat)'
+                              : dil == 'AR'
+                                  ? '🕌 Vakt-i Huzur • $aktifKonum أذان $siradakiVakitAdi ($siradakiVakitSaat)'
+                                  : '🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi Vakti ($siradakiVakitSaat)';
+                          final kontrolIcerik = dil == 'EN'
+                              ? 'Notification permission and sound verified! Prayer time alerts are active.'
+                              : dil == 'AR'
+                                  ? 'تم التحقق من إذن وصوت التنبيهات بنجاح! تنبيهات الصلاة مفعلة.'
+                                  : 'Bildirim izniniz ve sesiniz doğrulandı! “Kalpler ancak Allah’ı zikretmekle huzur bulur.” (Ra’d, 28)';
+
+                          await anindaGercekSistemBildirimiGonder(
+                            baslik: kontrolBaslik,
+                            icerik: kontrolIcerik,
+                          );
+                          await gunlukBildirimleriZamanla(
+                            vakitModel: kayitliVakit,
+                            dil: dil,
+                          );
+
+                          if (!ctx.mounted) return;
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: kartRengi,
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 4),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(color: vurguAltin, width: 1.4),
+                              ),
+                              content: Row(
+                                children: [
+                                  Icon(
+                                    Icons.verified_rounded,
+                                    color: vurguAltin,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      dil == 'EN'
+                                          ? 'System notification sent & daily prayer alarms scheduled!'
+                                          : 'Gerçek sistem bildirimi gönderildi ve günlük ezan vakitleri zamanlandı!',
+                                      style: TextStyle(
+                                        color: yaziRengi,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.notifications_active_rounded, size: 19),
+                        label: Text(
+                          dil == 'EN'
+                              ? '🔔 Check Notification Sound & Permission'
+                              : dil == 'AR'
+                                  ? '🔔 فحص صوت وإذن التنبيهات'
+                                  : '🔔 Bildirim Sesini ve İznini Kontrol Et',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

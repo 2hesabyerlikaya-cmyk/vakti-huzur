@@ -21,9 +21,17 @@ double cihazPusulaAcisiOkuBridge() {
   }
 }
 
+bool pusulaNativeTrueNorthMuBridge() => false;
+
 double pusulaManyetikAlanSiddetiOkuBridge() => 46.5;
 
 bool pusulaKalibrasyonGerekliMiBridge() => false;
+
+bool pusulaMasaustuModundaMiBridge() => true;
+
+double pusulaEgimPitchOkuBridge() => 0.0;
+
+double pusulaEgimRollOkuBridge() => 0.0;
 
 bool pusulaSensorIzniIsteBridge() {
   try {
@@ -39,12 +47,17 @@ void cihazTitretBridge(int sureMs) {
   } catch (_) {}
 }
 
-void bildirimSesiCalBridge(String baslik, String icerik) {
+Future<void> bildirimSesiCalBridge(
+  String baslik,
+  String icerik, {
+  String sesModu = 'ezan',
+}) async {
+  if (sesModu == 'sessiz') return;
   try {
     _bildirimSesiCalJs(baslik, icerik);
   } catch (_) {}
 }
 
-void tesbihSesiCalBridge() {
-  // Web ortamında sistem tıklama sesi
-}
+Future<void> bildirimSesiDurdurBridge() async {}
+
+void tesbihSesiCalBridge() {}

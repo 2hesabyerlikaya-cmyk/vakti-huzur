@@ -3,9 +3,61 @@ import SwiftUI
 
 private let appGroupId = "group.com.vaktihuzur.app"
 
+// Zümrüt Yeşili & Altın Sarısı Tema Renkleri
+private let zumrutKoyu = Color(red: 0.043, green: 0.133, blue: 0.098)   // #0B2219
+private let zumrutKart = Color(red: 0.082, green: 0.227, blue: 0.169)   // #153A2B
+private let vurguAltin = Color(red: 0.851, green: 0.714, blue: 0.314)   // #D9B650
+private let yumusakAltin = Color(red: 0.949, green: 0.886, blue: 0.714) // #F2E2B6
+private let naneBeyaz = Color(red: 0.718, green: 0.831, blue: 0.773)    // #B7D4C5
+
+extension View {
+    @ViewBuilder
+    func vaktiHuzurWidgetArkaPlan() -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            self.containerBackground(for: .widget) {
+                LinearGradient(
+                    colors: [zumrutKoyu, zumrutKart],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        } else {
+            self.background(
+                LinearGradient(
+                    colors: [zumrutKoyu, zumrutKart],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+        }
+    }
+
+    @ViewBuilder
+    func vaktiHuzurKilitEkraniArkaPlan() -> some View {
+        if #available(iOSApplicationExtension 17.0, *) {
+            self.containerBackground(for: .widget) {
+                Color.clear
+            }
+        } else {
+            self
+        }
+    }
+}
+
+extension WidgetConfiguration {
+    func vaktiHuzurKenarBosluksuz() -> some WidgetConfiguration {
+        if #available(iOSApplicationExtension 17.0, *) {
+            return self.contentMarginsDisabled()
+        } else {
+            return self
+        }
+    }
+}
+
 struct VaktiHuzurEntry: TimelineEntry {
     let date: Date
     let konum: String
+    let hicriTarih: String
     let siradakiVakit: String
     let kalanSure: String
     let imsak: String
@@ -47,23 +99,24 @@ struct VaktiHuzurProvider: TimelineProvider {
         let prefs = UserDefaults(suiteName: appGroupId)
         return VaktiHuzurEntry(
             date: Date(),
-            konum: prefs?.string(forKey: "widget_konum") ?? "İstanbul",
+            konum: prefs?.string(forKey: "widget_konum") ?? "İstanbul / Fatih",
+            hicriTarih: prefs?.string(forKey: "widget_hicri_tarih") ?? "Diyanet Namaz Vakitleri",
             siradakiVakit: prefs?.string(forKey: "widget_siradaki_vakit") ?? "Sıradaki: Akşam",
-            kalanSure: prefs?.string(forKey: "widget_kalan_sure") ?? "18:24",
+            kalanSure: prefs?.string(forKey: "widget_kalan_sure") ?? "01s 24dk",
             imsak: prefs?.string(forKey: "widget_imsak") ?? "05:48",
             gunes: prefs?.string(forKey: "widget_gunes") ?? "07:14",
             ogle: prefs?.string(forKey: "widget_ogle") ?? "12:56",
             ikindi: prefs?.string(forKey: "widget_ikindi") ?? "15:52",
             aksam: prefs?.string(forKey: "widget_aksam") ?? "18:24",
             yatsi: prefs?.string(forKey: "widget_yatsi") ?? "19:44",
-            ayetBaslik: prefs?.string(forKey: "widget_ayet_baslik") ?? "✨ Vakt-i Huzur • Günün Ayeti",
+            ayetBaslik: prefs?.string(forKey: "widget_ayet_baslik") ?? "✨ Günün Ayeti",
             ayetArapca: prefs?.string(forKey: "widget_ayet_arapca") ?? "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ",
             ayetMeal: prefs?.string(forKey: "widget_ayet_meal") ?? "“Biliniz ki, kalpler ancak Allah’ı anmakla huzur bulur.”",
             ayetKaynak: prefs?.string(forKey: "widget_ayet_kaynak") ?? "Ra’d Suresi, 28",
-            hadisBaslik: prefs?.string(forKey: "widget_hadis_baslik") ?? "☪ Vakt-i Huzur • Günün Hadisi",
+            hadisBaslik: prefs?.string(forKey: "widget_hadis_baslik") ?? "☪ Günün Hadisi",
             hadisArapca: prefs?.string(forKey: "widget_hadis_arapca") ?? "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ",
             hadisMeal: prefs?.string(forKey: "widget_hadis_meal") ?? "“Ameller niyetlere göredir.”",
-            hadisKaynak: prefs?.string(forKey: "widget_hadis_kaynak") ?? "Sahih-i Buhârî, İman, 1",
+            hadisKaynak: prefs?.string(forKey: "widget_hadis_kaynak") ?? "Sahih-i Buhârî",
             zikirArapca: prefs?.string(forKey: "widget_zikir_arapca") ?? "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
             zikirOkunus: prefs?.string(forKey: "widget_zikir_okunus") ?? "Sübhânallâhi ve bi-hamdihî",
             zikirAnlam: prefs?.string(forKey: "widget_zikir_anlam") ?? "Allah’ı hamd ile tesbih ederim.",
@@ -72,193 +125,460 @@ struct VaktiHuzurProvider: TimelineProvider {
     }
 }
 
-// 1. 6 VAKİT ÇİZELGESİ WİDGETI
+// ============================================================================
+// 1. GÜNLÜK TÜM NAMAZ VAKİTLERİ + GERİ SAYIM WİDGETI (ANA EKRAN 2 BOYUT & KİLİT EKRANI)
+// ============================================================================
 struct VaktiHuzurNamazWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        switch family {
-        case .accessoryRectangular:
-            VStack(alignment: .leading, spacing: 2) {
-                Text("☪ Vakt-i Huzur • \(entry.konum)").font(.caption2.bold())
-                Text("\(entry.siradakiVakit) (\(entry.kalanSure))").font(.caption.bold())
-                Text("İm:\(entry.imsak) Öğ:\(entry.ogle) İk:\(entry.ikindi) Ak:\(entry.aksam)").font(.caption2)
-            }
-        case .accessoryInline:
-            Text("☪ \(entry.konum) • \(entry.siradakiVakit) \(entry.kalanSure)")
-        default:
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("☪ Vakt-i Huzur • \(entry.konum)")
-                        .font(.caption.bold())
-                        .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
-                    Spacer()
-                    Text("\(entry.siradakiVakit) • \(entry.kalanSure)")
-                        .font(.caption2.bold())
-                        .foregroundColor(Color(red: 0.85, green: 0.71, blue: 0.31))
+        if #available(iOSApplicationExtension 16.0, *) {
+            switch family {
+            case .accessoryRectangular:
+                // Kilit Ekranı (Lock Screen): Sade, şık yazılı sıradaki vakit ve kalan süre
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Text("☪ \(entry.konum)")
+                            .font(.system(size: 11, weight: .semibold))
+                            .lineLimit(1)
+                    }
+                    Text(entry.siradakiVakit)
+                        .font(.system(size: 13, weight: .bold))
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Text("⏳ Kalan: \(entry.kalanSure)")
+                            .font(.system(size: 12, weight: .bold))
+                    }
                 }
-                HStack {
-                    vakitSutun("İmsak", entry.imsak)
-                    Spacer()
-                    vakitSutun("Güneş", entry.gunes)
-                    Spacer()
-                    vakitSutun("Öğle", entry.ogle)
-                    Spacer()
-                    vakitSutun("İkindi", entry.ikindi)
-                    Spacer()
-                    vakitSutun("Akşam", entry.aksam)
-                    Spacer()
-                    vakitSutun("Yatsı", entry.yatsi)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .vaktiHuzurKilitEkraniArkaPlan()
+
+            case .accessoryInline:
+                Text("☪ \(entry.siradakiVakit) • \(entry.kalanSure)")
+                    .vaktiHuzurKilitEkraniArkaPlan()
+
+            case .accessoryCircular:
+                VStack(spacing: 1) {
+                    Text("☪")
+                        .font(.system(size: 11))
+                    Text(entry.kalanSure)
+                        .font(.system(size: 10, weight: .bold))
+                        .minimumScaleFactor(0.7)
                 }
+                .vaktiHuzurKilitEkraniArkaPlan()
+
+            case .systemSmall:
+                kucukAnaEkranGorunumu
+            default:
+                ortaAnaEkranGorunumu
             }
-            .padding(12)
-            .background(Color(red: 0.04, green: 0.13, blue: 0.10))
+        } else {
+            switch family {
+            case .systemSmall:
+                kucukAnaEkranGorunumu
+            default:
+                ortaAnaEkranGorunumu
+            }
         }
     }
 
-    private func vakitSutun(_ ad: String, _ saat: String) -> some View {
-        VStack(spacing: 2) {
-            Text(ad).font(.system(size: 9)).foregroundColor(.white.opacity(0.75))
-            Text(saat).font(.system(size: 11, weight: .bold)).foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
+    // Boyut 1 (Small): Sıradaki Vakit + Geri Sayım + Kompakt 6 Vakit Özeti
+    private var kucukAnaEkranGorunumu: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("☪ \(entry.konum)")
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundColor(yumusakAltin)
+                    .lineLimit(1)
+                Spacer()
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.siradakiVakit)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor( vurguAltin)
+                    .lineLimit(1)
+                Text(entry.kalanSure)
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(zumrutKoyu.opacity(0.65))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(vurguAltin.opacity(0.45), lineWidth: 1)
+                    )
+            )
+
+            Spacer(minLength: 0)
+
+            // 2 Satır x 3 Sütun 6 Vakit
+            VStack(spacing: 4) {
+                HStack(spacing: 4) {
+                    kucukVakitHucre("İms", entry.imsak)
+                    kucukVakitHucre("Gün", entry.gunes)
+                    kucukVakitHucre("Öğl", entry.ogle)
+                }
+                HStack(spacing: 4) {
+                    kucukVakitHucre("İkn", entry.ikindi)
+                    kucukVakitHucre("Akş", entry.aksam)
+                    kucukVakitHucre("Yat", entry.yatsi)
+                }
+            }
         }
+        .padding(11)
+        .vaktiHuzurWidgetArkaPlan()
+    }
+
+    // Boyut 2 (Medium): Zümrüt Yeşili & Altın Sarısı Günlük Tüm Namaz Vakitleri + Geri Sayım
+    private var ortaAnaEkranGorunumu: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("☪ Vakt-i Huzur • \(entry.konum)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(yumusakAltin)
+                        .lineLimit(1)
+                    Text(entry.hicriTarih)
+                        .font(.system(size: 9.5, weight: .medium))
+                        .foregroundColor(naneBeyaz)
+                        .lineLimit(1)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text(entry.siradakiVakit)
+                        .font(.system(size: 10.5, weight: .bold))
+                        .foregroundColor(vurguAltin)
+                    Text("⏳ \(entry.kalanSure)")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(zumrutKoyu.opacity(0.75))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(vurguAltin.opacity(0.6), lineWidth: 1)
+                        )
+                )
+            }
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: 5) {
+                vakitKutusu("İmsak", entry.imsak)
+                vakitKutusu("Güneş", entry.gunes)
+                vakitKutusu("Öğle", entry.ogle)
+                vakitKutusu("İkindi", entry.ikindi)
+                vakitKutusu("Akşam", entry.aksam)
+                vakitKutusu("Yatsı", entry.yatsi)
+            }
+        }
+        .padding(13)
+        .vaktiHuzurWidgetArkaPlan()
+    }
+
+    private func kucukVakitHucre(_ ad: String, _ saat: String) -> some View {
+        VStack(spacing: 1) {
+            Text(ad)
+                .font(.system(size: 8.5, weight: .medium))
+                .foregroundColor(naneBeyaz)
+            Text(saat)
+                .font(.system(size: 9.5, weight: .bold))
+                .foregroundColor(yumusakAltin)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func vakitKutusu(_ ad: String, _ saat: String) -> some View {
+        let aktifMi = entry.siradakiVakit.localizedCaseInsensitiveContains(ad)
+        return VStack(spacing: 3) {
+            Text(ad)
+                .font(.system(size: 9.5, weight: aktifMi ? .bold : .medium))
+                .foregroundColor(aktifMi ? vurguAltin : naneBeyaz)
+            Text(saat)
+                .font(.system(size: 11.5, weight: .bold))
+                .foregroundColor(aktifMi ? .white : yumusakAltin)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 7)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(aktifMi ? vurguAltin.opacity(0.22) : zumrutKoyu.opacity(0.55))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(aktifMi ? vurguAltin : vurguAltin.opacity(0.22), lineWidth: aktifMi ? 1.3 : 0.7)
+                )
+        )
     }
 }
 
-// 2. GÜNÜN AYETİ WİDGETI
+// ============================================================================
+// 2. GÜNÜN AYETİ / HADİSİ WİDGETI (2 FARKLI BOYUT: SMALL & MEDIUM/LARGE)
+// ============================================================================
 struct VaktiHuzurAyetWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        switch family {
-        case .accessoryRectangular:
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.ayetBaslik).font(.caption2.bold())
-                Text(entry.ayetMeal).font(.caption2).lineLimit(2)
-            }
-        default:
-            VStack(alignment: .center, spacing: 4) {
-                HStack {
-                    Text(entry.ayetBaslik)
-                        .font(.caption2.bold())
-                        .foregroundColor(Color(red: 0.85, green: 0.71, blue: 0.31))
-                    Spacer()
-                    Text(entry.ayetKaynak)
-                        .font(.caption2)
-                        .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
+        if #available(iOSApplicationExtension 16.0, *) {
+            switch family {
+            case .accessoryRectangular:
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("✨ Günün Ayeti • \(entry.ayetKaynak)")
+                        .font(.system(size: 10.5, weight: .bold))
+                        .lineLimit(1)
+                    Text(entry.ayetMeal)
+                        .font(.system(size: 11))
+                        .lineLimit(2)
                 }
-                Text(entry.ayetArapca)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
-                    .lineLimit(1)
-                Text(entry.ayetMeal)
-                    .font(.system(size: 11))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .vaktiHuzurKilitEkraniArkaPlan()
+            case .systemSmall:
+                kucukAyetGorunumu
+            default:
+                genisAyetHadisGorunumu
             }
-            .padding(12)
-            .background(Color(red: 0.04, green: 0.13, blue: 0.10))
+        } else {
+            switch family {
+            case .systemSmall:
+                kucukAyetGorunumu
+            default:
+                genisAyetHadisGorunumu
+            }
         }
+    }
+
+    private var kucukAyetGorunumu: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text("✨ Günün Ayeti")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(vurguAltin)
+                Spacer()
+            }
+            Spacer(minLength: 0)
+            Text(entry.ayetMeal)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.white)
+                .lineLimit(4)
+            Spacer(minLength: 0)
+            Text(entry.ayetKaynak)
+                .font(.system(size: 9.5, weight: .bold))
+                .foregroundColor(yumusakAltin)
+                .lineLimit(1)
+        }
+        .padding(12)
+        .vaktiHuzurWidgetArkaPlan()
+    }
+
+    private var genisAyetHadisGorunumu: some View {
+        VStack(alignment: .center, spacing: 6) {
+            HStack {
+                Text(entry.ayetBaslik)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(vurguAltin)
+                Spacer()
+                Text(entry.ayetKaynak)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(yumusakAltin)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(zumrutKoyu.opacity(0.7))
+                            .overlay(Capsule().stroke(vurguAltin.opacity(0.45), lineWidth: 0.8))
+                    )
+            }
+            Spacer(minLength: 0)
+            Text(entry.ayetArapca)
+                .font(.system(size: 14.5, weight: .bold))
+                .foregroundColor(yumusakAltin)
+                .multilineTextAlignment(.center)
+                .lineLimit(1)
+            Text(entry.ayetMeal)
+                .font(.system(size: 11.5, weight: .medium))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+            Spacer(minLength: 0)
+        }
+        .padding(13)
+        .vaktiHuzurWidgetArkaPlan()
     }
 }
 
-// 3. GÜNÜN HADİSİ WİDGETI
+// ============================================================================
+// 3. GÜNÜN HADİSİ WİDGETI (SMALL & MEDIUM)
+// ============================================================================
 struct VaktiHuzurHadisWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        switch family {
-        case .accessoryRectangular:
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.hadisBaslik).font(.caption2.bold())
-                Text(entry.hadisMeal).font(.caption2).lineLimit(2)
-            }
-        default:
-            VStack(alignment: .center, spacing: 4) {
-                HStack {
+        if #available(iOSApplicationExtension 16.0, *) {
+            switch family {
+            case .accessoryRectangular:
+                VStack(alignment: .leading, spacing: 2) {
                     Text(entry.hadisBaslik)
-                        .font(.caption2.bold())
-                        .foregroundColor(Color(red: 0.85, green: 0.71, blue: 0.31))
-                    Spacer()
-                    Text(entry.hadisKaynak)
-                        .font(.caption2)
-                        .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
+                        .font(.system(size: 10.5, weight: .bold))
+                    Text(entry.hadisMeal)
+                        .font(.system(size: 11))
+                        .lineLimit(2)
                 }
-                Text(entry.hadisArapca)
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
-                    .lineLimit(1)
-                Text(entry.hadisMeal)
-                    .font(.system(size: 11))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .vaktiHuzurKilitEkraniArkaPlan()
+            default:
+                hadisAnaGorunum
             }
-            .padding(12)
-            .background(Color(red: 0.04, green: 0.13, blue: 0.10))
+        } else {
+            hadisAnaGorunum
         }
+    }
+
+    private var hadisAnaGorunum: some View {
+        VStack(alignment: .center, spacing: 6) {
+            HStack {
+                Text(entry.hadisBaslik)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(vurguAltin)
+                Spacer()
+                Text(entry.hadisKaynak)
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundColor(yumusakAltin)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+            Text(entry.hadisArapca)
+                .font(.system(size: 13.5, weight: .bold))
+                .foregroundColor(yumusakAltin)
+                .lineLimit(1)
+            Text(entry.hadisMeal)
+                .font(.system(size: 11.5, weight: .medium))
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+            Spacer(minLength: 0)
+        }
+        .padding(13)
+        .vaktiHuzurWidgetArkaPlan()
     }
 }
 
-// 4. SIRADAKİ NAMAZ ODAKLI WİDGET
+// ============================================================================
+// 4. KİLİT EKRANI & SIRADAKİ VAKİT GERİ SAYIM WİDGETI
+// ============================================================================
 struct VaktiHuzurSiradakiWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
     @Environment(\.widgetFamily) var family
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text("☪ Vakt-i Huzur • \(entry.konum)")
-                .font(.caption2.bold())
-                .foregroundColor(Color(red: 0.85, green: 0.71, blue: 0.31))
+        if #available(iOSApplicationExtension 16.0, *) {
+            switch family {
+            case .accessoryRectangular:
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("☪ Vakt-i Huzur • \(entry.konum)")
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .lineLimit(1)
+                    Text(entry.siradakiVakit)
+                        .font(.system(size: 13, weight: .bold))
+                        .lineLimit(1)
+                    Text("⏳ Kalan Süre: \(entry.kalanSure)")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .vaktiHuzurKilitEkraniArkaPlan()
+
+            case .accessoryInline:
+                Text("☪ \(entry.siradakiVakit) • \(entry.kalanSure)")
+                    .vaktiHuzurKilitEkraniArkaPlan()
+
+            case .accessoryCircular:
+                VStack(spacing: 1) {
+                    Text("☪")
+                        .font(.system(size: 11))
+                    Text(entry.kalanSure)
+                        .font(.system(size: 10, weight: .bold))
+                        .minimumScaleFactor(0.7)
+                }
+                .vaktiHuzurKilitEkraniArkaPlan()
+
+            default:
+                siradakiAnaEkranGorunumu
+            }
+        } else {
+            siradakiAnaEkranGorunumu
+        }
+    }
+
+    private var siradakiAnaEkranGorunumu: some View {
+        VStack(spacing: 6) {
+            Text("☪ \(entry.konum)")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(vurguAltin)
+                .lineLimit(1)
+            Spacer(minLength: 0)
             Text(entry.siradakiVakit)
-                .font(.subheadline.bold())
+                .font(.system(size: 13.5, weight: .bold))
                 .foregroundColor(.white)
+                .lineLimit(1)
             Text(entry.kalanSure)
-                .font(.title2.bold())
-                .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
-            Text("Kalan Süre")
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.7))
+                .font(.system(size: 24, weight: .heavy))
+                .foregroundColor(yumusakAltin)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+            Text("Vaktine Kalan Süre • Diyanet")
+                .font(.system(size: 9.5, weight: .medium))
+                .foregroundColor(naneBeyaz)
         }
         .padding(12)
-        .background(Color(red: 0.04, green: 0.13, blue: 0.10))
+        .vaktiHuzurWidgetArkaPlan()
     }
 }
 
+// ============================================================================
 // 5. GÜNLÜK ZİKİR WİDGETI
+// ============================================================================
 struct VaktiHuzurZikirWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
-    @Environment(\.widgetFamily) var family
 
     var body: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 5) {
             HStack {
                 Text("📿 Günlük Zikir")
-                    .font(.caption2.bold())
-                    .foregroundColor(Color(red: 0.85, green: 0.71, blue: 0.31))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(vurguAltin)
                 Spacer()
                 Text(entry.zikirSayac)
-                    .font(.caption2.bold())
-                    .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundColor(yumusakAltin)
             }
+            Spacer(minLength: 0)
             Text(entry.zikirArapca)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(Color(red: 0.95, green: 0.89, blue: 0.71))
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(yumusakAltin)
                 .lineLimit(1)
             Text(entry.zikirOkunus)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(Color(red: 0.85, green: 0.71, blue: 0.31))
+                .foregroundColor(vurguAltin)
                 .lineLimit(1)
             Text(entry.zikirAnlam)
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.9))
-                .lineLimit(1)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+            Spacer(minLength: 0)
         }
         .padding(12)
-        .background(Color(red: 0.04, green: 0.13, blue: 0.10))
+        .vaktiHuzurWidgetArkaPlan()
     }
 }
 
@@ -279,9 +599,18 @@ struct VaktiHuzurNamazWidget: Widget {
         StaticConfiguration(kind: kind, provider: VaktiHuzurProvider()) { entry in
             VaktiHuzurNamazWidgetView(entry: entry)
         }
-        .configurationDisplayName("Vakt-i Huzur: 6 Vakit Çizelgesi")
-        .description("Günün 6 namaz vaktini ana ekran ve kilit ekranında gösterir.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular, .accessoryInline])
+        .configurationDisplayName("Vakt-i Huzur: Günlük Vakitler & Sayaç")
+        .description("Zümrüt yeşili ve altın sarısı temada tüm namaz vakitlerini ve geri sayımı gösterir.")
+        .supportedFamilies(desteklenenAilelerNamaz())
+        .vaktiHuzurKenarBosluksuz()
+    }
+
+    private func desteklenenAilelerNamaz() -> [WidgetFamily] {
+        if #available(iOSApplicationExtension 16.0, *) {
+            return [.systemSmall, .systemMedium, .accessoryRectangular, .accessoryInline, .accessoryCircular]
+        } else {
+            return [.systemSmall, .systemMedium]
+        }
     }
 }
 
@@ -292,8 +621,17 @@ struct VaktiHuzurAyetWidget: Widget {
             VaktiHuzurAyetWidgetView(entry: entry)
         }
         .configurationDisplayName("Vakt-i Huzur: Günün Ayeti")
-        .description("Seçkin Kur’an ayetini Arapça ve mealiyle gösterir.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
+        .description("2 farklı boyutta seçkin Kur’an ayetini Arapça ve mealiyle gösterir.")
+        .supportedFamilies(desteklenenAilelerAyet())
+        .vaktiHuzurKenarBosluksuz()
+    }
+
+    private func desteklenenAilelerAyet() -> [WidgetFamily] {
+        if #available(iOSApplicationExtension 16.0, *) {
+            return [.systemSmall, .systemMedium, .accessoryRectangular]
+        } else {
+            return [.systemSmall, .systemMedium]
+        }
     }
 }
 
@@ -304,8 +642,17 @@ struct VaktiHuzurHadisWidget: Widget {
             VaktiHuzurHadisWidgetView(entry: entry)
         }
         .configurationDisplayName("Vakt-i Huzur: Günün Hadisi")
-        .description("Sahih hadis-i şerifi Arapça ve tercümesiyle gösterir.")
-        .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
+        .description("2 farklı boyutta sahih hadis-i şerifi Arapça ve tercümesiyle gösterir.")
+        .supportedFamilies(desteklenenAilelerHadis())
+        .vaktiHuzurKenarBosluksuz()
+    }
+
+    private func desteklenenAilelerHadis() -> [WidgetFamily] {
+        if #available(iOSApplicationExtension 16.0, *) {
+            return [.systemSmall, .systemMedium, .accessoryRectangular]
+        } else {
+            return [.systemSmall, .systemMedium]
+        }
     }
 }
 
@@ -315,9 +662,18 @@ struct VaktiHuzurSiradakiWidget: Widget {
         StaticConfiguration(kind: kind, provider: VaktiHuzurProvider()) { entry in
             VaktiHuzurSiradakiWidgetView(entry: entry)
         }
-        .configurationDisplayName("Vakt-i Huzur: Sıradaki Namaz")
-        .description("Sıradaki vakti ve kalan süreyi canlı gösterir.")
-        .supportedFamilies([.systemSmall, .accessoryRectangular, .accessoryInline])
+        .configurationDisplayName("Vakt-i Huzur: Kilit Ekranı & Sıradaki Vakit")
+        .description("Kilit ekranında ve ana ekranda sıradaki vakti ve kalan süreyi gösterir.")
+        .supportedFamilies(desteklenenAilelerSiradaki())
+        .vaktiHuzurKenarBosluksuz()
+    }
+
+    private func desteklenenAilelerSiradaki() -> [WidgetFamily] {
+        if #available(iOSApplicationExtension 16.0, *) {
+            return [.systemSmall, .accessoryRectangular, .accessoryInline, .accessoryCircular]
+        } else {
+            return [.systemSmall]
+        }
     }
 }
 
@@ -330,5 +686,6 @@ struct VaktiHuzurZikirWidget: Widget {
         .configurationDisplayName("Vakt-i Huzur: Günlük Zikir")
         .description("Günün zikrini ve tesbih sayacını gösterir.")
         .supportedFamilies([.systemSmall, .systemMedium])
+        .vaktiHuzurKenarBosluksuz()
     }
 }

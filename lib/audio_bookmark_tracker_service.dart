@@ -1193,7 +1193,7 @@ class KazaNamaziTakipKarti extends StatelessWidget {
 }
 
 // ============================================================================
-// 6. CANLI KIBLE PUSULASI SENSÖRÜ VE MOBİL TİTREŞİM KÖPRÜSÜ
+// 6. CANLI KIBLE PUSULASI SENSÖRÜ (MASAÜSTÜ MODLU SENSÖR FÜZYONU) VE TİTREŞİM KÖPRÜSÜ
 // ============================================================================
 
 class CanliPusulaSensorServisi {
@@ -1201,6 +1201,26 @@ class CanliPusulaSensorServisi {
   /// Sensör verisi yoksa -1 döner.
   static double cihazPusulaAcisiOku() {
     return cihazPusulaAcisiOkuBridge();
+  }
+
+  /// Cihazın native sensöründen gelen açının zaten Coğrafi Kuzey (True North) olup olmadığını döndürür.
+  static bool nativeTrueNorthMu() {
+    return pusulaNativeTrueNorthMuBridge();
+  }
+
+  /// Cihazın masaya düz (yatay) konulup konulmadığını döndürür.
+  static bool masaustuModundaMi() {
+    return pusulaMasaustuModundaMiBridge();
+  }
+
+  /// Cihazın ileri/geri eğim açısını (Pitch) derece cinsinden döndürür.
+  static double egimPitchOku() {
+    return pusulaEgimPitchOkuBridge();
+  }
+
+  /// Cihazın sağa/sola eğim açısını (Roll) derece cinsinden döndürür.
+  static double egimRollOku() {
+    return pusulaEgimRollOkuBridge();
   }
 
   /// Anlık manyetik alan şiddetini (µT) döndürür (normal Dünya alanı: 25-65 µT).
@@ -1218,7 +1238,7 @@ class CanliPusulaSensorServisi {
     pusulaSensorIzniIsteBridge();
   }
 
-  /// Kıble tam hizalandığında (±3°) çift ve belirgin titreşim verir
+  /// Kıble tam hizalandığında (±2°) çift ve belirgin titreşim verir
   static void kibleDogrulandiTitresim() {
     HapticFeedback.heavyImpact();
     cihazTitretBridge(90);
@@ -1230,7 +1250,7 @@ class CanliPusulaSensorServisi {
 }
 
 // ============================================================================
-// 7. GERÇEK ANDROID & iOS YEREL BİLDİRİM ALTYAPISI (flutter_local_notifications + timezone)
+// 7. GERÇEK ANDROID & iOS EZAN SESLİ YEREL BİLDİRİM ALTYAPISI (flutter_local_notifications + timezone)
 // ============================================================================
 
 class BildirimAyarlariModel {
@@ -1245,11 +1265,15 @@ class BildirimAyarlariModel {
 
   final Map<String, bool> tamVaktinde;
   final Map<String, bool> vakitCikmadanOnce;
+  final Map<String, String> vakitSesModu; // 'ezan', 'kisa', 'sessiz'
+  final String genelSesModu; // 'ezan' (Tam Ezan Sesi), 'kisa' (Kısa Uyarı Sesi), 'sessiz' (Sessiz)
   final bool gununAyetiBildirimi;
 
   const BildirimAyarlariModel({
     required this.tamVaktinde,
     required this.vakitCikmadanOnce,
+    required this.vakitSesModu,
+    this.genelSesModu = 'ezan',
     this.gununAyetiBildirimi = true,
   });
 
@@ -1271,29 +1295,59 @@ class BildirimAyarlariModel {
         'aksam': true,
         'yatsi': true,
       },
+      vakitSesModu: {
+        'imsak': 'ezan',
+        'gunes': 'kisa',
+        'ogle': 'ezan',
+        'ikindi': 'ezan',
+        'aksam': 'ezan',
+        'yatsi': 'ezan',
+      },
+      genelSesModu: 'ezan',
       gununAyetiBildirimi: true,
     );
   }
 
   bool vakitTamAktifMi(String key) => tamVaktinde[key] ?? true;
   bool vakitCikmadanAktifMi(String key) => vakitCikmadanOnce[key] ?? true;
+  String vakitSesModuGetir(String key) => vakitSesModu[key] ?? genelSesModu;
 
   BildirimAyarlariModel vakitGuncelle({
     required String vakitKey,
     bool? tamVaktindeDeger,
     bool? vakitCikmadanDeger,
+    String? sesModuDeger,
   }) {
     final yeniTam = Map<String, bool>.from(tamVaktinde);
     final yeniCikmadan = Map<String, bool>.from(vakitCikmadanOnce);
+    final yeniSes = Map<String, String>.from(vakitSesModu);
     if (tamVaktindeDeger != null) {
       yeniTam[vakitKey] = tamVaktindeDeger;
     }
     if (vakitCikmadanDeger != null) {
       yeniCikmadan[vakitKey] = vakitCikmadanDeger;
     }
+    if (sesModuDeger != null) {
+      yeniSes[vakitKey] = sesModuDeger;
+    }
     return BildirimAyarlariModel(
       tamVaktinde: yeniTam,
       vakitCikmadanOnce: yeniCikmadan,
+      vakitSesModu: yeniSes,
+      genelSesModu: genelSesModu,
+      gununAyetiBildirimi: gununAyetiBildirimi,
+    );
+  }
+
+  BildirimAyarlariModel tumVakitlerinSesModunuDegistir(String yeniGenelSes) {
+    final yeniSes = <String, String>{
+      for (final k in vakitAnahtarlari) k: yeniGenelSes,
+    };
+    return BildirimAyarlariModel(
+      tamVaktinde: Map<String, bool>.from(tamVaktinde),
+      vakitCikmadanOnce: Map<String, bool>.from(vakitCikmadanOnce),
+      vakitSesModu: yeniSes,
+      genelSesModu: yeniGenelSes,
       gununAyetiBildirimi: gununAyetiBildirimi,
     );
   }
@@ -1301,11 +1355,15 @@ class BildirimAyarlariModel {
   BildirimAyarlariModel copyWith({
     Map<String, bool>? tamVaktinde,
     Map<String, bool>? vakitCikmadanOnce,
+    Map<String, String>? vakitSesModu,
+    String? genelSesModu,
     bool? gununAyetiBildirimi,
   }) {
     return BildirimAyarlariModel(
       tamVaktinde: tamVaktinde ?? Map<String, bool>.from(this.tamVaktinde),
       vakitCikmadanOnce: vakitCikmadanOnce ?? Map<String, bool>.from(this.vakitCikmadanOnce),
+      vakitSesModu: vakitSesModu ?? Map<String, String>.from(this.vakitSesModu),
+      genelSesModu: genelSesModu ?? this.genelSesModu,
       gununAyetiBildirimi: gununAyetiBildirimi ?? this.gununAyetiBildirimi,
     );
   }
@@ -1313,6 +1371,8 @@ class BildirimAyarlariModel {
   Map<String, dynamic> toJson() => {
         'tamVaktinde': tamVaktinde,
         'vakitCikmadanOnce': vakitCikmadanOnce,
+        'vakitSesModu': vakitSesModu,
+        'genelSesModu': genelSesModu,
         'gununAyetiBildirimi': gununAyetiBildirimi,
       };
 
@@ -1320,6 +1380,8 @@ class BildirimAyarlariModel {
     final def = BildirimAyarlariModel.varsayilan();
     final tam = Map<String, bool>.from(def.tamVaktinde);
     final cikmadan = Map<String, bool>.from(def.vakitCikmadanOnce);
+    final ses = Map<String, String>.from(def.vakitSesModu);
+    final genelSes = (m['genelSesModu'] as String?) ?? 'ezan';
 
     if (m['tamVaktinde'] is Map) {
       final rawTam = m['tamVaktinde'] as Map;
@@ -1327,11 +1389,6 @@ class BildirimAyarlariModel {
         if (rawTam.containsKey(k)) {
           tam[k] = rawTam[k] == true;
         }
-      }
-    } else if (m.containsKey('ezanVaktindeBildir')) {
-      final legacyTam = m['ezanVaktindeBildir'] != false;
-      for (final k in vakitAnahtarlari) {
-        tam[k] = legacyTam;
       }
     }
 
@@ -1342,25 +1399,44 @@ class BildirimAyarlariModel {
           cikmadan[k] = rawCik[k] == true;
         }
       }
-    } else if (m.containsKey('onBesDkOnceHatirlat')) {
-      final legacyCik = m['onBesDkOnceHatirlat'] != false;
+    }
+
+    if (m['vakitSesModu'] is Map) {
+      final rawSes = m['vakitSesModu'] as Map;
       for (final k in vakitAnahtarlari) {
-        cikmadan[k] = legacyCik;
+        final v = rawSes[k]?.toString();
+        if (v == 'ezan' || v == 'kisa' || v == 'sessiz') {
+          ses[k] = v!;
+        }
+      }
+    } else {
+      for (final k in vakitAnahtarlari) {
+        ses[k] = genelSes;
       }
     }
 
     return BildirimAyarlariModel(
       tamVaktinde: tam,
       vakitCikmadanOnce: cikmadan,
+      vakitSesModu: ses,
+      genelSesModu: genelSes,
       gununAyetiBildirimi: m['gununAyetiBildirimi'] != false,
     );
   }
 }
 
 class BildirimAyarlariServisi {
-  static const String _storageKey = 'nur_huzur_bildirim_ayarlari_v2';
-  static const String _kanalTamVakitId = 'vakti_huzur_ezan_vakti_kanali';
-  static const String _kanalCikmadanId = 'vakti_huzur_vakit_cikmadan_kanali';
+  static const String _storageKey = 'nur_huzur_bildirim_ayarlari_v3';
+
+  // 3 Farklı Ses Kanalı (Android 8.0+ kanal sesleri oluşturulduktan sonra değiştirilemediği için her ses moduna özel kanal):
+  // 1. Tam Ezan Sesi Kanalı -> android/app/src/main/res/raw/adhan.mp3
+  static const String _kanalTamEzanId = 'vakti_huzur_tam_ezan_sesli_v3';
+  // 2. Kısa Uyarı Sesi Kanalı -> android/app/src/main/res/raw/adhan_short.wav
+  static const String _kanalKisaUyariId = 'vakti_huzur_kisa_uyari_sesli_v3';
+  // 3. Sessiz Bildirim Kanalı -> playSound: false
+  static const String _kanalSessizId = 'vakti_huzur_sessiz_bildirim_v3';
+  // 4. Vakit Çıkmadan Önce Hatırlatıcı Kanalı -> adhan_short.wav
+  static const String _kanalCikmadanId = 'vakti_huzur_vakit_cikmadan_v3';
 
   static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   static bool _baslatildi = false;
@@ -1373,6 +1449,7 @@ class BildirimAyarlariServisi {
   static BildirimAyarlariModel _yukle() {
     try {
       final raw = web.window.localStorage.getItem(_storageKey) ??
+          web.window.localStorage.getItem('nur_huzur_bildirim_ayarlari_v2') ??
           web.window.localStorage.getItem('nur_huzur_bildirim_ayarlari_v1');
       if (raw != null && raw.isNotEmpty) {
         final decoded = jsonDecode(raw) as Map<String, dynamic>;
@@ -1402,11 +1479,94 @@ class BildirimAyarlariServisi {
     } catch (_) {}
   }
 
-  /// Uygulama ilk açıldığında veya Bildirim Ayarları'na girildiğinde:
-  /// 1. flutter_local_notifications ve timezone altyapısını başlatır
-  /// 2. Android bildirim kanallarını oluşturur (cihazın Bildirim Ayarları'nda görünmesini sağlar)
-  /// 3. Android 13+ (requestNotificationsPermission) ve iOS sistem bildirim izni penceresini tetikler
-  /// 4. Kayıtlı namaz vakitlerine göre bildirimleri zamanlar
+  static NotificationDetails _sesModunaGoreDetayOlustur(String sesModu, {bool cikmadanMi = false}) {
+    if (cikmadanMi) {
+      return const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _kanalCikmadanId,
+          'Vakit Çıkmadan Önce Hatırlatıcı',
+          channelDescription: 'Namaz vakti çıkmadan önce kısa uyarı sesiyle hatırlatma bildirimi gönderir.',
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound('adhan_short'),
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          sound: 'adhan_short.wav',
+        ),
+      );
+    }
+
+    if (sesModu == 'sessiz') {
+      return const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _kanalSessizId,
+          'Namaz Vakti Bildirimleri (Sessiz)',
+          channelDescription: 'Namaz vakti girdiğinde ses çalmadan sessiz bildirim gönderir.',
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: false,
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: false,
+        ),
+      );
+    }
+
+    if (sesModu == 'kisa') {
+      return const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _kanalKisaUyariId,
+          'Namaz Vakti Kısa Uyarı Sesi',
+          channelDescription: 'Namaz vakti girdiğinde huzurlu kısa uyarı sesiyle bildirim gönderir.',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound('adhan_short'),
+          enableVibration: true,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          sound: 'adhan_short.wav',
+        ),
+      );
+    }
+
+    // Varsayılan: 'ezan' -> Tam Ezan Sesi (raw/adhan.mp3 & iOS adhan.mp3)
+    return const NotificationDetails(
+      android: AndroidNotificationDetails(
+        _kanalTamEzanId,
+        'Sesli Ezan Okuma (Tam Ezan Bildirimi)',
+        channelDescription: 'Diyanet namaz vakti girdiğinde gerçek ezan sesiyle (adhan.mp3) bildirim gönderir.',
+        importance: Importance.max,
+        priority: Priority.max,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('adhan'),
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        enableVibration: true,
+        icon: '@mipmap/ic_launcher',
+      ),
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        sound: 'adhan.mp3',
+      ),
+    );
+  }
+
   static Future<bool> baslatVeIzinIste({bool alarmIzniDeIste = false}) async {
     if (kIsWeb) return true;
     try {
@@ -1430,18 +1590,46 @@ class BildirimAyarlariServisi {
       final androidPlugin =
           _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       if (androidPlugin != null) {
-        // Android 8.0+ Bildirim Kanallarını hemen kaydet (Ayarlar -> Uygulamalar -> Vakt-i Huzur -> Bildirimler için zorunlu)
+        // 1. Tam Ezan Sesi Kanalı (raw/adhan.mp3)
         await androidPlugin.createNotificationChannel(
           const AndroidNotificationChannel(
-            _kanalTamVakitId,
-            'Ezan ve Namaz Vakti Bildirimleri',
-            description: 'Diyanet namaz vakitleri girdiğinde tam vaktinde sesli ve görsel bildirim gönderir.',
+            _kanalTamEzanId,
+            'Sesli Ezan Okuma (Tam Ezan Bildirimi)',
+            description: 'Namaz vakitleri girdiğinde gerçek ezan sesiyle (adhan) bildirim gönderir.',
             importance: Importance.max,
             playSound: true,
+            sound: RawResourceAndroidNotificationSound('adhan'),
+            audioAttributesUsage: AudioAttributesUsage.alarm,
             enableVibration: true,
             showBadge: true,
           ),
         );
+        // 2. Kısa Uyarı Sesi Kanalı (raw/adhan_short.wav)
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _kanalKisaUyariId,
+            'Namaz Vakti Kısa Uyarı Sesi',
+            description: 'Namaz vakitleri girdiğinde kısa huzurlu uyarı sesiyle bildirim gönderir.',
+            importance: Importance.max,
+            playSound: true,
+            sound: RawResourceAndroidNotificationSound('adhan_short'),
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+        // 3. Sessiz Bildirim Kanalı
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _kanalSessizId,
+            'Namaz Vakti Bildirimleri (Sessiz)',
+            description: 'Namaz vakitleri girdiğinde sessiz bildirim gönderir.',
+            importance: Importance.high,
+            playSound: false,
+            enableVibration: true,
+            showBadge: true,
+          ),
+        );
+        // 4. Vakit Çıkmadan Önce Kanalı
         await androidPlugin.createNotificationChannel(
           const AndroidNotificationChannel(
             _kanalCikmadanId,
@@ -1449,12 +1637,12 @@ class BildirimAyarlariServisi {
             description: 'Namaz vakti çıkmadan önce hatırlatma bildirimi gönderir.',
             importance: Importance.high,
             playSound: true,
+            sound: RawResourceAndroidNotificationSound('adhan_short'),
             enableVibration: true,
             showBadge: true,
           ),
         );
 
-        // Android 13+ (API 33+) resmi sistem bildirim izni penceresini tetikle
         final izinVerildi = await androidPlugin.requestNotificationsPermission();
         if (alarmIzniDeIste) {
           try {
@@ -1485,8 +1673,6 @@ class BildirimAyarlariServisi {
     }
   }
 
-  /// Kayıtlı veya güncel Diyanet namaz vakitlerine göre tüm seçili vakitlerin
-  /// "Tam Vaktinde" ve "Vakit Çıkmadan Önce" bildirimlerini gerçek zamanlı planlar.
   static Future<void> gunlukBildirimleriZamanla({
     CanliNamazVakitleriModel? vakitModel,
     String dil = 'TR',
@@ -1531,41 +1717,7 @@ class BildirimAyarlariServisi {
         return hedef;
       }
 
-      const tamVakitDetay = NotificationDetails(
-        android: AndroidNotificationDetails(
-          _kanalTamVakitId,
-          'Ezan ve Namaz Vakti Bildirimleri',
-          channelDescription: 'Diyanet namaz vakitleri girdiğinde tam vaktinde bildirim verir.',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      );
-
-      const cikmadanDetay = NotificationDetails(
-        android: AndroidNotificationDetails(
-          _kanalCikmadanId,
-          'Vakit Çıkmadan Önce Hatırlatıcı',
-          channelDescription: 'Namaz vakti çıkmadan önce hatırlatma bildirimi gönderir.',
-          importance: Importance.high,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      );
+      final cikmadanDetay = _sesModunaGoreDetayOlustur('kisa', cikmadanMi: true);
 
       Future<void> guvenliZamanla({
         required int id,
@@ -1607,21 +1759,24 @@ class BildirimAyarlariServisi {
         final hm = saatParcala(saatStr);
         if (hm == null) continue;
 
-        // 1. TAM VAKTİNDE BİLDİRİMİ (ID: 100..105)
+        // 1. TAM VAKTİNDE BİLDİRİMİ (ID: 100..105) — Vaktin ses moduna ('ezan', 'kisa', 'sessiz') göre!
         if (ayar.vakitTamAktifMi(key)) {
+          final sesModu = ayar.vakitSesModuGetir(key);
+          final tamDetay = _sesModunaGoreDetayOlustur(sesModu);
           final zaman = gelecekZamanOlustur(hm.$1, hm.$2);
+          final ezanEtiketi = sesModu == 'ezan' ? '🔊 ' : '';
           final baslik = dil == 'EN'
-              ? '🕌 $konum • $ad Time ($saatStr)'
-              : '🕌 $konum • $ad Vakti Girdi ($saatStr)';
+              ? '$ezanEtiketi🕌 $konum • $ad Time ($saatStr)'
+              : '$ezanEtiketi🕌 $konum • $ad Vakti Girdi ($saatStr)';
           final icerik = dil == 'EN'
-              ? '$ad time has entered for $konum. May Allah accept your prayers.'
-              : '$konum için $ad vakti girdi ($saatStr). Rabbimiz ibadetlerinizi ve dualarınızı kabul eylesin.';
+              ? '$ad time has entered for $konum. Hayya alas-salah!'
+              : '$konum için $ad vakti girdi ($saatStr). Hayye ale’s-salâh, Hayye ale’l-felâh!';
           await guvenliZamanla(
             id: 100 + i,
             baslik: baslik,
             icerik: icerik,
             zaman: zaman,
-            detay: tamVakitDetay,
+            detay: tamDetay,
           );
         }
 
@@ -1673,45 +1828,29 @@ class BildirimAyarlariServisi {
               ? '“Verily, in the remembrance of Allah do hearts find rest.” (Surah Ar-Ra’d, 28)'
               : '“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.” (Ra’d Suresi, 28. Ayet)',
           zaman: ayetZaman,
-          detay: tamVakitDetay,
+          detay: _sesModunaGoreDetayOlustur('kisa'),
         );
       }
     } catch (_) {}
   }
 
-  /// Kullanıcının "🔔 Bildirim Sesini ve İznini Kontrol Et" butonuna bastığında
-  /// anında gerçek bir Android/iOS sistem bildirimi düşürür ve bildirim sesini çalar.
+  /// Kullanıcının seçtiği ses moduyla ('ezan', 'kisa', 'sessiz') anında gerçek sistem bildirimi düşürür ve ezan okur.
   static Future<bool> anindaGercekSistemBildirimiGonder({
     required String baslik,
     required String icerik,
+    String? sesModu,
   }) async {
+    final aktifSesModu = sesModu ?? ayarlarNotifier.value.genelSesModu;
     CanliPusulaSensorServisi.kibleDogrulandiTitresim();
     try {
-      bildirimSesiCalBridge(baslik, icerik);
+      bildirimSesiCalBridge(baslik, icerik, sesModu: aktifSesModu);
     } catch (_) {}
 
     if (kIsWeb) return true;
 
     try {
       final izinTamam = await baslatVeIzinIste(alarmIzniDeIste: true);
-      const detay = NotificationDetails(
-        android: AndroidNotificationDetails(
-          _kanalTamVakitId,
-          'Ezan ve Namaz Vakti Bildirimleri',
-          channelDescription: 'Diyanet namaz vakitleri girdiğinde tam vaktinde bildirim verir.',
-          importance: Importance.max,
-          priority: Priority.high,
-          playSound: true,
-          enableVibration: true,
-          icon: '@mipmap/ic_launcher',
-          styleInformation: BigTextStyleInformation(''),
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      );
+      final detay = _sesModunaGoreDetayOlustur(aktifSesModu);
       await _plugin.show(
         id: 999,
         title: baslik,
@@ -1736,6 +1875,17 @@ class BildirimAyarlariServisi {
     gunlukBildirimleriZamanla(vakitModel: vakitModel, dil: dil);
   }
 
+  static String _sesModuEtiketi(String mod, String dil) {
+    if (dil == 'EN') {
+      if (mod == 'ezan') return '🔊 Full Adhan';
+      if (mod == 'kisa') return '🔔 Short Tone';
+      return '🔕 Silent';
+    }
+    if (mod == 'ezan') return '🔊 Tam Ezan Sesi';
+    if (mod == 'kisa') return '🔔 Kısa Uyarı Sesi';
+    return '🔕 Sessiz';
+  }
+
   static void panelGoster(
     BuildContext context, {
     required Color arkaPlan,
@@ -1747,9 +1897,8 @@ class BildirimAyarlariServisi {
     required String dil,
     String konumAdi = 'İstanbul',
     String siradakiVakitAdi = 'Akşam',
-    String siradakiVakitSaat = '18:24',
+    String siradakiVakitSaat = '18:04',
   }) {
-    // Bildirim Ayarları ekranı açılır açılmaz resmi sistem iznini (Android 13+) kontrol et / tetikle
     baslatVeIzinIste();
 
     final kayitliVakit = NamazVeKonumServisi.hafizadakiSonVakitleriGetir();
@@ -1759,37 +1908,37 @@ class BildirimAyarlariServisi {
       {
         'key': 'imsak',
         'ad': dil == 'EN' ? 'Fajr (Imsak)' : dil == 'AR' ? 'الفجر (الإمساك)' : 'İmsak',
-        'saat': kayitliVakit?.imsak ?? '05:48',
+        'saat': kayitliVakit?.imsak ?? '06:05',
         'ikon': Icons.nightlight_outlined,
       },
       {
         'key': 'gunes',
         'ad': dil == 'EN' ? 'Sunrise' : dil == 'AR' ? 'الشروق' : 'Güneş',
-        'saat': kayitliVakit?.gunes ?? '07:14',
+        'saat': kayitliVakit?.gunes ?? '07:31',
         'ikon': Icons.wb_twilight_rounded,
       },
       {
         'key': 'ogle',
         'ad': dil == 'EN' ? 'Dhuhr' : dil == 'AR' ? 'الظهر' : 'Öğle',
-        'saat': kayitliVakit?.ogle ?? '12:56',
+        'saat': kayitliVakit?.ogle ?? '12:53',
         'ikon': Icons.wb_sunny_outlined,
       },
       {
         'key': 'ikindi',
         'ad': dil == 'EN' ? 'Asr' : dil == 'AR' ? 'العصر' : 'İkindi',
-        'saat': kayitliVakit?.ikindi ?? '15:52',
+        'saat': kayitliVakit?.ikindi ?? '15:38',
         'ikon': Icons.sunny_snowing,
       },
       {
         'key': 'aksam',
         'ad': dil == 'EN' ? 'Maghrib' : dil == 'AR' ? 'المغرب' : 'Akşam',
-        'saat': kayitliVakit?.aksam ?? '18:24',
+        'saat': kayitliVakit?.aksam ?? '18:04',
         'ikon': Icons.nights_stay_outlined,
       },
       {
         'key': 'yatsi',
         'ad': dil == 'EN' ? 'Isha' : dil == 'AR' ? 'العشاء' : 'Yatsı',
-        'saat': kayitliVakit?.yatsi ?? '19:44',
+        'saat': kayitliVakit?.yatsi ?? '19:25',
         'ikon': Icons.bedtime_outlined,
       },
     ];
@@ -1808,10 +1957,10 @@ class BildirimAyarlariServisi {
             return SafeArea(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(context).size.height * 0.88,
+                  maxHeight: MediaQuery.of(context).size.height * 0.90,
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1826,92 +1975,202 @@ class BildirimAyarlariServisi {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(9),
                             decoration: BoxDecoration(
                               color: vurguAltin.withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: vurguAltin.withValues(alpha: 0.5)),
                             ),
                             child: Icon(
-                              Icons.notifications_active_rounded,
+                              Icons.volume_up_rounded,
                               color: vurguAltin,
                               size: 22,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   dil == 'EN'
-                                      ? 'Vakt-i Huzur • Notification Settings'
-                                      : dil == 'AR'
-                                          ? 'Vakt-i Huzur • إعدادات التنبيهات'
-                                          : 'Vakt-i Huzur • Bildirim Ayarları',
+                                      ? 'Adhan Sound & Notification Settings'
+                                      : 'Ezan Sesli Bildirim Ayarları',
                                   style: TextStyle(
                                     fontFamily: 'Lora',
-                                    fontSize: 17,
+                                    fontSize: 16.5,
                                     fontWeight: FontWeight.bold,
                                     color: yaziRengi,
                                   ),
                                 ),
                                 Text(
-                                  dil == 'EN'
-                                      ? '$aktifKonum • Exact Time & Before End Alerts'
-                                      : dil == 'AR'
-                                          ? '$aktifKonum • تنبيهات دخول وخروج الوقت'
-                                          : '$aktifKonum • 6 Vakit Tam Vaktinde & Çıkmadan Önce',
-                                  style: TextStyle(color: ikincilYazi, fontSize: 11.5),
+                                  '$aktifKonum • 🔊 Bildirimde Ezan Oku (Sesli Ezan)',
+                                  style: TextStyle(color: vurguAltin, fontSize: 11.5, fontWeight: FontWeight.w600),
                                 ),
                               ],
                             ),
                           ),
                           IconButton(
-                            onPressed: () => Navigator.pop(ctx),
+                            onPressed: () {
+                              bildirimSesiDurdurBridge();
+                              Navigator.pop(ctx);
+                            },
                             icon: Icon(Icons.close_rounded, color: ikincilYazi),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
 
-                      // Tablo Üst Başlığı: Vakit | Tam Vaktinde | Çıkmadan Önce
+                      // GENEL EZAN SESİ SEÇİM KUTUSU: (🔊 Tam Ezan Sesi | 🔔 Kısa Uyarı Sesi | 🔕 Sessiz)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.all(11),
+                        decoration: BoxDecoration(
+                          color: arkaPlan.withValues(alpha: 0.65),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: vurguAltin.withValues(alpha: 0.45)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.campaign_rounded, color: vurguAltin, size: 18),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    dil == 'EN'
+                                        ? '🔊 Play Adhan on Notification (Sound Mode):'
+                                        : '🔊 Bildirimde Ezan Oku (Genel Ses Seçimi):',
+                                    style: TextStyle(
+                                      color: yumusakAltin,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                ),
+                                InkWell(
+                                  borderRadius: BorderRadius.circular(8),
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    bildirimSesiCalBridge(
+                                      'Vakt-i Huzur Ezan Sesi',
+                                      'Ezan sesi önizlemesi',
+                                      sesModu: ayar.genelSesModu == 'sessiz' ? 'ezan' : ayar.genelSesModu,
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: vurguAltin.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: vurguAltin),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.play_arrow_rounded, size: 14, color: vurguAltin),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          dil == 'EN' ? 'Listen' : 'Ezanı Dinle',
+                                          style: TextStyle(
+                                            color: vurguAltin,
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                for (final mod in ['ezan', 'kisa', 'sessiz'])
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(10),
+                                        onTap: () {
+                                          HapticFeedback.selectionClick();
+                                          final yeniAyar = ayar.tumVakitlerinSesModunuDegistir(mod);
+                                          guncelle(yeniAyar, vakitModel: kayitliVakit, dil: dil);
+                                          if (mod != 'sessiz') {
+                                            bildirimSesiCalBridge(
+                                              'Vakt-i Huzur',
+                                              'Ses Önizleme',
+                                              sesModu: mod,
+                                            );
+                                          } else {
+                                            bildirimSesiDurdurBridge();
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                                          decoration: BoxDecoration(
+                                            color: ayar.genelSesModu == mod
+                                                ? vurguAltin
+                                                : kartRengi,
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(
+                                              color: ayar.genelSesModu == mod
+                                                  ? vurguAltin
+                                                  : vurguAltin.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _sesModuEtiketi(mod, dil),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: ayar.genelSesModu == mod
+                                                  ? arkaPlan
+                                                  : yaziRengi,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Tablo Üst Başlığı: Vakit & Ses Modu | Tam Vaktinde | Çıkmadan Önce
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                         decoration: BoxDecoration(
                           color: vurguAltin.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(11),
                           border: Border.all(color: vurguAltin.withValues(alpha: 0.35)),
                         ),
                         child: Row(
                           children: [
                             Expanded(
-                              flex: 5,
+                              flex: 6,
                               child: Text(
-                                dil == 'EN'
-                                    ? 'Prayer Time'
-                                    : dil == 'AR'
-                                        ? 'وقت الصلاة'
-                                        : 'Namaz Vakti',
+                                dil == 'EN' ? 'Prayer & Sound Mode' : 'Vakit & Ses Seçimi',
                                 style: TextStyle(
                                   color: vurguAltin,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 11.5,
+                                  fontSize: 11,
                                 ),
                               ),
                             ),
                             Expanded(
                               flex: 3,
                               child: Text(
-                                dil == 'EN'
-                                    ? 'Exact Time'
-                                    : dil == 'AR'
-                                        ? 'في الوقت'
-                                        : 'Tam Vaktinde',
+                                dil == 'EN' ? 'On Time' : 'Vaktinde',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: vurguAltin,
@@ -1923,11 +2182,7 @@ class BildirimAyarlariServisi {
                             Expanded(
                               flex: 3,
                               child: Text(
-                                dil == 'EN'
-                                    ? 'Before End'
-                                    : dil == 'AR'
-                                        ? 'قبل الخروج'
-                                        : 'Vakit Çıkmadan',
+                                dil == 'EN' ? 'Before End' : 'Çıkmadan',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: vurguAltin,
@@ -1939,9 +2194,9 @@ class BildirimAyarlariServisi {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
 
-                      // 6 Vakit Listesi (Kaydırılabilir)
+                      // 6 Vakit Listesi (Her vakit için ayrı ses modu değiştirme özelliğiyle)
                       Flexible(
                         child: ListView(
                           shrinkWrap: true,
@@ -1953,6 +2208,7 @@ class BildirimAyarlariServisi {
                               final ikon = v['ikon'] as IconData;
                               final tamAktif = ayar.vakitTamAktifMi(key);
                               final cikmadanAktif = ayar.vakitCikmadanAktifMi(key);
+                              final vSes = ayar.vakitSesModuGetir(key);
 
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 6),
@@ -1969,7 +2225,7 @@ class BildirimAyarlariServisi {
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      flex: 5,
+                                      flex: 6,
                                       child: Row(
                                         children: [
                                           Icon(ikon, color: vurguAltin, size: 18),
@@ -1978,20 +2234,69 @@ class BildirimAyarlariServisi {
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  ad,
-                                                  style: TextStyle(
-                                                    color: yaziRengi,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13.5,
-                                                  ),
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      ad,
+                                                      style: TextStyle(
+                                                        color: yaziRengi,
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Text(
+                                                      saat,
+                                                      style: TextStyle(
+                                                        color: vurguAltin,
+                                                        fontWeight: FontWeight.w700,
+                                                        fontSize: 11.5,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                                Text(
-                                                  saat,
-                                                  style: TextStyle(
-                                                    color: vurguAltin,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 11.5,
+                                                const SizedBox(height: 3),
+                                                // Vakit bazlı ses modu seçici chip (Tıklandıkça Tam Ezan -> Kısa Uyarı -> Sessiz değişir)
+                                                InkWell(
+                                                  borderRadius: BorderRadius.circular(6),
+                                                  onTap: () {
+                                                    HapticFeedback.selectionClick();
+                                                    final siradakiMod = vSes == 'ezan'
+                                                        ? 'kisa'
+                                                        : (vSes == 'kisa' ? 'sessiz' : 'ezan');
+                                                    guncelle(
+                                                      ayar.vakitGuncelle(
+                                                        vakitKey: key,
+                                                        sesModuDeger: siradakiMod,
+                                                      ),
+                                                      vakitModel: kayitliVakit,
+                                                      dil: dil,
+                                                    );
+                                                  },
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: vSes == 'ezan'
+                                                          ? vurguAltin.withValues(alpha: 0.22)
+                                                          : kartRengi,
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(
+                                                        color: vurguAltin.withValues(alpha: 0.45),
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      _sesModuEtiketi(vSes, dil),
+                                                      style: TextStyle(
+                                                        color: vSes == 'ezan'
+                                                            ? yumusakAltin
+                                                            : ikincilYazi,
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
                                                   ),
                                                 ),
                                               ],
@@ -2066,9 +2371,7 @@ class BildirimAyarlariServisi {
                                 title: Text(
                                   dil == 'EN'
                                       ? 'Daily Verse & Hadith Notification'
-                                      : dil == 'AR'
-                                          ? 'تنبيه آية وحديث اليوم'
-                                          : 'Günün Ayeti & Hadisi Bildirimi',
+                                      : 'Günün Ayeti & Hadisi Bildirimi',
                                   style: TextStyle(
                                     color: yaziRengi,
                                     fontWeight: FontWeight.bold,
@@ -2078,9 +2381,7 @@ class BildirimAyarlariServisi {
                                 subtitle: Text(
                                   dil == 'EN'
                                       ? 'Daily inspiring Qur’an verse and Sahih Hadith at 10:00'
-                                      : dil == 'AR'
-                                          ? 'آية كريمة وحديث شريف كل صباح الساعة ١٠:٠٠'
-                                          : 'Her gün saat 10:00’da seçkin bir ayet ve hadis bildirimi',
+                                      : 'Her gün saat 10:00’da seçkin bir ayet ve hadis bildirimi',
                                   style: TextStyle(color: ikincilYazi, fontSize: 11),
                                 ),
                                 value: ayar.gununAyetiBildirimi,
@@ -2099,31 +2400,28 @@ class BildirimAyarlariServisi {
                       ),
                       const SizedBox(height: 8),
 
-                      // BİLDİRİM SESİNİ VE İZNİNİ KONTROL ET BUTONU (GERÇEK SİSTEM BİLDİRİMİ DÜŞÜRÜR)
+                      // EZAN SESLİ BİLDİRİMİ TEST ET BUTONU
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: vurguAltin,
                           foregroundColor: arkaPlan,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
                         onPressed: () async {
                           final kontrolBaslik = dil == 'EN'
-                              ? '🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi ($siradakiVakitSaat)'
-                              : dil == 'AR'
-                                  ? '🕌 Vakt-i Huzur • $aktifKonum أذان $siradakiVakitAdi ($siradakiVakitSaat)'
-                                  : '🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi Vakti ($siradakiVakitSaat)';
+                              ? '🔊🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi ($siradakiVakitSaat)'
+                              : '🔊🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi Vakti ($siradakiVakitSaat)';
                           final kontrolIcerik = dil == 'EN'
-                              ? 'Notification permission and sound verified! Prayer time alerts are active.'
-                              : dil == 'AR'
-                                  ? 'تم التحقق من إذن وصوت التنبيهات بنجاح! تنبيهات الصلاة مفعلة.'
-                                  : 'Bildirim izniniz ve sesiniz doğrulandı! “Kalpler ancak Allah’ı zikretmekle huzur bulur.” (Ra’d, 28)';
+                              ? 'Adhan notification sound (${_sesModuEtiketi(ayar.genelSesModu, dil)}) verified!'
+                              : 'Ezan sesli bildirim (${_sesModuEtiketi(ayar.genelSesModu, dil)}) doğrulandı! Hayye ale’s-salâh!';
 
                           await anindaGercekSistemBildirimiGonder(
                             baslik: kontrolBaslik,
                             icerik: kontrolIcerik,
+                            sesModu: ayar.genelSesModu,
                           );
                           await gunlukBildirimleriZamanla(
                             vakitModel: kayitliVakit,
@@ -2131,7 +2429,6 @@ class BildirimAyarlariServisi {
                           );
 
                           if (!ctx.mounted) return;
-                          Navigator.pop(ctx);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               backgroundColor: kartRengi,
@@ -2152,8 +2449,8 @@ class BildirimAyarlariServisi {
                                   Expanded(
                                     child: Text(
                                       dil == 'EN'
-                                          ? 'System notification sent & daily prayer alarms scheduled!'
-                                          : 'Gerçek sistem bildirimi gönderildi ve günlük ezan vakitleri zamanlandı!',
+                                          ? 'Adhan notification sent & daily prayer alarms scheduled!'
+                                          : 'Sesli Ezan bildirimi gönderildi ve tüm vakitler zamanlandı!',
                                       style: TextStyle(
                                         color: yaziRengi,
                                         fontWeight: FontWeight.w600,
@@ -2166,14 +2463,12 @@ class BildirimAyarlariServisi {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.notifications_active_rounded, size: 19),
+                        icon: const Icon(Icons.volume_up_rounded, size: 19),
                         label: Text(
                           dil == 'EN'
-                              ? '🔔 Check Notification Sound & Permission'
-                              : dil == 'AR'
-                                  ? '🔔 فحص صوت وإذن التنبيهات'
-                                  : '🔔 Bildirim Sesini ve İznini Kontrol Et',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                              ? '🔊 Test Adhan Notification & Schedule Alarms'
+                              : '🔊 Sesli Ezan Bildirimini Test Et ve Kaydet',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),
                     ],

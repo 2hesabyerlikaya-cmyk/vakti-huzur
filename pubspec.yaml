@@ -30,6 +30,7 @@ flutter:
 
   assets:
     - assets/quran/
+    - assets/audio/
 
   fonts:
     - family: Amiri

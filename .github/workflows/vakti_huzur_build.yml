@@ -67,12 +67,15 @@ jobs:
       - name: Bağımlılıkları Yükle
         run: flutter pub get
 
-      - name: iOS Release Derlemesi (İmzasız / Unsigned)
+      - name: iOS Release Derlemesi (İmzasız / Unsigned — Sideloadly Uyumlu)
         run: |
           flutter build ios --release --no-codesign --no-tree-shake-icons
+          rm -rf Payload Vakt-i_Huzur_iOS.ipa
           mkdir -p Payload
-          cp -r build/ios/iphoneos/Runner.app Payload/
-          zip -r Vakt-i_Huzur_iOS.ipa Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+          rm -rf Payload/Runner.app/PlugIns Payload/Runner.app/_CodeSignature
+          chmod +x Payload/Runner.app/Runner
+          zip -r -y Vakt-i_Huzur_iOS.ipa Payload
 
       - name: Vakt-i_Huzur_iOS.ipa Dosyasını Yükle
         uses: actions/upload-artifact@v4

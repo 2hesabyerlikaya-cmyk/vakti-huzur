@@ -53,7 +53,7 @@ jobs:
   # 2. iOS (.ipa) DERLEMESİ (macOS Bulut Sunucusunda)
   build-ios:
     name: iOS (.ipa) Paketi Üret
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     steps:
       - name: Kaynak Kodunu İndir
         uses: actions/checkout@v4

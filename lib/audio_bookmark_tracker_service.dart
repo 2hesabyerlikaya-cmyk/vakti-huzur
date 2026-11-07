@@ -32,21 +32,27 @@ class HafizModel {
   String get ad => adTr;
   String get ulke => kod.contains('alafasy')
       ? 'Kuveyt'
-      : (kod.contains('abdulbasit') ? 'Mısır' : 'Suudi Arabistan');
+      : (kod.contains('abdulbasit') || kod.contains('husary') ? 'Mısır' : 'Suudi Arabistan');
 }
 
 const List<HafizModel> kHafizlar = [
   HafizModel(
     kod: 'ar.alafasy',
-    adTr: 'Mişari Raşid el-Afasi',
+    adTr: 'Mişari Raşid el-Afasi (EveryAyah)',
     adAr: 'مشاري راشد العفاسي',
     bitrateler: [128, 64],
   ),
   HafizModel(
     kod: 'ar.abdulbasitmurattal',
-    adTr: 'Abdulbasit Abdussamed (Murattal)',
+    adTr: 'Abdulbasit Abdussamed (EveryAyah)',
     adAr: 'عبد الباسط عبد الصمد (مرتل)',
     bitrateler: [192, 64],
+  ),
+  HafizModel(
+    kod: 'ar.husary',
+    adTr: 'Mahmud Halil el-Husari (Vakıf / Public Domain)',
+    adAr: 'محمود خليل الحصري (مرتل)',
+    bitrateler: [128, 64],
   ),
 ];
 
@@ -114,20 +120,20 @@ class KuranSesOynaticiServisi {
     return (114, 6);
   }
 
-  /// Seçili hafıza göre sure bazlı doğrudan MP3 URL'si
+  /// Seçili hafıza göre surenin 1. ayetinden başlayan doğrudan EveryAyah MP3 URL'si
   static String sureMp3Url(int sureNo, {HafizModel? hafiz}) {
     final h = hafiz ?? seciliHafiz.value;
     final sure3 = sureNo.toString().padLeft(3, '0');
-    if (h.kod == 'ar.yasseraldossari') {
-      return 'https://server11.mp3quran.net/yasser/$sure3.mp3';
+    if (h.kod == 'ar.husary') {
+      return 'https://everyayah.com/data/Husary_128kbps/${sure3}001.mp3';
     } else if (h.kod == 'ar.abdulbasitmurattal') {
-      return 'https://server7.mp3quran.net/basit/Almusshaf-Al-Murattal/$sure3.mp3';
+      return 'https://everyayah.com/data/Abdul_Basit_Murattal_192kbps/${sure3}001.mp3';
     } else {
-      return 'https://server8.mp3quran.net/afs/$sure3.mp3';
+      return 'https://everyayah.com/data/Alafasy_128kbps/${sure3}001.mp3';
     }
   }
 
-  /// Seçili hafızın tüm doğrudan ve yedek ses adresleri
+  /// Seçili hafızın tüm doğrudan (EveryAyah.com) ve yedek (AlQuran Cloud / Islamic Network) ses adresleri
   static List<String> _adayUrller(int globalAyetNo) {
     final gecerli = globalAyetNo.clamp(1, 6236);
     final h = seciliHafiz.value;
@@ -137,34 +143,33 @@ class KuranSesOynaticiServisi {
 
     final liste = <String>[];
 
-    if (h.kod == 'ar.yasseraldossari') {
-      // 1. EveryAyah Yasser Ad-Dossari doğrudan ve kesintisiz çalışan 128kbps CDN
-      liste.add('https://everyayah.com/data/Yasser_Ad-Dossari_128kbps/$sure3$ayet3.mp3');
-      // 2. Mp3Quran Yasser Ad-Dossari doğrudan çalışan sure sunucusu
-      if (ayetNo == 1) {
-        liste.add('https://server11.mp3quran.net/yasser/$sure3.mp3');
-      }
-      // 3. AlQuran Cloud CDN
+    if (h.kod == 'ar.husary') {
+      // 1. EveryAyah Mahmud Halil el-Husari (Vakıf / Public Domain — 128kbps & 64kbps)
+      liste.add('https://everyayah.com/data/Husary_128kbps/$sure3$ayet3.mp3');
+      liste.add('https://everyayah.com/data/Husary_64kbps/$sure3$ayet3.mp3');
+      // 2. AlQuran Cloud / Islamic Network Açık CDN
       for (final br in h.bitrateler) {
         liste.add('https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3');
       }
     } else if (h.kod == 'ar.abdulbasitmurattal') {
-      // 1. EveryAyah Abdulbasit Murattal
+      // 1. EveryAyah Abdulbasit Abdussamed Murattal (192kbps & 64kbps)
       liste.add('https://everyayah.com/data/Abdul_Basit_Murattal_192kbps/$sure3$ayet3.mp3');
       liste.add('https://everyayah.com/data/Abdul_Basit_Murattal_64kbps/$sure3$ayet3.mp3');
-      // 2. AlQuran Cloud CDN
+      // 2. AlQuran Cloud / Islamic Network Açık CDN
       for (final br in h.bitrateler) {
         liste.add('https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3');
       }
     } else {
-      // Mişari Raşid el-Afasi
+      // 1. EveryAyah Mişari Raşid el-Afasi (128kbps & 64kbps)
+      liste.add('https://everyayah.com/data/Alafasy_128kbps/$sure3$ayet3.mp3');
+      liste.add('https://everyayah.com/data/Alafasy_64kbps/$sure3$ayet3.mp3');
+      // 2. AlQuran Cloud / Islamic Network Açık CDN
       for (final br in h.bitrateler) {
         liste.add('https://cdn.islamic.network/quran/audio/$br/${h.kod}/$gecerli.mp3');
       }
-      liste.add('https://everyayah.com/data/Alafasy_128kbps/$sure3$ayet3.mp3');
     }
 
-    // Ortak güvenilir yedek: Mişari Raşid el-Afasi
+    // Ortak güvenilir yedek: EveryAyah Mişari Raşid el-Afasi
     if (h.kod != 'ar.alafasy') {
       liste.add('https://everyayah.com/data/Alafasy_128kbps/$sure3$ayet3.mp3');
       liste.add('https://cdn.islamic.network/quran/audio/128/ar.alafasy/$gecerli.mp3');

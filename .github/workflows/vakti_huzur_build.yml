@@ -67,14 +67,17 @@ jobs:
       - name: Bağımlılıkları Yükle
         run: flutter pub get
 
-      - name: iOS Release Derlemesi (İmzasız / Unsigned — Sideloadly Uyumlu)
+      - name: iOS Release Derlemesi (İmzasız / Unsigned — Sideloadly & WidgetKit Uyumlu)
         run: |
           flutter build ios --release --no-codesign --no-tree-shake-icons
           rm -rf Payload Vakt-i_Huzur_iOS.ipa
           mkdir -p Payload
           cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
-          rm -rf Payload/Runner.app/PlugIns Payload/Runner.app/_CodeSignature
+          rm -rf Payload/Runner.app/_CodeSignature Payload/Runner.app/PlugIns/VaktiHuzurWidgetExtension.appex/_CodeSignature
           chmod +x Payload/Runner.app/Runner
+          if [ -f Payload/Runner.app/PlugIns/VaktiHuzurWidgetExtension.appex/VaktiHuzurWidgetExtension ]; then
+            chmod +x Payload/Runner.app/PlugIns/VaktiHuzurWidgetExtension.appex/VaktiHuzurWidgetExtension
+          fi
           zip -r -y Vakt-i_Huzur_iOS.ipa Payload
 
       - name: Vakt-i_Huzur_iOS.ipa Dosyasını Yükle

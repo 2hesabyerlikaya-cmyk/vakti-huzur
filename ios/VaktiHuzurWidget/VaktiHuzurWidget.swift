@@ -1,7 +1,35 @@
 import WidgetKit
 import SwiftUI
 
-private let appGroupId = "group.com.vaktihuzur.app"
+private func istanbulVarsayilanVakitler() -> (imsak: String, gunes: String, ogle: String, ikindi: String, aksam: String, yatsi: String, siradaki: String, kalan: String) {
+    let now = Date()
+    let cal = Calendar.current
+    let h = cal.component(.hour, from: now)
+    let m = cal.component(.minute, from: now)
+    let simdiDk = h * 60 + m
+    // İstanbul güncel Diyanet vakitleri referansı
+    let vakitler: [(ad: String, saat: String, dk: Int)] = [
+        ("İmsak", "06:14", 6 * 60 + 14),
+        ("Güneş", "07:40", 7 * 60 + 40),
+        ("Öğle", "12:59", 12 * 60 + 59),
+        ("İkindi", "15:39", 15 * 60 + 39),
+        ("Akşam", "18:01", 18 * 60 + 1),
+        ("Yatsı", "19:22", 19 * 60 + 22)
+    ]
+    var siradakiAd = "İmsak"
+    var farkDk = (24 * 60 - simdiDk) + vakitler[0].dk
+    for v in vakitler {
+        if v.dk > simdiDk {
+            siradakiAd = v.ad
+            farkDk = v.dk - simdiDk
+            break
+        }
+    }
+    let ks = farkDk / 60
+    let kd = farkDk % 60
+    let kalanStr = String(format: "%02ds %02ddk", ks, kd)
+    return ("06:14", "07:40", "12:59", "15:39", "18:01", "19:22", "Sıradaki: \(siradakiAd)", kalanStr)
+}
 
 // Zümrüt Yeşili & Altın Sarısı Tema Renkleri
 private let zumrutKoyu = Color(red: 0.043, green: 0.133, blue: 0.098)   // #0B2219
@@ -96,31 +124,41 @@ struct VaktiHuzurProvider: TimelineProvider {
     }
 
     private func okuEntry() -> VaktiHuzurEntry {
-        let prefs = UserDefaults(suiteName: appGroupId)
+        // Sideloadly (ücretsiz Apple ID) ve App Store uyumluluğu:
+        // Standart UserDefaults.standard ve varsa App Group UserDefaults birlikte okunur.
+        let std = UserDefaults.standard
+        let grp = UserDefaults(suiteName: "group.com.vaktihuzur.app")
+        let oto = istanbulVarsayilanVakitler()
+        func str(_ key: String, _ varsayilan: String) -> String {
+            if let v = std.string(forKey: "flutter.\(key)"), !v.isEmpty { return v }
+            if let v = std.string(forKey: key), !v.isEmpty { return v }
+            if let v = grp?.string(forKey: key), !v.isEmpty { return v }
+            return varsayilan
+        }
         return VaktiHuzurEntry(
             date: Date(),
-            konum: prefs?.string(forKey: "widget_konum") ?? "İstanbul / Fatih",
-            hicriTarih: prefs?.string(forKey: "widget_hicri_tarih") ?? "Diyanet Namaz Vakitleri",
-            siradakiVakit: prefs?.string(forKey: "widget_siradaki_vakit") ?? "Sıradaki: Akşam",
-            kalanSure: prefs?.string(forKey: "widget_kalan_sure") ?? "01s 24dk",
-            imsak: prefs?.string(forKey: "widget_imsak") ?? "05:48",
-            gunes: prefs?.string(forKey: "widget_gunes") ?? "07:14",
-            ogle: prefs?.string(forKey: "widget_ogle") ?? "12:56",
-            ikindi: prefs?.string(forKey: "widget_ikindi") ?? "15:52",
-            aksam: prefs?.string(forKey: "widget_aksam") ?? "18:24",
-            yatsi: prefs?.string(forKey: "widget_yatsi") ?? "19:44",
-            ayetBaslik: prefs?.string(forKey: "widget_ayet_baslik") ?? "✨ Günün Ayeti",
-            ayetArapca: prefs?.string(forKey: "widget_ayet_arapca") ?? "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ",
-            ayetMeal: prefs?.string(forKey: "widget_ayet_meal") ?? "“Biliniz ki, kalpler ancak Allah’ı anmakla huzur bulur.”",
-            ayetKaynak: prefs?.string(forKey: "widget_ayet_kaynak") ?? "Ra’d Suresi, 28",
-            hadisBaslik: prefs?.string(forKey: "widget_hadis_baslik") ?? "☪ Günün Hadisi",
-            hadisArapca: prefs?.string(forKey: "widget_hadis_arapca") ?? "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ",
-            hadisMeal: prefs?.string(forKey: "widget_hadis_meal") ?? "“Ameller niyetlere göredir.”",
-            hadisKaynak: prefs?.string(forKey: "widget_hadis_kaynak") ?? "Sahih-i Buhârî",
-            zikirArapca: prefs?.string(forKey: "widget_zikir_arapca") ?? "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
-            zikirOkunus: prefs?.string(forKey: "widget_zikir_okunus") ?? "Sübhânallâhi ve bi-hamdihî",
-            zikirAnlam: prefs?.string(forKey: "widget_zikir_anlam") ?? "Allah’ı hamd ile tesbih ederim.",
-            zikirSayac: prefs?.string(forKey: "widget_zikir_sayac") ?? "33 / 100"
+            konum: str("widget_konum", "İstanbul"),
+            hicriTarih: str("widget_hicri_tarih", "Diyanet Namaz Vakitleri"),
+            siradakiVakit: str("widget_siradaki_vakit", oto.siradaki),
+            kalanSure: str("widget_kalan_sure", oto.kalan),
+            imsak: str("widget_imsak", oto.imsak),
+            gunes: str("widget_gunes", oto.gunes),
+            ogle: str("widget_ogle", oto.ogle),
+            ikindi: str("widget_ikindi", oto.ikindi),
+            aksam: str("widget_aksam", oto.aksam),
+            yatsi: str("widget_yatsi", oto.yatsi),
+            ayetBaslik: str("widget_ayet_baslik", "✨ Günün Ayeti"),
+            ayetArapca: str("widget_ayet_arapca", "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ"),
+            ayetMeal: str("widget_ayet_meal", "“Biliniz ki, kalpler ancak Allah’ı anmakla huzur bulur.”"),
+            ayetKaynak: str("widget_ayet_kaynak", "Ra’d Suresi, 28"),
+            hadisBaslik: str("widget_hadis_baslik", "☪ Günün Hadisi"),
+            hadisArapca: str("widget_hadis_arapca", "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ"),
+            hadisMeal: str("widget_hadis_meal", "“Ameller niyetlere göredir.”"),
+            hadisKaynak: str("widget_hadis_kaynak", "Sahih-i Buhârî"),
+            zikirArapca: str("widget_zikir_arapca", "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ"),
+            zikirOkunus: str("widget_zikir_okunus", "Sübhânallâhi ve bi-hamdihî"),
+            zikirAnlam: str("widget_zikir_anlam", "Allah’ı hamd ile tesbih ederim."),
+            zikirSayac: str("widget_zikir_sayac", "33 / 100")
         )
     }
 }

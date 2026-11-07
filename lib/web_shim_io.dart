@@ -3,49 +3,96 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:geolocator/geolocator.dart' as geo;
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Native Android / iOS (dart:io) için Gerçek Ses (AudioPlayers), Gerçek GPS (Geolocator)
-// ve Kalıcı Disk Hafızası (LocalStorage) Katmanı
+// ve Kalıcı Disk Hafızası (SharedPreferences + ApplicationSupportDirectory) Katmanı
 
 class Event {}
 
 class IoLocalStorage {
   final Map<String, String> _cache = {};
   bool _loaded = false;
+  SharedPreferences? _prefs;
+  File? _persistentFile;
 
-  File get _file => File('${Directory.systemTemp.path}/vakti_huzur_local_storage.json');
+  File get _fallbackFile => File('${Directory.systemTemp.path}/vakti_huzur_local_storage.json');
+
+  Future<void> initPersistentStorage() async {
+    try {
+      final dir = await getApplicationSupportDirectory();
+      _persistentFile = File('${dir.path}/vakti_huzur_local_storage.json');
+      if (_persistentFile!.existsSync()) {
+        final raw = _persistentFile!.readAsStringSync();
+        final decoded = jsonDecode(raw) as Map<String, dynamic>;
+        decoded.forEach((k, v) => _cache[k] = v.toString());
+      }
+    } catch (_) {}
+
+    try {
+      _prefs = await SharedPreferences.getInstance();
+      final keys = _prefs!.getKeys();
+      for (final k in keys) {
+        final val = _prefs!.get(k);
+        if (val != null) {
+          if (val is List<String>) {
+            _cache[k] = jsonEncode(val);
+          } else {
+            _cache[k] = val.toString();
+          }
+        }
+      }
+      // Mevcut önbelleği kalıcı dosyaya ve SharedPreferences'a senkronize et
+      _diskeKaydet();
+    } catch (_) {}
+    _loaded = true;
+  }
 
   void _ensureLoaded() {
     if (_loaded) return;
     _loaded = true;
     try {
-      if (_file.existsSync()) {
-        final raw = _file.readAsStringSync();
+      final f = _persistentFile ?? _fallbackFile;
+      if (f.existsSync()) {
+        final raw = f.readAsStringSync();
         final decoded = jsonDecode(raw) as Map<String, dynamic>;
         decoded.forEach((k, v) => _cache[k] = v.toString());
       }
     } catch (_) {}
   }
 
+  void _diskeKaydet() {
+    final jsonStr = jsonEncode(_cache);
+    try {
+      _persistentFile?.writeAsStringSync(jsonStr);
+    } catch (_) {}
+    try {
+      _fallbackFile.writeAsStringSync(jsonStr);
+    } catch (_) {}
+  }
+
   String? getItem(String key) {
     _ensureLoaded();
+    if (_prefs != null && !_cache.containsKey(key)) {
+      final v = _prefs!.getString(key);
+      if (v != null) _cache[key] = v;
+    }
     return _cache[key];
   }
 
   void setItem(String key, String value) {
     _ensureLoaded();
     _cache[key] = value;
-    try {
-      _file.writeAsStringSync(jsonEncode(_cache));
-    } catch (_) {}
+    _prefs?.setString(key, value);
+    _diskeKaydet();
   }
 
   void removeItem(String key) {
     _ensureLoaded();
     _cache.remove(key);
-    try {
-      _file.writeAsStringSync(jsonEncode(_cache));
-    } catch (_) {}
+    _prefs?.remove(key);
+    _diskeKaydet();
   }
 }
 

@@ -18,6 +18,7 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		A1B2C3D41111222200000001 /* adhan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41111222200000002 /* adhan.mp3 */; };
 		A1B2C3D41111222200000003 /* adhan_short.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41111222200000004 /* adhan_short.wav */; };
+		A1B2C3D41111222200000006 /* adhan.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41111222200000007 /* adhan.wav */; };
 		A1B2C3D41111222200000011 /* VaktiHuzurWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41111222200000012 /* VaktiHuzurWidget.swift */; };
 		A1B2C3D41111222200000013 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D41111222200000014 /* WidgetKit.framework */; };
 		A1B2C3D41111222200000015 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1B2C3D41111222200000016 /* SwiftUI.framework */; };
@@ -86,6 +87,7 @@
 		A1B2C3D41111222200000002 /* adhan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = adhan.mp3; sourceTree = "<group>"; };
 		A1B2C3D41111222200000004 /* adhan_short.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = adhan_short.wav; sourceTree = "<group>"; };
 		A1B2C3D41111222200000005 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
+		A1B2C3D41111222200000007 /* adhan.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = adhan.wav; sourceTree = "<group>"; };
 		A1B2C3D41111222200000012 /* VaktiHuzurWidget.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VaktiHuzurWidget.swift; sourceTree = "<group>"; };
 		A1B2C3D41111222200000014 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		A1B2C3D41111222200000016 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
@@ -167,6 +169,7 @@
 				A1B2C3D41111222200000005 /* Runner.entitlements */,
 				A1B2C3D41111222200000002 /* adhan.mp3 */,
 				A1B2C3D41111222200000004 /* adhan_short.wav */,
+				A1B2C3D41111222200000007 /* adhan.wav */,
 				1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */,
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
@@ -225,10 +228,12 @@
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				A1B2C3D41111222200000021 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1B2C3D41111222200000027 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			packageProductDependencies = (
@@ -319,6 +324,7 @@
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
 				A1B2C3D41111222200000001 /* adhan.mp3 in Resources */,
 				A1B2C3D41111222200000003 /* adhan_short.wav in Resources */,
+				A1B2C3D41111222200000006 /* adhan.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

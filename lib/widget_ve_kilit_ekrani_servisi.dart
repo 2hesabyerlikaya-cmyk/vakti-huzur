@@ -231,9 +231,44 @@ class VaktiHuzurWidgetServisi {
     }
 
     try {
+      // Sideloadly (ücretsiz Apple ID) ve App Store ortak uyumluluğu için:
+      // Verileri hem standart localStorage/SharedPreferences içine hem de HomeWidget AppGroup içine kaydet.
+      final siradakiStr = dil == 'EN' ? 'Next: $siradakiVakitAdi' : 'Sıradaki: $siradakiVakitAdi';
+      final Map<String, String> tumWidgetVerileri = {
+        'widget_konum': vakitModel.konumAdi,
+        'widget_hicri_tarih': vakitModel.hicriTarihTr,
+        'widget_siradaki_vakit': siradakiStr,
+        'widget_kalan_sure': kalanSureMetni,
+        'widget_imsak': vakitModel.imsak,
+        'widget_gunes': vakitModel.gunes,
+        'widget_ogle': vakitModel.ogle,
+        'widget_ikindi': vakitModel.ikindi,
+        'widget_aksam': vakitModel.aksam,
+        'widget_yatsi': vakitModel.yatsi,
+        'widget_ayet_baslik': ayet.baslik,
+        'widget_ayet_arapca': ayet.arapca,
+        'widget_ayet_meal': ayet.meal,
+        'widget_ayet_kaynak': ayet.kaynak,
+        'widget_hadis_baslik': hadis.baslik,
+        'widget_hadis_arapca': hadis.arapca,
+        'widget_hadis_meal': hadis.meal,
+        'widget_hadis_kaynak': hadis.kaynak,
+        'widget_zikir_arapca': zikir.arapca,
+        'widget_zikir_okunus': zikir.okunus,
+        'widget_zikir_anlam': zikir.anlam,
+        'widget_zikir_sayac': zikir.sayac,
+      };
+      tumWidgetVerileri.forEach((k, v) {
+        try {
+          web.window.localStorage.setItem(k, v);
+        } catch (_) {}
+      });
+
       if (!_groupConfigured) {
         _groupConfigured = true;
-        await HomeWidget.setAppGroupId('group.com.vaktihuzur.app');
+        try {
+          await HomeWidget.setAppGroupId('group.com.vaktihuzur.app');
+        } catch (_) {}
       }
 
       await Future.wait([

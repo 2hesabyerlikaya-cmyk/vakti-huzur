@@ -15,11 +15,18 @@ import 'widget_ve_kilit_ekrani_servisi.dart';
 import 'quiz_sekmesi.dart';
 import 'reklam_servisi.dart';
 import 'zikirmatik_ve_esmaul_husna.dart';
+import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await (web.window.localStorage as dynamic).initPersistentStorage();
+  } catch (_) {}
+  try {
+    await GunlukQuizServisi.baslat();
+  } catch (_) {}
   try {
     await reklamServisiniBaslat();
     InterstitialReklamYoneticisi.oncedenYukle();

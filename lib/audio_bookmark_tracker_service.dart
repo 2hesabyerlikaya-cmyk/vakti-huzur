@@ -1429,14 +1429,14 @@ class BildirimAyarlariServisi {
   static const String _storageKey = 'nur_huzur_bildirim_ayarlari_v3';
 
   // 3 Farklı Ses Kanalı (Android 8.0+ kanal sesleri oluşturulduktan sonra değiştirilemediği için her ses moduna özel kanal):
-  // 1. Tam Ezan Sesi Kanalı -> android/app/src/main/res/raw/adhan.mp3
-  static const String _kanalTamEzanId = 'vakti_huzur_tam_ezan_sesli_v3';
+  // 1. Tam Ezan Sesi Kanalı -> android/app/src/main/res/raw/adhan.mp3 (Kanal önbelleklemesini aşmak için vakti_huzur_ezan_v2)
+  static const String _kanalTamEzanId = 'vakti_huzur_ezan_v2';
   // 2. Kısa Uyarı Sesi Kanalı -> android/app/src/main/res/raw/adhan_short.wav
-  static const String _kanalKisaUyariId = 'vakti_huzur_kisa_uyari_sesli_v3';
+  static const String _kanalKisaUyariId = 'vakti_huzur_kisa_uyari_v2';
   // 3. Sessiz Bildirim Kanalı -> playSound: false
-  static const String _kanalSessizId = 'vakti_huzur_sessiz_bildirim_v3';
+  static const String _kanalSessizId = 'vakti_huzur_sessiz_v2';
   // 4. Vakit Çıkmadan Önce Hatırlatıcı Kanalı -> adhan_short.wav
-  static const String _kanalCikmadanId = 'vakti_huzur_vakit_cikmadan_v3';
+  static const String _kanalCikmadanId = 'vakti_huzur_vakit_cikmadan_v2';
 
   static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   static bool _baslatildi = false;
@@ -1544,12 +1544,12 @@ class BildirimAyarlariServisi {
       );
     }
 
-    // Varsayılan: 'ezan' -> Tam Ezan Sesi (raw/adhan.mp3 & iOS adhan.mp3)
+    // Varsayılan: 'ezan' -> Tam Ezan Sesi (Android: raw/adhan.mp3 -> 'adhan' & iOS: 28 sn 'adhan.wav')
     return const NotificationDetails(
       android: AndroidNotificationDetails(
         _kanalTamEzanId,
         'Sesli Ezan Okuma (Tam Ezan Bildirimi)',
-        channelDescription: 'Diyanet namaz vakti girdiğinde gerçek ezan sesiyle (adhan.mp3) bildirim gönderir.',
+        channelDescription: 'Diyanet namaz vakti girdiğinde gerçek ezan sesiyle (adhan) bildirim gönderir.',
         importance: Importance.max,
         priority: Priority.max,
         playSound: true,
@@ -1560,9 +1560,11 @@ class BildirimAyarlariServisi {
       ),
       iOS: DarwinNotificationDetails(
         presentAlert: true,
+        presentBanner: true,
+        presentList: true,
         presentBadge: true,
         presentSound: true,
-        sound: 'adhan.mp3',
+        sound: 'adhan.wav',
       ),
     );
   }
@@ -1857,6 +1859,61 @@ class BildirimAyarlariServisi {
         body: icerik,
         notificationDetails: detay,
       );
+      return izinTamam;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 5 saniye sonrasına gerçek ezan sesli (adhan.wav / adhan.mp3) sistem bildirimi zamanlar.
+  /// Kullanıcı ekranı kilitlediğinde veya arka plana aldığında bile iOS/Android native bildirim motoruyla ezan okunur.
+  static Future<bool> besSaniyeSonraEzanBildirimiTestEt({
+    required String konumAdi,
+    required String siradakiVakitAdi,
+    required String siradakiVakitSaat,
+    String dil = 'TR',
+  }) async {
+    if (kIsWeb) return true;
+    try {
+      final izinTamam = await baslatVeIzinIste(alarmIzniDeIste: true);
+      final ezanDetay = _sesModunaGoreDetayOlustur('ezan');
+      final hedefZaman = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5));
+
+      final baslik = dil == 'EN'
+          ? '🔊🕌 $konumAdi • $siradakiVakitAdi Time ($siradakiVakitSaat)'
+          : '🔊🕌 $konumAdi • $siradakiVakitAdi Vakti Girdi ($siradakiVakitSaat)';
+      final icerik = dil == 'EN'
+          ? 'Live Adhan Notification Test (adhan.wav / vakti_huzur_ezan_v2). Hayya alas-salah!'
+          : 'Gerçek Ezan Sesli Bildirim Testi! Hayye ale’s-salâh, Hayye ale’l-felâh!';
+
+      await _plugin.cancel(id: 998);
+      try {
+        await _plugin.zonedSchedule(
+          id: 998,
+          title: baslik,
+          body: icerik,
+          scheduledDate: hedefZaman,
+          notificationDetails: ezanDetay,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        );
+      } catch (_) {
+        await _plugin.zonedSchedule(
+          id: 998,
+          title: baslik,
+          body: icerik,
+          scheduledDate: hedefZaman,
+          notificationDetails: ezanDetay,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        );
+      }
+
+      // Ayrıca 5. saniyede uygulama açıkken de ses güvencesi
+      Future.delayed(const Duration(seconds: 5), () {
+        try {
+          bildirimSesiCalBridge(baslik, icerik, sesModu: 'ezan');
+        } catch (_) {}
+      });
+
       return izinTamam;
     } catch (_) {
       return false;
@@ -2400,7 +2457,7 @@ class BildirimAyarlariServisi {
                       ),
                       const SizedBox(height: 8),
 
-                      // EZAN SESLİ BİLDİRİMİ TEST ET BUTONU
+                      // EZAN SESLİ BİLDİRİMİ 5 SANİYE SONRA TEST ET BUTONU
                       ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: vurguAltin,
@@ -2411,17 +2468,12 @@ class BildirimAyarlariServisi {
                           ),
                         ),
                         onPressed: () async {
-                          final kontrolBaslik = dil == 'EN'
-                              ? '🔊🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi ($siradakiVakitSaat)'
-                              : '🔊🕌 Vakt-i Huzur • $aktifKonum $siradakiVakitAdi Vakti ($siradakiVakitSaat)';
-                          final kontrolIcerik = dil == 'EN'
-                              ? 'Adhan notification sound (${_sesModuEtiketi(ayar.genelSesModu, dil)}) verified!'
-                              : 'Ezan sesli bildirim (${_sesModuEtiketi(ayar.genelSesModu, dil)}) doğrulandı! Hayye ale’s-salâh!';
-
-                          await anindaGercekSistemBildirimiGonder(
-                            baslik: kontrolBaslik,
-                            icerik: kontrolIcerik,
-                            sesModu: ayar.genelSesModu,
+                          HapticFeedback.heavyImpact();
+                          await besSaniyeSonraEzanBildirimiTestEt(
+                            konumAdi: aktifKonum,
+                            siradakiVakitAdi: siradakiVakitAdi,
+                            siradakiVakitSaat: siradakiVakitSaat,
+                            dil: dil,
                           );
                           await gunlukBildirimleriZamanla(
                             vakitModel: kayitliVakit,
@@ -2433,7 +2485,7 @@ class BildirimAyarlariServisi {
                             SnackBar(
                               backgroundColor: kartRengi,
                               behavior: SnackBarBehavior.floating,
-                              duration: const Duration(seconds: 4),
+                              duration: const Duration(seconds: 5),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 side: BorderSide(color: vurguAltin, width: 1.4),
@@ -2441,7 +2493,7 @@ class BildirimAyarlariServisi {
                               content: Row(
                                 children: [
                                   Icon(
-                                    Icons.verified_rounded,
+                                    Icons.volume_up_rounded,
                                     color: vurguAltin,
                                     size: 20,
                                   ),
@@ -2449,8 +2501,8 @@ class BildirimAyarlariServisi {
                                   Expanded(
                                     child: Text(
                                       dil == 'EN'
-                                          ? 'Adhan notification sent & daily prayer alarms scheduled!'
-                                          : 'Sesli Ezan bildirimi gönderildi ve tüm vakitler zamanlandı!',
+                                          ? '⏳ Adhan notification scheduled in 5 seconds! Lock screen or wait to hear the Adhan.'
+                                          : '⏳ 5 saniye sonra gerçek Ezan Sesli Bildirim düşecek! (Ekranı kilitleyebilir veya bekleyebilirsiniz)',
                                       style: TextStyle(
                                         color: yaziRengi,
                                         fontWeight: FontWeight.w600,
@@ -2466,8 +2518,8 @@ class BildirimAyarlariServisi {
                         icon: const Icon(Icons.volume_up_rounded, size: 19),
                         label: Text(
                           dil == 'EN'
-                              ? '🔊 Test Adhan Notification & Schedule Alarms'
-                              : '🔊 Sesli Ezan Bildirimini Test Et ve Kaydet',
+                              ? '🔊 Ezan Bildirimini Şimdi Test Et (5 sn sonra)'
+                              : '🔊 Ezan Bildirimini Şimdi Test Et (5 sn sonra)',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),

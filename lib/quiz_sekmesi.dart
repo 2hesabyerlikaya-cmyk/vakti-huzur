@@ -1,8 +1,10 @@
 import 'reklam_servisi.dart';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 import 'translations_and_logo.dart';
 import 'quiz_soru_havuzu.dart';
@@ -47,20 +49,11 @@ class QuizSoruModel {
   List<String> secenekler(String dil) => dil == 'EN' ? seceneklerEn : dil == 'AR' ? seceneklerAr : seceneklerTr;
   String aciklama(String dil) => dil == 'EN' ? aciklamaEn : aciklamaTr;
 
-  /// Şıkları ve doğru cevabı rastgele karıştırılmış (shuffled) yeni bir QuizSoruModel döndürür.
+  /// Şıkları (A, B, C, D) ve doğru cevabı rastgele karıştırılmış (shuffled) yeni bir QuizSoruModel döndürür.
   QuizSoruModel karistir({int? seed}) {
     final List<int> siraliIndeksler = [0, 1, 2, 3];
-    if (seed != null) {
-      // Deterministik karıştırma (aynı gün aynı sırayla kalsın)
-      for (int i = siraliIndeksler.length - 1; i > 0; i--) {
-        final j = (seed * (i + 1) + id * 7 + i) % (i + 1);
-        final temp = siraliIndeksler[i];
-        siraliIndeksler[i] = siraliIndeksler[j];
-        siraliIndeksler[j] = temp;
-      }
-    } else {
-      siraliIndeksler.shuffle();
-    }
+    final rng = seed != null ? math.Random(seed) : math.Random();
+    siraliIndeksler.shuffle(rng);
 
     final yeniSecTr = siraliIndeksler.map((i) => seceneklerTr[i]).toList();
     final yeniSecEn = siraliIndeksler.map((i) => seceneklerEn[i]).toList();
@@ -410,102 +403,155 @@ const List<QuizSoruModel> kIslamiSoruHavuzu = [
 
 class GunlukQuizServisi {
   static const String _storagePrefix = 'vakti_huzur_quiz_gun_';
-  static const String _cozulenSorularKey = 'vakti_huzur_cozulen_sorular_v2';
+  static const String solvedQuestionIdsKey = 'solved_question_ids';
+  static SharedPreferences? _prefs;
+
+  static Future<void> baslat() async {
+    try {
+      _prefs ??= await SharedPreferences.getInstance();
+      // Eğer SharedPreferences içinde solved_question_ids varsa localStorage önbelleğine de yansıt
+      final spList = _prefs!.getStringList(solvedQuestionIdsKey);
+      if (spList != null && spList.isNotEmpty) {
+        final ids = spList.map((e) => int.tryParse(e)).whereType<int>().toList();
+        web.window.localStorage.setItem(solvedQuestionIdsKey, jsonEncode(ids));
+      }
+    } catch (_) {}
+  }
+
+  static List<int> cozulenSoruIdleriniGetir() {
+    final Set<int> idSet = {};
+    try {
+      final spList = _prefs?.getStringList(solvedQuestionIdsKey);
+      if (spList != null) {
+        for (final s in spList) {
+          final v = int.tryParse(s);
+          if (v != null) idSet.add(v);
+        }
+      }
+    } catch (_) {}
+    try {
+      final raw = web.window.localStorage.getItem(solvedQuestionIdsKey) ??
+          web.window.localStorage.getItem('vakti_huzur_cozulen_sorular_v2');
+      if (raw != null && raw.isNotEmpty) {
+        final list = (jsonDecode(raw) as List).map((e) => (e as num).toInt());
+        idSet.addAll(list);
+      }
+    } catch (_) {}
+    return idSet.toList();
+  }
+
+  static void cozulenSoruIdleriniKaydet(List<int> ids) {
+    final temiz = ids.toSet().toList();
+    try {
+      _prefs?.setStringList(solvedQuestionIdsKey, temiz.map((e) => e.toString()).toList());
+    } catch (_) {}
+    try {
+      web.window.localStorage.setItem(solvedQuestionIdsKey, jsonEncode(temiz));
+    } catch (_) {}
+  }
+
+  static void cozulenSorulariSifirla() {
+    try {
+      _prefs?.remove(solvedQuestionIdsKey);
+    } catch (_) {}
+    try {
+      web.window.localStorage.removeItem(solvedQuestionIdsKey);
+      web.window.localStorage.removeItem('vakti_huzur_cozulen_sorular_v2');
+    } catch (_) {}
+  }
 
   static String bugunKodu() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
   }
 
-  /// 100 soruluk havuzdan 20 gün boyunca tekrarsız 5 soru seçer ve şıkları karıştırır.
-  /// 100 soru tamamlandığında liste sıfırlanıp baştan yeniden karıştırılır.
-  static List<QuizSoruModel> bugununSorulari() {
-    final now = DateTime.now();
+  /// 100 soruluk havuzdan 20 gün boyunca KESİNLİKLE tekrarsız 5 soru seçer ve her sorunun A, B, C, D şıklarını karıştırır.
+  /// 100 soru (20 gün) tamamlandığında `solved_question_ids` havuzu sıfırlanıp yeni 20 günlük döngü başlatılır.
+  static List<QuizSoruModel> bugununSorulari({bool yeniPratikTur = false}) {
     final bugunTarihKodu = bugunKodu();
-    final gunSeed = now.year * 10000 + now.month * 100 + now.day;
-
-    // Eğer bugünün soruları zaten hafızaya kaydedilmişse aynısını getir (şıklar ve sıra değişmesin)
     final bugunCacheKey = 'vakti_huzur_quiz_sorular_$bugunTarihKodu';
-    try {
-      final rawCache = web.window.localStorage.getItem(bugunCacheKey);
-      if (rawCache != null && rawCache.isNotEmpty) {
-        final decodedList = jsonDecode(rawCache) as List<dynamic>;
-        final List<QuizSoruModel> onbellekSorular = [];
-        for (final item in decodedList) {
-          final m = item as Map<String, dynamic>;
-          onbellekSorular.add(QuizSoruModel(
-            id: (m['id'] as num).toInt(),
-            kategoriTr: m['kategoriTr'] ?? '',
-            kategoriEn: m['kategoriEn'] ?? '',
-            kategoriAr: m['kategoriAr'] ?? '',
-            soruTr: m['soruTr'] ?? '',
-            soruEn: m['soruEn'] ?? '',
-            soruAr: m['soruAr'] ?? '',
-            seceneklerTr: (m['seceneklerTr'] as List).cast<String>(),
-            seceneklerEn: (m['seceneklerEn'] as List).cast<String>(),
-            seceneklerAr: (m['seceneklerAr'] as List).cast<String>(),
-            dogruIndex: (m['dogruIndex'] as num).toInt(),
-            aciklamaTr: m['aciklamaTr'] ?? '',
-            aciklamaEn: m['aciklamaEn'] ?? '',
-          ));
-        }
-        if (onbellekSorular.length == 5) return onbellekSorular;
-      }
-    } catch (_) {}
 
-    // 100 soruluk havuzu al
-    final tumHavuz = List<QuizSoruModel>.from(kYuzlukIslamiSoruHavuzu);
-
-    // Çözülmüş soru id'lerini oku
-    List<int> cozulenler = [];
-    try {
-      final rawCozulen = web.window.localStorage.getItem(_cozulenSorularKey);
-      if (rawCozulen != null && rawCozulen.isNotEmpty) {
-        cozulenler = (jsonDecode(rawCozulen) as List).cast<int>();
-      }
-    } catch (_) {}
-
-    // Eğer 100 soru tamamlandıysa veya kalan soru < 5 ise havuzu sıfırla
-    if (cozulenler.length >= tumHavuz.length || (tumHavuz.length - cozulenler.length) < 5) {
-      cozulenler.clear();
+    // Gün içinde tekrar girildiğinde aynı günün 5 sorusunu getir, ancak şıkları (A, B, C, D) her ekrana gelişte taze karıştır!
+    if (!yeniPratikTur) {
       try {
-        web.window.localStorage.removeItem(_cozulenSorularKey);
+        final rawCache = _prefs?.getString(bugunCacheKey) ??
+            web.window.localStorage.getItem(bugunCacheKey);
+        if (rawCache != null && rawCache.isNotEmpty) {
+          final decodedList = jsonDecode(rawCache) as List<dynamic>;
+          final List<QuizSoruModel> onbellekSorular = [];
+          for (final item in decodedList) {
+            final m = item as Map<String, dynamic>;
+            final soruModel = QuizSoruModel(
+              id: (m['id'] as num).toInt(),
+              kategoriTr: m['kategoriTr'] ?? '',
+              kategoriEn: m['kategoriEn'] ?? '',
+              kategoriAr: m['kategoriAr'] ?? '',
+              soruTr: m['soruTr'] ?? '',
+              soruEn: m['soruEn'] ?? '',
+              soruAr: m['soruAr'] ?? '',
+              seceneklerTr: (m['seceneklerTr'] as List).cast<String>(),
+              seceneklerEn: (m['seceneklerEn'] as List).cast<String>(),
+              seceneklerAr: (m['seceneklerAr'] as List).cast<String>(),
+              dogruIndex: (m['dogruIndex'] as num).toInt(),
+              aciklamaTr: m['aciklamaTr'] ?? '',
+              aciklamaEn: m['aciklamaEn'] ?? '',
+            );
+            // Her ekrana gelirken A, B, C, D şıklarının yerini (shuffle) karıştır
+            onbellekSorular.add(soruModel.karistir());
+          }
+          if (onbellekSorular.length == 5) return onbellekSorular;
+        }
       } catch (_) {}
     }
 
-    // Henüz çözülmemiş soruları ayıkla
-    final cozulecekAdaylar = tumHavuz.where((s) => !cozulenler.contains(s.id)).toList();
+    // 100 soruluk özgün havuzu al
+    final tumHavuz = List<QuizSoruModel>.from(kYuzlukIslamiSoruHavuzu);
 
-    // Seçilen 5 soru
+    // Çözülmüş soru ID'lerini SharedPreferences ('solved_question_ids') üzerinden oku
+    List<int> cozulenler = cozulenSoruIdleriniGetir();
+
+    // 100 sorunun tamamı (20 gün x 5 soru) bittiyse havuzu sıfırla
+    if (cozulenler.length >= tumHavuz.length || (tumHavuz.length - cozulenler.length) < 5) {
+      cozulenler.clear();
+      cozulenSorulariSifirla();
+    }
+
+    // Daha önce çözülmemiş soruları filtrele ve rastgele karıştır
+    final cozulecekAdaylar = tumHavuz.where((s) => !cozulenler.contains(s.id)).toList();
+    cozulecekAdaylar.shuffle(math.Random());
+
+    // 5 yeni soru seç ve her birinin A, B, C, D şıklarını rastgele karıştır (shuffle)
     final List<QuizSoruModel> secilenler = [];
     for (int i = 0; i < 5 && i < cozulecekAdaylar.length; i++) {
       final hamSoru = cozulecekAdaylar[i];
-      // Şıkları dinamik karıştır (seed ile gün boyu tutarlı kalsın)
-      final karisikSoru = hamSoru.karistir(seed: gunSeed + i * 13);
+      final karisikSoru = hamSoru.karistir();
       secilenler.add(karisikSoru);
       cozulenler.add(hamSoru.id);
     }
 
-    // Yeni çözülenler listesini kalıcı kaydet
+    // Güncel solved_question_ids listesini SharedPreferences içine kaydet
+    cozulenSoruIdleriniKaydet(cozulenler);
+
     try {
-      web.window.localStorage.setItem(_cozulenSorularKey, jsonEncode(cozulenler));
-      // Bugünün karıştırılmış sorularını da kaydet ki gün boyu sabit kalsın
-      final serbestJson = secilenler.map((s) => {
-        'id': s.id,
-        'kategoriTr': s.kategoriTr,
-        'kategoriEn': s.kategoriEn,
-        'kategoriAr': s.kategoriAr,
-        'soruTr': s.soruTr,
-        'soruEn': s.soruEn,
-        'soruAr': s.soruAr,
-        'seceneklerTr': s.seceneklerTr,
-        'seceneklerEn': s.seceneklerEn,
-        'seceneklerAr': s.seceneklerAr,
-        'dogruIndex': s.dogruIndex,
-        'aciklamaTr': s.aciklamaTr,
-        'aciklamaEn': s.aciklamaEn,
-      }).toList();
-      web.window.localStorage.setItem(bugunCacheKey, jsonEncode(serbestJson));
+      final serbestJson = jsonEncode(secilenler
+          .map((s) => {
+                'id': s.id,
+                'kategoriTr': s.kategoriTr,
+                'kategoriEn': s.kategoriEn,
+                'kategoriAr': s.kategoriAr,
+                'soruTr': s.soruTr,
+                'soruEn': s.soruEn,
+                'soruAr': s.soruAr,
+                'seceneklerTr': s.seceneklerTr,
+                'seceneklerEn': s.seceneklerEn,
+                'seceneklerAr': s.seceneklerAr,
+                'dogruIndex': s.dogruIndex,
+                'aciklamaTr': s.aciklamaTr,
+                'aciklamaEn': s.aciklamaEn,
+              })
+          .toList());
+      _prefs?.setString(bugunCacheKey, serbestJson);
+      web.window.localStorage.setItem(bugunCacheKey, serbestJson);
     } catch (_) {}
 
     return secilenler;
@@ -513,8 +559,9 @@ class GunlukQuizServisi {
 
   /// Bugünün quiz tamamlanma durumunu okur
   static Map<String, dynamic>? bugununDurumunuYukle() {
+    final key = '$_storagePrefix${bugunKodu()}';
     try {
-      final raw = web.window.localStorage.getItem('$_storagePrefix${bugunKodu()}');
+      final raw = _prefs?.getString(key) ?? web.window.localStorage.getItem(key);
       if (raw != null && raw.isNotEmpty) {
         return jsonDecode(raw) as Map<String, dynamic>;
       }
@@ -527,6 +574,7 @@ class GunlukQuizServisi {
     required int dogruSayisi,
     required List<int?> secilenCevaplar,
   }) {
+    final key = '$_storagePrefix${bugunKodu()}';
     try {
       final veri = jsonEncode({
         'tamamlandi': true,
@@ -534,7 +582,8 @@ class GunlukQuizServisi {
         'tarih': bugunKodu(),
         'cevaplar': secilenCevaplar,
       });
-      web.window.localStorage.setItem('$_storagePrefix${bugunKodu()}', veri);
+      _prefs?.setString(key, veri);
+      web.window.localStorage.setItem(key, veri);
     } catch (_) {}
   }
 }
@@ -650,6 +699,7 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
 
   void _pratikYenidenBaslat() {
     setState(() {
+      _sorular = GunlukQuizServisi.bugununSorulari(yeniPratikTur: true);
       _tamamlandi = false;
       _aktifSoruIndex = 0;
       _cevapVerildi = false;

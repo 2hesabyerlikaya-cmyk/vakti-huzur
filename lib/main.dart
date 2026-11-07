@@ -139,7 +139,7 @@ class IslamiUygulamaApp extends StatefulWidget {
 class _IslamiUygulamaAppState extends State<IslamiUygulamaApp> {
   late final ValueNotifier<int> _temaNotifier;
   final ValueNotifier<double> _yaziBoyutuNotifier = ValueNotifier<double>(1.0);
-  final ValueNotifier<String> _dilNotifier = ValueNotifier<String>('TR');
+  late final ValueNotifier<String> _dilNotifier;
 
   @override
   void initState() {
@@ -149,15 +149,36 @@ class _IslamiUygulamaAppState extends State<IslamiUygulamaApp> {
         KaliciTemaHafizaServisi.kayitliTemaIndeksiniYukle(maxTemaSayisi: kTemalar.length);
     _temaNotifier = ValueNotifier<int>(kayitliTemaIdx);
     _temaNotifier.addListener(_temaDegistigindeKaydet);
+
+    // Kayıtlı dili veya telefonun sistem dilini (TR / EN / DE / FR / AR) otomatik algıla
+    final baslangicDili = Ceviri.baslangicDiliniBelirle();
+    _dilNotifier = ValueNotifier<String>(baslangicDili);
+    _dilNotifier.addListener(_dilDegistigindeKaydet);
   }
 
   void _temaDegistigindeKaydet() {
     KaliciTemaHafizaServisi.temaIndeksiniKaydet(_temaNotifier.value);
   }
 
+  void _dilDegistigindeKaydet() {
+    final yeniDil = _dilNotifier.value;
+    Ceviri.diliKaydet(yeniDil);
+    BildirimAyarlariServisi.gunlukBildirimleriZamanla(dil: yeniDil);
+    final sonVakit = NamazVeKonumServisi.hafizadakiSonVakitleriGetir();
+    if (sonVakit != null) {
+      VaktiHuzurWidgetServisi.widgetVerileriniSenkronizeEt(
+        vakitModel: sonVakit,
+        siradakiVakitAdi: Ceviri.m(yeniDil, 'aksam'),
+        kalanSureMetni: '01s 00dk',
+        dil: yeniDil,
+      );
+    }
+  }
+
   @override
   void dispose() {
     _temaNotifier.removeListener(_temaDegistigindeKaydet);
+    _dilNotifier.removeListener(_dilDegistigindeKaydet);
     _temaNotifier.dispose();
     _yaziBoyutuNotifier.dispose();
     _dilNotifier.dispose();
@@ -365,7 +386,7 @@ class _VaktiHuzurAcilisKapisiState extends State<VaktiHuzurAcilisKapisi>
                                 ),
                                 const SizedBox(height: 24),
                                 const Text(
-                                  'Vakt-i Huzur',
+                                  'Vakt-i Beraat',
                                   style: TextStyle(
                                     fontFamily: 'Lora',
                                     fontSize: 30,
@@ -1056,7 +1077,7 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
 
-                        // 3. AKTİF 3 DİL SEÇİMİ (TR / EN / AR)
+                        // 3. AKTİF DİL SEÇİMİ (TR / EN / DE / FR / AR)
                         Text(
                           Ceviri.m(seciliDil, 'drawer_lang_title'),
                           style: TextStyle(
@@ -1067,36 +1088,33 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
                           children: [
                             for (final d in [
-                              {'kod': 'TR', 'ad': 'Türkçe'},
-                              {'kod': 'EN', 'ad': 'English'},
-                              {'kod': 'AR', 'ad': 'العربية'},
+                              {'kod': 'TR', 'ad': '🇹🇷 Türkçe'},
+                              {'kod': 'EN', 'ad': '🇬🇧 English'},
+                              {'kod': 'DE', 'ad': '🇩🇪 Deutsch'},
+                              {'kod': 'FR', 'ad': '🇫🇷 Français'},
+                              {'kod': 'AR', 'ad': '🇸🇦 العربية'},
                             ])
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                                  child: ChoiceChip(
-                                    label: Center(
-                                      child: Text(
-                                        d['ad']!,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: seciliDil == d['kod']
-                                              ? tema.arkaPlan
-                                              : tema.yaziRengi,
-                                        ),
-                                      ),
-                                    ),
-                                    selected: seciliDil == d['kod'],
-                                    selectedColor: tema.vurguAltin,
-                                    backgroundColor: tema.kartRengi,
-                                    showCheckmark: false,
-                                    onSelected: (_) => dilNotifier.value = d['kod']!,
+                              ChoiceChip(
+                                label: Text(
+                                  d['ad']!,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: seciliDil == d['kod']
+                                        ? tema.arkaPlan
+                                        : tema.yaziRengi,
                                   ),
                                 ),
+                                selected: seciliDil == d['kod'],
+                                selectedColor: tema.vurguAltin,
+                                backgroundColor: tema.kartRengi,
+                                showCheckmark: false,
+                                onSelected: (_) => dilNotifier.value = d['kod']!,
                               ),
                           ],
                         ),
@@ -1107,11 +1125,14 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: Icon(Icons.touch_app_rounded, color: tema.vurguAltin),
                           title: Text(
-                            seciliDil == 'EN'
-                                ? 'Digital Tasbih & Dhikr Counter'
-                                : seciliDil == 'AR'
-                                    ? 'المسبحة الإلكترونية والأذكار'
-                                    : 'Dijital Zikirmatik & Tesbihat',
+                            Ceviri.sec(
+                              seciliDil,
+                              tr: 'Dijital Zikirmatik & Tesbihat',
+                              en: 'Digital Tasbih & Dhikr Counter',
+                              de: 'Digitaler Tasbih & Dhikr-Zähler',
+                              fr: 'Tasbih Numérique & Compteur de Dhikr',
+                              ar: 'المسبحة الإلكترونية والأذكار',
+                            ),
                             style: TextStyle(
                               color: tema.yaziRengi,
                               fontWeight: FontWeight.w600,
@@ -1141,11 +1162,14 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: Icon(Icons.auto_awesome_rounded, color: tema.vurguAltin),
                           title: Text(
-                            seciliDil == 'EN'
-                                ? '99 Names of Allah (Asma-ul Husna)'
-                                : seciliDil == 'AR'
-                                    ? 'أسماء الله الحسنى (٩٩)'
-                                    : '99 Esmaü’l Hüsna',
+                            Ceviri.sec(
+                              seciliDil,
+                              tr: '99 Esmaü’l Hüsna',
+                              en: '99 Names of Allah (Asma-ul Husna)',
+                              de: '99 Namen Allahs (Asma-ul Husna)',
+                              fr: '99 Noms d’Allah (Asma-ul Husna)',
+                              ar: 'أسماء الله الحسنى (٩٩)',
+                            ),
                             style: TextStyle(
                               color: tema.yaziRengi,
                               fontWeight: FontWeight.w600,
@@ -1192,11 +1216,14 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: Icon(Icons.notifications_active_outlined, color: tema.vurguAltin),
                           title: Text(
-                            seciliDil == 'EN'
-                                ? 'Notification Settings'
-                                : seciliDil == 'AR'
-                                    ? 'إعدادات التنبيهات'
-                                    : 'Bildirim Ayarları',
+                            Ceviri.sec(
+                              seciliDil,
+                              tr: 'Bildirim Ayarları',
+                              en: 'Notification Settings',
+                              de: 'Benachrichtigungseinstellungen',
+                              fr: 'Paramètres de Notification',
+                              ar: 'إعدادات التنبيهات',
+                            ),
                             style: TextStyle(
                               color: tema.yaziRengi,
                               fontWeight: FontWeight.w600,
@@ -1222,11 +1249,14 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: Icon(Icons.widgets_rounded, color: tema.vurguAltin),
                           title: Text(
-                            seciliDil == 'EN'
-                                ? 'Lock Screen & Home Widgets'
-                                : seciliDil == 'AR'
-                                    ? 'إعدادات الويدجت وشاشة القفل'
-                                    : 'Kilit Ekranı & Widget Ayarları',
+                            Ceviri.sec(
+                              seciliDil,
+                              tr: 'Kilit Ekranı & Widget Ayarları',
+                              en: 'Lock Screen & Home Widgets',
+                              de: 'Sperrbildschirm- & Start-Widgets',
+                              fr: 'Widgets d’Écran Verrouillé & d’Accueil',
+                              ar: 'إعدادات الويدجت وشاشة القفل',
+                            ),
                             style: TextStyle(
                               color: tema.yaziRengi,
                               fontWeight: FontWeight.w600,
@@ -1252,11 +1282,14 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: Icon(Icons.record_voice_over_rounded, color: tema.vurguAltin),
                           title: Text(
-                            seciliDil == 'EN'
-                                ? 'Quran Reciter Selection'
-                                : seciliDil == 'AR'
-                                    ? 'اختيار القارئ'
-                                    : 'Kuran Tilaveti Hafız Seçimi',
+                            Ceviri.sec(
+                              seciliDil,
+                              tr: 'Kuran Tilaveti Hafız Seçimi',
+                              en: 'Quran Reciter Selection',
+                              de: 'Koran-Rezitator auswählen',
+                              fr: 'Sélection du Récitateur du Coran',
+                              ar: 'اختيار القارئ',
+                            ),
                             style: TextStyle(
                               color: tema.yaziRengi,
                               fontWeight: FontWeight.w600,
@@ -1280,11 +1313,14 @@ class _SolUstAyarlarDrawer extends StatelessWidget {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6),
                           leading: const Icon(Icons.workspace_premium_rounded, color: Color(0xFFD4AF37)),
                           title: Text(
-                            seciliDil == 'EN'
-                                ? 'Ad-Free Package & Support'
-                                : seciliDil == 'AR'
-                                    ? 'الباقة الخالية من الإعلانات ودعم التطبيق'
-                                    : 'Reklamsız Paket & Destek Ol',
+                            Ceviri.sec(
+                              seciliDil,
+                              tr: 'Reklamsız Paket & Destek Ol',
+                              en: 'Ad-Free Package & Support',
+                              de: 'Werbefreies Paket & Unterstützen',
+                              fr: 'Forfait Sans Publicité & Soutenir',
+                              ar: 'الباقة الخالية من الإعلانات ودعم التطبيق',
+                            ),
                             style: TextStyle(
                               color: tema.yaziRengi,
                               fontWeight: FontWeight.w600,
@@ -1527,9 +1563,13 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
           ],
         ),
         content: Text(
-          widget.dil == 'EN'
-              ? 'Thank you for supporting Vakt-i Huzur! May Allah bless your good deeds and grant peace to your life.'
-              : 'Vakt-i Huzur uygulamamızın gelişimine verdiğiniz destek ve dualarınız için teşekkür ederiz. Rabbimiz hayırlarınızı kat kat kabul eylesin.',
+          Ceviri.sec(
+            widget.dil,
+            tr: 'Vakt-i Beraat uygulamamızın gelişimine verdiğiniz destek ve dualarınız için teşekkür ederiz. Rabbimiz hayırlarınızı kat kat kabul eylesin.',
+            en: 'Thank you for supporting Vakt-i Beraat! May Allah bless your good deeds and grant peace to your life.',
+            de: 'Vielen Dank für Ihre Unterstützung von Vakt-i Beraat! Möge Allah Ihre guten Taten reichlich belohnen.',
+            fr: 'Merci de soutenir Vakt-i Beraat ! Qu’Allah bénisse vos bonnes œuvres et vous accorde la sérénité.',
+          ),
           style: TextStyle(color: widget.tema.yaziRengi.withValues(alpha: 0.9), fontSize: 13, height: 1.45),
         ),
         actions: [
@@ -1576,9 +1616,13 @@ class _PremiumVeDestekIcerikState extends State<_PremiumVeDestekIcerik> {
           ],
         ),
         content: Text(
-          widget.dil == 'EN'
-              ? 'Thank you for supporting Vakt-i Huzur! May Allah bless your good deeds and grant peace to your life.'
-              : 'Vakt-i Huzur uygulamamıza ve manevi hizmetlerimize verdiğiniz destek ve dualarınız için teşekkür ederiz. Rabbimiz hayırlarınızı kat kat kabul eylesin.',
+          Ceviri.sec(
+            widget.dil,
+            tr: 'Vakt-i Beraat uygulamamıza ve manevi hizmetlerimize verdiğiniz destek ve dualarınız için teşekkür ederiz. Rabbimiz hayırlarınızı kat kat kabul eylesin.',
+            en: 'Thank you for supporting Vakt-i Beraat! May Allah bless your good deeds and grant peace to your life.',
+            de: 'Vielen Dank für Ihre Unterstützung von Vakt-i Beraat! Möge Allah Ihre guten Taten reichlich belohnen.',
+            fr: 'Merci de soutenir Vakt-i Beraat ! Qu’Allah bénisse vos bonnes œuvres et vous accorde la sérénité.',
+          ),
           style: TextStyle(color: widget.tema.yaziRengi.withValues(alpha: 0.9), fontSize: 13, height: 1.45),
         ),
         actions: [
@@ -2671,6 +2715,14 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
     });
   }
 
+  @override
+  void didUpdateWidget(covariant AnaSayfaSekmesi oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dil != widget.dil) {
+      _widgetOtomatikSenkronizeEt();
+    }
+  }
+
   Future<void> _sehirVakitleriniYukle(String sehirSorgu) async {
     setState(() => _konumYukleniyor = true);
     final yeniModel = await NamazVeKonumServisi.sehirAramasiIleVakitleriGetir(sehirSorgu);
@@ -2938,21 +2990,30 @@ class _AnaSayfaSekmesiState extends State<AnaSayfaSekmesi> {
                     valueListenable: KuranAyracServisi.ayracNotifier,
                     builder: (context, ayrac, _) {
                       final sure = ayrac.sureMeta;
-                      final sureBaslik = dil == 'EN'
-                          ? 'Surah ${sure.adEn}, Verse ${ayrac.ayetNo}'
-                          : dil == 'AR'
-                              ? 'سورة ${sure.arapca}، الآية ${ayrac.ayetNo}'
-                              : '${sure.adTr} Suresi, ${ayrac.ayetNo}. Ayet';
-                      final ustEtiket = dil == 'EN'
-                          ? 'CONTINUE READING QUR’AN (BOOKMARK)'
-                          : dil == 'AR'
-                              ? 'متابعة القراءة من الفاصلة المرجعية'
-                              : 'SON OKUDUĞUN YERE DÖN (KUR’AN AYRACI)';
-                      final devamMetni = dil == 'EN'
-                          ? 'Continue →'
-                          : dil == 'AR'
-                              ? 'متابعة ←'
-                              : 'Devam Et →';
+                      final sureBaslik = Ceviri.sec(
+                        dil,
+                        tr: '${sure.adTr} Suresi, ${ayrac.ayetNo}. Ayet',
+                        en: 'Surah ${sure.adEn}, Verse ${ayrac.ayetNo}',
+                        de: 'Sure ${sure.adEn}, Vers ${ayrac.ayetNo}',
+                        fr: 'Sourate ${sure.adEn}, Verset ${ayrac.ayetNo}',
+                        ar: 'سورة ${sure.arapca}، الآية ${ayrac.ayetNo}',
+                      );
+                      final ustEtiket = Ceviri.sec(
+                        dil,
+                        tr: 'SON OKUDUĞUN YERE DÖN (KUR’AN AYRACI)',
+                        en: 'CONTINUE READING QUR’AN (BOOKMARK)',
+                        de: 'WEITERLESEN IM KORAN (LESEZEICHEN)',
+                        fr: 'REPRENDRE LA LECTURE DU CORAN (MARQUE-PAGE)',
+                        ar: 'متابعة القراءة من الفاصلة المرجعية',
+                      );
+                      final devamMetni = Ceviri.sec(
+                        dil,
+                        tr: 'Devam Et →',
+                        en: 'Continue →',
+                        de: 'Weiter →',
+                        fr: 'Continuer →',
+                        ar: 'متابعة ←',
+                      );
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 16),
@@ -4826,7 +4887,14 @@ class _KutuphaneSekmesiState extends State<KutuphaneSekmesi> {
                 },
                 icon: const Icon(Icons.touch_app_rounded, size: 16),
                 label: Text(
-                  dil == 'EN' ? 'Tasbih' : dil == 'AR' ? 'المسبحة' : 'Zikirmatik',
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Zikirmatik',
+                    en: 'Tasbih',
+                    de: 'Tasbih',
+                    fr: 'Tasbih',
+                    ar: 'المسبحة',
+                  ),
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -4841,18 +4909,24 @@ class _KutuphaneSekmesiState extends State<KutuphaneSekmesi> {
             tabs: [
               Tab(text: '${Ceviri.m(dil, 'tab_quran')} (114)'),
               Tab(
-                text: dil == 'EN'
-                    ? '99 Names of Allah'
-                    : dil == 'AR'
-                        ? 'أسماء الله (٩٩)'
-                        : '99 Esmaü’l Hüsna',
+                text: Ceviri.sec(
+                  dil,
+                  tr: '99 Esmaü’l Hüsna',
+                  en: '99 Names of Allah',
+                  de: '99 Namen Allahs',
+                  fr: '99 Noms d’Allah',
+                  ar: 'أسماء الله (٩٩)',
+                ),
               ),
               Tab(
-                text: dil == 'EN'
-                    ? 'Duas & Rabbana'
-                    : dil == 'AR'
-                        ? 'الأدعية وربنا'
-                        : 'Dualar & Rabbena',
+                text: Ceviri.sec(
+                  dil,
+                  tr: 'Dualar & Rabbena',
+                  en: 'Duas & Rabbana',
+                  de: 'Bittgebete & Rabbana',
+                  fr: 'Douas & Rabbana',
+                  ar: 'الأدعية وربنا',
+                ),
               ),
               Tab(text: '${Ceviri.m(dil, 'tab_hadith')} (${kSahihHadisHavuzu.length})'),
             ],
@@ -4922,12 +4996,8 @@ class _KutuphaneSekmesiState extends State<KutuphaneSekmesi> {
                         itemCount: filtrelenmisSureler.length,
                         itemBuilder: (context, idx) {
                           final sure = filtrelenmisSureler[idx];
-                          final sureAdi = dil == 'EN'
-                              ? 'Surah ${sure.adEn}'
-                              : dil == 'AR'
-                                  ? 'سورة ${sure.arapca}'
-                                  : '${sure.adTr} Suresi';
-                          final sureAnlami = dil == 'EN' ? sure.anlamEn : sure.anlamTr;
+                          final sureAdi = sure.baslik(dil);
+                          final sureAnlami = sure.anlam(dil);
 
                           return Card(
                             margin: const EdgeInsets.only(bottom: 9),
@@ -4965,7 +5035,7 @@ class _KutuphaneSekmesiState extends State<KutuphaneSekmesi> {
                                 style: TextStyle(fontWeight: FontWeight.bold, color: tema.yaziRengi),
                               ),
                               subtitle: Text(
-                                '$sureAnlami • ${sure.yer} • ${sure.ayetSayisi} ${Ceviri.m(dil, 'verse_unit')}',
+                                '$sureAnlami • ${sure.yerEtiketi(dil)} • ${sure.ayetSayisi} ${Ceviri.m(dil, 'verse_unit')}',
                                 style: TextStyle(fontSize: 12, color: tema.ikincilYazi),
                               ),
                               trailing: Text(
@@ -5013,9 +5083,10 @@ class _KutuphaneSekmesiState extends State<KutuphaneSekmesi> {
                   itemCount: kSahihHadisHavuzu.length,
                   itemBuilder: (context, idx) {
                     final h = kSahihHadisHavuzu[idx];
-                    final konu = dil == 'EN' ? h['konuEn']! : h['konuTr']!;
-                    final meal = dil == 'EN' ? h['mealEn']! : h['mealTr']!;
-                    final tefsir = dil == 'EN' ? h['tefsirEn']! : h['tefsirTr']!;
+                    final konu = hadisKonuGetir(idx, dil);
+                    final meal = hadisMealGetir(idx, dil);
+                    final tefsir = hadisTefsirGetir(idx, dil);
+                    final dogrulanmis = hadisDogrulanmisGetir(idx, dil);
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -5072,7 +5143,7 @@ class _KutuphaneSekmesiState extends State<KutuphaneSekmesi> {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    h['dogrulanmis']!,
+                                    dogrulanmis,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: tema.vurguAltin,
@@ -5153,11 +5224,14 @@ class _SureDetayOkumaEkraniState extends State<SureDetayOkumaEkrani> {
     );
     setState(() => _vurgulananAyetNo = ayetNo);
     final dil = widget.dil;
-    final mesaj = dil == 'EN'
-        ? '🔖 Bookmark saved: Surah ${widget.sureMeta.adEn}, Verse $ayetNo'
-        : dil == 'AR'
-            ? '🔖 تم حفظ الفاصلة: سورة ${widget.sureMeta.arapca}، الآية $ayetNo'
-            : '🔖 Kur’an ayracı kaydedildi: ${widget.sureMeta.adTr} Suresi, $ayetNo. Ayet (Ana Sayfadan devam edebilirsiniz)';
+    final mesaj = Ceviri.sec(
+      dil,
+      tr: '🔖 Kur’an ayracı kaydedildi: ${widget.sureMeta.adTr} Suresi, $ayetNo. Ayet (Ana Sayfadan devam edebilirsiniz)',
+      en: '🔖 Bookmark saved: Surah ${widget.sureMeta.adEn}, Verse $ayetNo',
+      de: '🔖 Lesezeichen gespeichert: Sure ${widget.sureMeta.adEn}, Vers $ayetNo',
+      fr: '🔖 Marque-page enregistré : Sourate ${widget.sureMeta.adEn}, Verset $ayetNo',
+      ar: '🔖 تم حفظ الفاصلة: سورة ${widget.sureMeta.arapca}، الآية $ayetNo',
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: widget.tema.kartRengi,
@@ -5188,11 +5262,7 @@ class _SureDetayOkumaEkraniState extends State<SureDetayOkumaEkrani> {
     final tema = widget.tema;
     final sure = widget.sureMeta;
     final dil = widget.dil;
-    final baslik = dil == 'EN'
-        ? 'Surah ${sure.adEn}'
-        : dil == 'AR'
-            ? 'سورة ${sure.arapca}'
-            : '${sure.adTr} Suresi';
+    final baslik = sure.baslik(dil);
 
     return Scaffold(
       appBar: AppBar(
@@ -5202,11 +5272,14 @@ class _SureDetayOkumaEkraniState extends State<SureDetayOkumaEkrani> {
         ),
         actions: [
           IconButton(
-            tooltip: dil == 'EN'
-                ? 'Bookmark this Surah'
-                : dil == 'AR'
-                    ? 'حفظ علامة مرجعية'
-                    : 'Bu Sureye Ayraç Koy',
+            tooltip: Ceviri.sec(
+              dil,
+              tr: 'Bu Sureye Ayraç Koy',
+              en: 'Bookmark this Surah',
+              de: 'Lesezeichen für diese Sure',
+              fr: 'Mettre un marque-page sur cette sourate',
+              ar: 'حفظ علامة مرجعية',
+            ),
             onPressed: () => _ayracKaydetBildir(_vurgulananAyetNo ?? 1),
             icon: Icon(Icons.bookmark_add_rounded, color: tema.vurguAltin),
           ),
@@ -5629,7 +5702,7 @@ class _SureDetayOkumaEkraniState extends State<SureDetayOkumaEkrani> {
                   itemCount: ayetler.length,
                   itemBuilder: (context, i) {
                     final ayet = ayetler[i];
-                    final meal = dil == 'EN' ? ayet.mealEn : ayet.mealTr;
+                    final meal = ayet.mealGetir(dil);
                     final buAyetOkunuyor = aktifGlobalNo == ayet.globalAyetNo;
                     final buAyetAyracli =
                         kayitliAyrac.sureNo == sure.no && kayitliAyrac.ayetNo == ayet.ayetNo;
@@ -5780,9 +5853,13 @@ class _SureDetayOkumaEkraniState extends State<SureDetayOkumaEkrani> {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  dil == 'EN'
-                                      ? 'Verified Source: Presidency of Religious Affairs & Sahih Int. • ${sure.adEn} ${sure.no}:${ayet.ayetNo}'
-                                      : 'Doğrulanmış Kaynak: T.C. Diyanet İşleri Başkanlığı Kur’an-ı Kerim Meali • ${sure.adTr} ${sure.no}/${ayet.ayetNo}',
+                                  Ceviri.sec(
+                                    dil,
+                                    tr: 'Doğrulanmış Kaynak: T.C. Diyanet İşleri Başkanlığı Kur’an-ı Kerim Meali • ${sure.adTr} ${sure.no}/${ayet.ayetNo}',
+                                    en: 'Verified Source: Presidency of Religious Affairs & Sahih Int. • ${sure.adEn} ${sure.no}:${ayet.ayetNo}',
+                                    de: 'Geprüfte Quelle: Koranübersetzung Bubenheim & Elyas • Sure ${sure.adEn} ${sure.no}:${ayet.ayetNo}',
+                                    fr: 'Source vérifiée : Traduction du Coran Muhammad Hamidullah • Sourate ${sure.adEn} ${sure.no}:${ayet.ayetNo}',
+                                  ),
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: tema.vurguAltin,

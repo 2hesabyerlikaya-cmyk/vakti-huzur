@@ -22,7 +22,7 @@ class DuaModel {
   final String anlamEn;
   final String kaynakTr;
   final String kaynakEn;
-  final int? globalAyetNo; // Kur'an ayeti ise Mişari Raşid el-Afasi MP3 tilaveti için
+  final int? globalAyetNo; // Kur'an ayeti ise MP3 tilaveti için
 
   const DuaModel({
     required this.id,
@@ -38,7 +38,606 @@ class DuaModel {
     required this.kaynakEn,
     this.globalAyetNo,
   });
+
+  String kategori(String dil) => kDuaKategoriEtiket(kategoriTr, dil);
+
+  String baslik(String dil) {
+    if (dil == 'DE') return _kDuaCeviriDe[id]?['baslik'] ?? baslikEn;
+    if (dil == 'FR') return _kDuaCeviriFr[id]?['baslik'] ?? baslikEn;
+    if (dil == 'EN' || dil == 'AR') return baslikEn;
+    return baslikTr;
+  }
+
+  String anlam(String dil) {
+    if (dil == 'DE') return _kDuaCeviriDe[id]?['anlam'] ?? anlamEn;
+    if (dil == 'FR') return _kDuaCeviriFr[id]?['anlam'] ?? anlamEn;
+    if (dil == 'EN') return anlamEn;
+    if (dil == 'AR') return arapca;
+    return anlamTr;
+  }
+
+  String kaynak(String dil) {
+    if (dil == 'DE') {
+      return _kDuaCeviriDe[id]?['kaynak'] ??
+          kaynakEn
+              .replaceAll('The Holy Qur’an', 'Der Edle Koran')
+              .replaceAll('Surah', 'Sure')
+              .replaceAll('Hadith', 'Hadith Nr.');
+    }
+    if (dil == 'FR') {
+      return _kDuaCeviriFr[id]?['kaynak'] ??
+          kaynakEn
+              .replaceAll('The Holy Qur’an', 'Le Saint Coran')
+              .replaceAll('Surah', 'Sourate')
+              .replaceAll('Hadith', 'Hadith n°');
+    }
+    if (dil == 'EN' || dil == 'AR') return kaynakEn;
+    return kaynakTr;
+  }
 }
+
+String kDuaKategoriEtiket(String katTr, String dil) {
+  if (dil == 'TR') return katTr;
+  const mapEn = {
+    'Tümü': 'All',
+    'Rabbena Duaları': 'Rabbana Duas',
+    'Sabah & Akşam': 'Morning & Evening',
+    'Şifa & Afiyet': 'Healing & Well-Being',
+    'Rızık & Bereket': 'Provision & Barakah',
+    'Nazar & Korunma': 'Protection & Evil Eye',
+    'Namaz Tesbihatı': 'Post-Prayer Tasbihat',
+    'Huzur & İnşirah': 'Peace & Relief',
+    'Sınav & İş Kolaylığı': 'Exam & Ease',
+    'İstiğfar & Tövbe': 'Repentance & Istighfar',
+  };
+  const mapDe = {
+    'Tümü': 'Alle',
+    'Rabbena Duaları': 'Rabbana-Bittgebete',
+    'Sabah & Akşam': 'Morgen & Abend',
+    'Şifa & Afiyet': 'Heilung & Gesundheit',
+    'Rızık & Bereket': 'Versorgung & Segen',
+    'Nazar & Korunma': 'Schutz & Böser Blick',
+    'Namaz Tesbihatı': 'Gebets-Tasbihat',
+    'Huzur & İnşirah': 'Innere Ruhe & Trost',
+    'Sınav & İş Kolaylığı': 'Prüfung & Erleichterung',
+    'İstiğfar & Tövbe': 'Vergebung & Reue',
+  };
+  const mapFr = {
+    'Tümü': 'Tout',
+    'Rabbena Duaları': 'Invocations Rabbana',
+    'Sabah & Akşam': 'Matin & Soir',
+    'Şifa & Afiyet': 'Guérison & Santé',
+    'Rızık & Bereket': 'Subsistance & Bénédiction',
+    'Nazar & Korunma': 'Protection & Mauvais Œil',
+    'Namaz Tesbihatı': 'Tasbihat après la Prière',
+    'Huzur & İnşirah': 'Paix & Sérénité',
+    'Sınav & İş Kolaylığı': 'Examen & Facilité',
+    'İstiğfar & Tövbe': 'Pardon & Repentir',
+  };
+  if (dil == 'DE') return mapDe[katTr] ?? mapEn[katTr] ?? katTr;
+  if (dil == 'FR') return mapFr[katTr] ?? mapEn[katTr] ?? katTr;
+  return mapEn[katTr] ?? katTr;
+}
+
+const Map<String, Map<String, String>> _kDuaCeviriDe = {
+  'rabbena_atina': {
+    'baslik': 'Rabbana Atina (Gutes im Diesseits und Jenseits)',
+    'anlam': '„Unser Herr, gib uns im Diesseits Gutes und im Jenseits Gutes und bewahre uns vor der Strafe des Höllenfeuers.“',
+    'kaynak': 'Der Edle Koran — Sure Al-Baqara, 2:201',
+  },
+  'rabbenagfirlî': {
+    'baslik': 'Rabbanaghfirli (Vergebung für Eltern & Gläubige)',
+    'anlam': '„Unser Herr, vergib mir und meinen Eltern und den Gläubigen an dem Tag, da die Abrechnung stattfinden wird.“',
+    'kaynak': 'Der Edle Koran — Sure Ibrahim, 14:41',
+  },
+  'rabbena_la_tuzig': {
+    'baslik': 'Rabbana La Tuzigh Qulubana (Standhaftigkeit in der Rechtleitung)',
+    'anlam': '„Unser Herr, lass unsere Herzen nicht abschweifen, nachdem Du uns rechtgeleitet hast, und schenke uns Barmherzigkeit von Dir.“',
+    'kaynak': 'Der Edle Koran — Sure Ali Imran, 3:8',
+  },
+  'rabbena_heb_lena': {
+    'baslik': 'Bittgebet für rechtschaffene Familie & Nachkommen',
+    'anlam': '„Unser Herr, schenke uns an unseren Gattinnen und unseren Nachkommen Grund zur Augenfreude und mache uns für die Gottesfürchtigen zu einem Vorbild.“',
+    'kaynak': 'Der Edle Koran — Sure Al-Furqan, 25:74',
+  },
+  'rabbena_efrig': {
+    'baslik': 'Bittgebet um Geduld und Standhaftigkeit',
+    'anlam': '„Unser Herr, gieße Geduld über uns aus, festige unsere Schritte und hilf uns.“',
+    'kaynak': 'Der Edle Koran — Sure Al-Baqara, 2:250',
+  },
+  'rabbi_yessir': {
+    'baslik': 'Rabbi Yassir (Gebet für Erleichterung & Prüfungserfolg)',
+    'anlam': '„Mein Herr! Erleichtere es mir und erschwere es nicht. Mein Herr, führe diese Angelegenheit zum Guten.“',
+    'kaynak': 'Prophetische Bittgebetstradition (Sahih al-Buchari, Wissen 11)',
+  },
+  'rabbi_srahli_sadri': {
+    'baslik': 'Gebet des Propheten Musa für Zuversicht & Klarheit',
+    'anlam': '„Mein Herr, weite mir meine Brust, erleichtere mir meine Angelegenheit und löse den Knoten von meiner Zunge, damit sie meine Rede verstehen.“',
+    'kaynak': 'Der Edle Koran — Sure Ta-Ha, 20:25-28',
+  },
+  'rabbi_zidni_ilma': {
+    'baslik': 'Bittgebet um nützliches Wissen (Rabbi Zidni Ilma)',
+    'anlam': '„Mein Herr, mehre mein Wissen und mein Verständnis und reihe mich unter die Rechtschaffenen ein.“',
+    'kaynak': 'Der Edle Koran — Sure Ta-Ha 20:114 & Asch-Schu’ara 26:83',
+  },
+  'yunus_duasi': {
+    'baslik': 'Bittgebet des Propheten Yunus um Befreiung aus der Not',
+    'anlam': '„Es gibt keinen Gott außer Dir! Preis sei Dir! Gewiss, ich gehöre zu den Ungerechten.“',
+    'kaynak': 'Der Edle Koran — Sure Al-Anbiya, 21:87',
+  },
+  'kalp_huzuru_duasi': {
+    'baslik': 'Prophetische Zuflucht vor Kummer, Sorge & Schuldenlast',
+    'anlam': '„O Allah, ich suche Zuflucht bei Dir vor Sorge und Kummer, vor Schwäche und Trägheit, vor Geiz und Feigheit sowie vor der Last der Schulden.“',
+    'kaynak': 'Sahih al-Buchari, Bittgebete 36 — Hadith 6369',
+  },
+  'peygamber_sifa_duasi': {
+    'baslik': 'Prophetisches Bittgebet um vollständige Heilung',
+    'anlam': '„O Allah, Herr der Menschen! Nimm das Leiden hinweg und heile, denn Du bist der Heiler. Es gibt keine Heilung außer Deiner Heilung, die keine Krankheit zurücklässt.“',
+    'kaynak': 'Sahih al-Buchari, Medizin 38 & Sahih Muslim',
+  },
+  'eyyub_sifa_duasi': {
+    'baslik': 'Heilungsgebet des Propheten Ayyub (Hiob)',
+    'anlam': '„Mein Herr! Gewiss, mir ist Unheil widerfahren, und Du bist der Barmherzigste der Barmherzigen.“',
+    'kaynak': 'Der Edle Koran — Sure Al-Anbiya, 21:83',
+  },
+  'helal_rizik_duasi': {
+    'baslik': 'Bittgebet um erlaubte Versorgung (Halal Rizq)',
+    'anlam': '„O Allah, genüge mir mit dem, was Du erlaubt hast, gegenüber dem, was Du verboten hast, und mache mich durch Deine Huld unabhängig von allen außer Dir.“',
+    'kaynak': 'Dschami at-Tirmidhi, Bittgebete 110 — Hadith 3563',
+  },
+  'faydali_ilim_temiz_rizik': {
+    'baslik': 'Morgengebet um nützliches Wissen, reine Versorgung & angenommene Taten',
+    'anlam': '„O Allah, ich bitte Dich um nützliches Wissen, gute und reine Versorgung und angenommene Taten.“',
+    'kaynak': 'Sunan Ibn Madscha, Hadith 925',
+  },
+  'sabah_aksam_afiyet': {
+    'baslik': 'Morgen- & Abendgebet um Verzeihung und Wohlergehen',
+    'anlam': '„O Allah, ich bitte Dich um Verzeihung und Wohlergehen im Diesseits und im Jenseits.“',
+    'kaynak': 'Sunan Abi Dawud, Hadith 5074',
+  },
+  'hasbiyallahu': {
+    'baslik': 'Gebet des Gottvertrauens (HasbiyAllahu La Ilaha Illa Hu)',
+    'anlam': '„Allah genügt mir; es gibt keinen Gott außer Ihm. Auf Ihn vertraue ich, und Er ist der Herr des gewaltigen Thrones.“',
+    'kaynak': 'Der Edle Koran — Sure At-Tawba, 9:129',
+  },
+  'seyyidul_istigfar': {
+    'baslik': 'Sayyid al-Istighfar (Das höchste Gebet um Vergebung)',
+    'anlam': '„O Allah, Du bist mein Herr, es gibt keinen Gott außer Dir. Du hast mich erschaffen und ich bin Dein Diener... Vergib mir, denn niemand vergibt die Sünden außer Dir.“',
+    'kaynak': 'Sahih al-Buchari, Bittgebete 2 — Hadith 6306',
+  },
+  'ek_asbahna': {
+    'baslik': 'Asbahna wa Asbahal-Mulku Lillah (Morgengebet)',
+    'anlam': '„Wir haben den Morgen erreicht und die Herrschaft gehört Allah. Alles Lob gebührt Allah. Es gibt keinen Gott außer Allah allein, ohne Teilhaber.“',
+  },
+  'ek_bike_asbahna': {
+    'baslik': 'Allahumma Bika Asbahna (Morgen- & Abendgebet der Hingabe)',
+    'anlam': '„O Allah, durch Dich erreichen wir den Morgen und den Abend, durch Dich leben und sterben wir, und zu Dir ist die Auferstehung.“',
+  },
+  'ek_bismillahillezi': {
+    'baslik': 'Bismillahilladhi La Yadurru (3x — Schutz vor jedem Schaden)',
+    'anlam': '„Im Namen Allahs, mit dessen Namen nichts auf der Erde und im Himmel schaden kann, und Er ist der Allhörende, der Allwissende.“',
+  },
+  'ek_raditu_billahi': {
+    'baslik': 'Raditu Billahi Rabban (Gebet der Zufriedenheit — 3x)',
+    'anlam': '„Ich bin zufrieden mit Allah als meinem Herrn, mit dem Islam als meiner Religion und mit Muhammad ﷺ als meinem Propheten.“',
+  },
+  'ek_ya_hayyu_ya_kayyum': {
+    'baslik': 'Ya Hayyu Ya Qayyum (Bittgebet um Beistand in allen Dingen)',
+    'anlam': '„O Ewiglebender, o Erhalter! Bei Deiner Barmherzigkeit suche ich Hilfe. Ordne alle meine Angelegenheiten und überlasse mich keinen Augenblick mir selbst.“',
+  },
+  'ek_afini_fi_bedeni': {
+    'baslik': 'Allahumma Afini Fi Badani (Gesundheit für Körper, Gehör & Augen — 3x)',
+    'anlam': '„O Allah, schenke mir Gesundheit in meinem Körper, meinem Gehör und meinem Augenlicht. Es gibt keinen Gott außer Dir.“',
+  },
+  'ek_subhanallahi_ve_bihamdihi_100': {
+    'baslik': 'Subhanallahi wa Bihamdihi (Morgens & Abends 100x)',
+    'anlam': '„Preis sei Allah und alles Lob gebührt Ihm.“ (100-mal morgens und abends gesprochen tilgt Sünden selbst wie Meereschaum.)',
+  },
+  'ek_kelimatillahi_tammat': {
+    'baslik': 'A’udhu Bi-Kalimatillahit-Tammat (Abends 3x)',
+    'anlam': '„Ich suche Zuflucht bei den vollkommenen Worten Allahs vor dem Übel dessen, was Er erschaffen hat.“',
+  },
+  'ek_alimel_gayb': {
+    'baslik': 'Allahumma Alimal-Ghaybi wasch-Schahadah (Schutz vor dem eigenen Ego)',
+    'anlam': '„O Allah, Kenner des Verborgenen und des Offenkundigen, Schöpfer der Himmel und der Erde... Ich suche Zuflucht bei Dir vor dem Übel meiner Seele und des Satans.“',
+  },
+  'ek_ayetel_kursi_sabah': {
+    'baslik': 'Ayat al-Kursi (Morgens, Abends & vor dem Schlafen)',
+    'anlam': '„Allah — es gibt keinen Gott außer Ihm, dem Lebendigen und Beständigen. Ihn überkommt weder Schlummer noch Schlaf...“',
+  },
+  'ek_rabben_nas': {
+    'baslik': 'Allahumma Rabban-Nas (Heilungsgebet für Kranke)',
+    'anlam': '„O Allah, Herr der Menschen, nimm das Leiden hinweg und heile, denn Du bist der Heiler. Es gibt keine Heilung außer Deiner Heilung.“',
+  },
+  'ek_euzu_bi_izzetillah': {
+    'baslik': 'Bittgebet bei Schmerzen (Hand auf die schmerzende Stelle, 7x)',
+    'anlam': '„Im Namen Allahs (3x). Ich suche Zuflucht bei Allah und Seiner Macht vor dem Übel dessen, was ich empfinde und befürchte (7x).“',
+  },
+  'ek_esalullahel_azim': {
+    'baslik': 'As’alullahal-Azim (Beim Krankenbesuch 7x)',
+    'anlam': '„Ich bitte Allah, den Allmächtigen, den Herrn des gewaltigen Thrones, dich zu heilen.“',
+  },
+  'ek_cebrail_rukyesi': {
+    'baslik': 'Bismillahi Arqik (Ruqyah des Engels Gabriel)',
+    'anlam': '„Im Namen Allahs spreche ich Ruqyah über dich gegen alles, was dir schadet, gegen das Übel jeder Seele oder jedes neidischen Auges. Möge Allah dich heilen.“',
+  },
+  'ek_eyyub_duasi': {
+    'baslik': 'Heilungsgebet des Propheten Ayyub (Hiob)',
+    'anlam': '„Mir ist Unheil widerfahren, und Du bist der Barmherzigste der Barmherzigen.“',
+  },
+  'ek_ve_iza_maridtu': {
+    'baslik': 'Wa Idha Maridtu Fahuwa Yaschfin (Wort des Propheten Ibrahim)',
+    'anlam': '„Und wenn ich krank bin, so ist Er es, der mich heilt.“',
+  },
+  'ek_kotu_hastaliklardan': {
+    'baslik': 'Bittgebet um Schutz vor schweren Krankheiten',
+    'anlam': '„O Allah, ich suche Zuflucht bei Dir vor Aussatz, Wahnsinn, Lepra und allen schlimmen Krankheiten.“',
+  },
+  'ek_la_bese_tahur': {
+    'baslik': 'La Ba’sa Tahurun Inscha’Allah (Trostworte für Kranke)',
+    'anlam': '„Kein Schaden; es ist eine Reinigung von Sünden, so Allah will.“',
+  },
+  'ek_magfiret_rahmet_rizik': {
+    'baslik': 'Bittgebet um Vergebung, Barmherzigkeit, Rechtleitung & Versorgung',
+    'anlam': '„O Allah, vergib mir, erbarme Dich meiner, leite mich recht, schenke mir Wohlergehen und versorge mich.“',
+  },
+  'ek_musa_rizik_duasi': {
+    'baslik': 'Bittgebet des Propheten Musa um Gutes & Versorgung',
+    'anlam': '„Mein Herr, ich bedarf dessen, was Du an Gutem zu mir herabsendest.“',
+  },
+  'ek_hem_hazen_borc': {
+    'baslik': 'Zuflucht vor Kummer, Trägheit und Schuldenlast',
+    'anlam': '„O Allah, ich suche Zuflucht bei Dir vor Sorge und Kummer, vor Unfähigkeit und Trägheit, vor Geiz, Feigheit und der Last der Schulden.“',
+  },
+  'ek_aslih_li_dini': {
+    'baslik': 'Bittgebet um Bewahrung von Religion, Diesseits und Jenseits',
+    'anlam': '„O Allah, bringe meine Religion in Ordnung, die der Schutz meiner Angelegenheiten ist, mein Diesseits und mein Jenseits.“',
+  },
+  'ek_bereket_mal_evlat': {
+    'baslik': 'Bittgebet um Segen in Besitz und Familie',
+    'anlam': '„O Allah, mehre meinen Besitz und meine Nachkommen und segne mir das, was Du mir gegeben hast.“',
+  },
+  'ek_istigfar_rizik_nuh': {
+    'baslik': 'Versorgung und Segen durch Vergebungsbitte (Rat des Propheten Nuh)',
+    'anlam': '„Bittet euren Herrn um Vergebung, denn Er ist allvergebend; Er sendet euch reichlich Regen vom Himmel und stärkt euch mit Besitz und Kindern.“',
+  },
+  'ek_tevekkul_rizik_talak': {
+    'baslik': 'Versorgung von unerwarteter Seite (Sure At-Talaq 2-3)',
+    'anlam': '„Und wer Allah fürchtet, dem schafft Er einen Ausweg und versorgt ihn von wo er nicht damit rechnet. Und wer auf Allah vertraut, dem genügt Er.“',
+  },
+  'ek_muavvizeteyn': {
+    'baslik': 'Al-Ichlas, Al-Falaq & An-Nas (Schutzsuren — 3x Morgens & Abends)',
+    'anlam': '„Sprich: Ich suche Zuflucht beim Herrn des Tagesanbruchs vor dem Übel dessen, was Er erschaffen hat... und vor dem Übel des Neiders, wenn er neidet.“',
+  },
+  'ek_hasan_huseyin_nazar': {
+    'baslik': 'Schutzgebet gegen den bösen Blick (für Hasan & Husayn)',
+    'anlam': '„Ich suche Zuflucht bei den vollkommenen Worten Allahs vor jedem Teufel, jedem giftigen Tier und jedem bösen Blick.“',
+  },
+  'ek_maşaallah_kehf': {
+    'baslik': 'Mascha’Allah La Quwwata Illa Billah (Beim Anblick einer Gabe)',
+    'anlam': '„Was Allah will! Es gibt keine Kraft außer bei Allah.“',
+  },
+  'ek_bereket_duasi_nazar': {
+    'baslik': 'Barakallahu Lah (Segenswunsch gegen den bösen Blick)',
+    'anlam': '„O Allah, segne es für ihn.“',
+  },
+  'ek_nazar_ayeti_kalem': {
+    'baslik': 'Schutzvers gegen den bösen Blick (Sure Al-Qalam 51-52)',
+    'anlam': '„Und fast würden diejenigen, die ungläubig sind, dich mit ihren Blicken zu Fall bringen, wenn sie die Ermahnung hören... Doch es ist nur eine Ermahnung für die Welten.“',
+  },
+  'ek_evden_cikarken': {
+    'baslik': 'Bittgebet beim Verlassen des Hauses',
+    'anlam': '„Im Namen Allahs, ich vertraue auf Allah; es gibt weder Macht noch Kraft außer bei Allah.“',
+  },
+  'ek_zevali_nimet': {
+    'baslik': 'Zuflucht vor dem Verlust von Gaben und Gesundheit',
+    'anlam': '„O Allah, ich suche Zuflucht bei Dir vor dem Schwinden Deiner Gunst, der Veränderung Deines Schutzes und Deinem plötzlichen Zorn.“',
+  },
+  'ek_kabir_fitne_korunma': {
+    'baslik': 'Zuflucht vor Trägheit und den Prüfungen des Grabes',
+    'anlam': '„O Allah, ich suche Zuflucht bei Dir vor Unfähigkeit, Trägheit, Feigheit, Geiz sowie vor der Strafe des Grabes und den Prüfungen von Leben und Tod.“',
+  },
+  'ek_uyku_oncesi': {
+    'baslik': 'Schutzgebet vor dem Einschlafen',
+    'anlam': '„In Deinem Namen, mein Herr, lege ich mich nieder und erhebe mich wieder. Wenn Du meine Seele nimmst, erbarme Dich ihrer; wenn Du sie lässt, bewahre sie.“',
+  },
+  'ek_hemezatis_seyatin': {
+    'baslik': 'Zuflucht vor den Einflüsterungen der Satane',
+    'anlam': '„Mein Herr, ich suche Zuflucht bei Dir vor den Aufstachelungen der Satane und davor, dass sie mich aufsuchen.“',
+  },
+  'ek_tesbihat_entes_selam': {
+    'baslik': 'Astaghfirullah (3x) & Allahumma Antas-Salam (Nach dem Gebet)',
+    'anlam': '„Ich bitte Allah um Vergebung (3x). O Allah, Du bist der Friede und von Dir kommt der Friede. Segensreich bist Du, o Besitzer von Majestät und Ehre.“',
+  },
+  'ek_tesbihat_33': {
+    'baslik': '33 Subhanallah, 33 Alhamdulillah, 33 Allahu Akbar & Tahlil',
+    'anlam': '„Wer nach jedem Gebet 33-mal Subhanallah, 33-mal Alhamdulillah und 33-mal Allahu Akbar spricht und die Hundert mit dem Einheitsbekenntnis vollendet, dem werden seine Sünden vergeben.“',
+  },
+  'ek_einni_ala_zikrike': {
+    'baslik': 'Allahumma A’inni Ala Dhikrika (Empfehlung an Mu’adh)',
+    'anlam': '„O Allah, hilf mir, Deiner zu gedenken, Dir zu danken und Dir auf die beste Weise zu dienen.“',
+  },
+  'ek_la_mania_lima_ataytе': {
+    'baslik': 'La Mani’a Lima A’tayta (Nach den Pflichtgebeten)',
+    'anlam': '„O Allah, niemand kann zurückhalten, was Du gibst, und niemand kann geben, was Du zurückhältst.“',
+  },
+  'ek_ayetel_kursi_namaz': {
+    'baslik': 'Ayat al-Kursi nach jedem Pflichtgebet',
+    'anlam': '„Wer Ayat al-Kursi nach jedem Pflichtgebet rezitiert, den trennt nichts vom Eintritt ins Paradies außer dem Tod.“',
+  },
+  'ek_salli_barik': {
+    'baslik': 'Salat al-Ibrahimiyyah (Salli & Barik Segensgebete)',
+    'anlam': '„O Allah, segne Muhammad und die Familie Muhammads, wie Du Ibrahim und die Familie Ibrahims gesegnet hast. Du bist des Lobes würdig und ruhmreich.“',
+  },
+  'ek_ebubekir_namaz_duasi': {
+    'baslik': 'Das Abu Bakr für das Gebet gelehrte Bittgebet',
+    'anlam': '„O Allah, ich habe mir selbst viel Unrecht zugefügt, und niemand vergibt die Sünden außer Dir. Vergib mir aus Deiner Huld und erbarme Dich meiner.“',
+  },
+  'ek_teşehhud_sonrasi_istiaze': {
+    'baslik': 'Zuflucht vor vier Dingen im letzten Sitzen des Gebets',
+    'anlam': '„O Allah, ich suche Zuflucht bei Dir vor der Strafe der Hölle, der Strafe des Grabes, den Prüfungen von Leben und Tod und der Versuchung des falschen Messias.“',
+  },
+};
+
+const Map<String, Map<String, String>> _kDuaCeviriFr = {
+  'rabbena_atina': {
+    'baslik': 'Rabbana Atina (Le bien ici-bas et dans l’au-delà)',
+    'anlam': '« Seigneur ! Accorde-nous belle part ici-bas, et belle part aussi dans l’au-delà ; et protège-nous du châtiment du Feu ! »',
+    'kaynak': 'Le Saint Coran — Sourate Al-Baqarah, 2:201',
+  },
+  'rabbenagfirlî': {
+    'baslik': 'Rabbanaghfirli (Pardon pour les parents et les croyants)',
+    'anlam': '« Ô notre Seigneur ! Pardonne-moi, ainsi qu’à mes père et mère et aux croyants, le jour où les comptes seront rendus. »',
+    'kaynak': 'Le Saint Coran — Sourate Ibrahim, 14:41',
+  },
+  'rabbena_la_tuzig': {
+    'baslik': 'Rabbana La Tuzigh Qulubana (Constance dans la guidée)',
+    'anlam': '« Seigneur ! Ne laisse pas dévier nos cœurs après que Tu nous aies guidés ; et accorde-nous Ta miséricorde. C’est Toi, certes, le Grand Donateur ! »',
+    'kaynak': 'Le Saint Coran — Sourate Ali ’Imran, 3:8',
+  },
+  'rabbena_heb_lena': {
+    'baslik': 'Invocation pour une famille et une descendance pieuses',
+    'anlam': '« Seigneur, donne-nous, en nos épouses et nos descendants, la joie des yeux, et fais de nous un guide pour les pieux. »',
+    'kaynak': 'Le Saint Coran — Sourate Al-Furqan, 25:74',
+  },
+  'rabbena_efrig': {
+    'baslik': 'Invocation pour la patience et la fermeté',
+    'anlam': '« Seigneur ! Déverse sur nous l’endurance, affermis nos pas et donne-nous la victoire. »',
+    'kaynak': 'Le Saint Coran — Sourate Al-Baqarah, 2:250',
+  },
+  'rabbi_yessir': {
+    'baslik': 'Rabbi Yassir (Prière pour la facilité et la réussite)',
+    'anlam': '« Mon Seigneur ! Facilite-moi les choses et ne les rends pas difficiles. Mon Seigneur, achève cette affaire par le bien. »',
+    'kaynak': 'Tradition prophétique (Sahih al-Boukhari, Science 11)',
+  },
+  'rabbi_srahli_sadri': {
+    'baslik': 'Prière du Prophète Moussa pour la sérénité et l’éloquence',
+    'anlam': '« Seigneur, ouvre-moi ma poitrine, et facilite ma mission, et dénoue un nœud en ma langue, afin qu’ils comprennent mes paroles. »',
+    'kaynak': 'Le Saint Coran — Sourate Ta-Ha, 20:25-28',
+  },
+  'rabbi_zidni_ilma': {
+    'baslik': 'Invocation pour l’accroissement de la science utile',
+    'anlam': '« Ô mon Seigneur, accrois mes connaissances et ma compréhension, et fais-moi rejoindre les vertueux. »',
+    'kaynak': 'Le Saint Coran — Sourate Ta-Ha 20:114 & Ach-Chou’ara 26:83',
+  },
+  'yunus_duasi': {
+    'baslik': 'Invocation du Prophète Younous pour la délivrance de l’épreuve',
+    'anlam': '« Pas de divinité à part Toi ! Pureté à Toi ! J’ai été vraiment du nombre des injustes. »',
+    'kaynak': 'Le Saint Coran — Sourate Al-Anbiya, 21:87',
+  },
+  'kalp_huzuru_duasi': {
+    'baslik': 'Refuge prophétique contre le souci, la tristesse et les dettes',
+    'anlam': '« Ô Allah, je cherche refuge auprès de Toi contre le souci et la tristesse, l’incapacité et la paresse, l’avarice et la lâcheté, et le poids des dettes. »',
+    'kaynak': 'Sahih al-Boukhari, Invocations 36 — Hadith 6369',
+  },
+  'peygamber_sifa_duasi': {
+    'baslik': 'Invocation prophétique pour une guérison complète',
+    'anlam': '« Ô Allah, Seigneur des hommes ! Éloigne le mal et guéris, car Tu es Celui qui guérit. Il n’y a de guérison que Ta guérison, une guérison qui ne laisse aucune maladie. »',
+    'kaynak': 'Sahih al-Boukhari, Médecine 38 & Sahih Mouslim',
+  },
+  'eyyub_sifa_duasi': {
+    'baslik': 'Invocation de guérison du Prophète Ayyoub (Job)',
+    'anlam': '« Seigneur, le mal m’a touché. Mais Toi, Tu es le plus Miséricordieux des miséricordieux ! »',
+    'kaynak': 'Le Saint Coran — Sourate Al-Anbiya, 21:83',
+  },
+  'helal_rizik_duasi': {
+    'baslik': 'Invocation pour une subsistance licite et suffisante',
+    'anlam': '« Ô Allah, suffis-moi par ce que Tu as rendu licite face à ce que Tu as interdit, et enrichis-moi par Ta grâce afin que je n’aie besoin de personne d’autre que Toi. »',
+    'kaynak': 'Jami’ at-Tirmidhi, Invocations 110 — Hadith 3563',
+  },
+  'faydali_ilim_temiz_rizik': {
+    'baslik': 'Prière du matin pour le savoir utile et la subsistance pure',
+    'anlam': '« Ô Allah, je Te demande une science utile, une subsistance bonne et pure, et des œuvres acceptées. »',
+    'kaynak': 'Sounan Ibn Majah, Hadith 925',
+  },
+  'sabah_aksam_afiyet': {
+    'baslik': 'Invocation du matin et du soir pour le pardon et la préservation',
+    'anlam': '« Ô Allah, je Te demande le pardon et la préservation dans ce monde et dans l’au-delà. »',
+    'kaynak': 'Sounan Abi Dawoud, Hadith 5074',
+  },
+  'hasbiyallahu': {
+    'baslik': 'Invocation de confiance en Allah (HasbiyAllahu)',
+    'anlam': '« Allah me suffit ! Il n’y a de divinité que Lui. En Lui je place ma confiance ; et Il est le Seigneur du Trône immense. »',
+    'kaynak': 'Le Saint Coran — Sourate At-Tawbah, 9:129',
+  },
+  'seyyidul_istigfar': {
+    'baslik': 'Sayyid al-Istighfar (La maîtresse des demandes de pardon)',
+    'anlam': '« Ô Allah, Tu es mon Seigneur, il n’y a de divinité que Toi. Tu m’as créé et je suis Ton serviteur... Pardonne-moi, car nul ne pardonne les péchés si ce n’est Toi. »',
+    'kaynak': 'Sahih al-Boukhari, Invocations 2 — Hadith 6306',
+  },
+  'ek_asbahna': {
+    'baslik': 'Asbahna wa Asbahal-Moulkou Lillah (Invocation du matin)',
+    'anlam': '« Nous voici au matin et la royauté appartient à Allah. Louange à Allah. Il n’y a de divinité qu’Allah seul, sans associé. »',
+  },
+  'ek_bike_asbahna': {
+    'baslik': 'Allahoumma Bika Asbahna (Abandon confiant matin & soir)',
+    'anlam': '« Ô Allah, c’est par Toi que nous entrons dans le matin et dans le soir, par Toi que nous vivons et mourons, et vers Toi est la résurrection. »',
+  },
+  'ek_bismillahillezi': {
+    'baslik': 'Bismillahilladhi La Yadourrou (3x — Protection contre tout mal)',
+    'anlam': '« Au nom d’Allah avec le nom Duquel rien sur terre ni dans le ciel ne peut nuire, et Il est l’Audient, l’Omniscient. »',
+  },
+  'ek_raditu_billahi': {
+    'baslik': 'Raditou Billahi Rabban (Invocation d’agrément — 3x)',
+    'anlam': '« J’agrée Allah comme Seigneur, l’Islam comme religion et Mouhammad ﷺ comme Prophète. »',
+  },
+  'ek_ya_hayyu_ya_kayyum': {
+    'baslik': 'Ya Hayyou Ya Qayyoum (Invocation enseignée à Fatima)',
+    'anlam': '« Ô Vivant, ô Subsistant, par Ta miséricorde j’implore secours. Réforme toutes mes affaires et ne me laisse pas à moi-même le temps d’un clin d’œil. »',
+  },
+  'ek_afini_fi_bedeni': {
+    'baslik': 'Allahoumma Afini Fi Badani (Santé du corps, de l’ouïe et de la vue — 3x)',
+    'anlam': '« Ô Allah, accorde-moi la santé dans mon corps, dans mon ouïe et dans ma vue. Il n’y a de divinité que Toi. »',
+  },
+  'ek_subhanallahi_ve_bihamdihi_100': {
+    'baslik': 'Soubhanallahi wa Bihamdihi (100x matin et soir)',
+    'anlam': '« Gloire et pureté à Allah et par Sa louange. » (Récité 100 fois matin et soir, efface les péchés fussent-ils comme l’écume de la mer.)',
+  },
+  'ek_kelimatillahi_tammat': {
+    'baslik': 'A’oudhou Bi-Kalimatillahit-Tammat (Le soir 3x)',
+    'anlam': '« Je cherche refuge dans les paroles parfaites d’Allah contre le mal de ce qu’Il a créé. »',
+  },
+  'ek_alimel_gayb': {
+    'baslik': 'Allahoumma Alimal-Ghaybi wach-Chahadah (Protection contre le mal de l’âme)',
+    'anlam': '« Ô Allah, Connaisseur de l’invisible et du visible, Créateur des cieux et de la terre... Je cherche refuge auprès de Toi contre le mal de mon âme et du diable. »',
+  },
+  'ek_ayetel_kursi_sabah': {
+    'baslik': 'Ayat al-Koursi (Matin, soir et avant le sommeil)',
+    'anlam': '« Allah ! Point de divinité à part Lui, le Vivant, Celui qui subsiste par Lui-même. Ni somnolence ni sommeil ne Le saisissent... »',
+  },
+  'ek_rabben_nas': {
+    'baslik': 'Allahoumma Rabban-Nas (Invocation de guérison pour le malade)',
+    'anlam': '« Ô Allah, Seigneur des hommes, éloigne le mal et guéris, car Tu es Celui qui guérit. Il n’y a de guérison que Ta guérison. »',
+  },
+  'ek_euzu_bi_izzetillah': {
+    'baslik': 'Invocation contre la douleur (Main sur la zone douloureuse, 7x)',
+    'anlam': '« Au nom d’Allah (3x). Je cherche refuge auprès d’Allah et de Sa puissance contre le mal de ce que je ressens et redoute (7x). »',
+  },
+  'ek_esalullahel_azim': {
+    'baslik': 'As’aloullahal-Azim (Lors de la visite au malade, 7x)',
+    'anlam': '« Je demande à Allah l’Immense, Seigneur du Trône immense, de te guérir. »',
+  },
+  'ek_cebrail_rukyesi': {
+    'baslik': 'Bismillahi Arqik (Roqya de l’Ange Jibril)',
+    'anlam': '« Au nom d’Allah je te fais la roqya contre toute chose qui te nuit, contre le mal de toute âme ou œil envieux. Qu’Allah te guérisse. »',
+  },
+  'ek_eyyub_duasi': {
+    'baslik': 'Invocation de guérison du Prophète Ayyoub (Job)',
+    'anlam': '« Le mal m’a touché. Mais Toi, Tu es le plus Miséricordieux des miséricordieux ! »',
+  },
+  'ek_ve_iza_maridtu': {
+    'baslik': 'Wa Idha Maridtou Fahouwa Yachfin (Parole du Prophète Ibrahim)',
+    'anlam': '« Et quand je suis malade, c’est Lui qui me guérit. »',
+  },
+  'ek_kotu_hastaliklardan': {
+    'baslik': 'Refuge contre les maladies graves',
+    'anlam': '« Ô Allah, je cherche refuge auprès de Toi contre la lèpre, la folie et toutes les mauvaises maladies. »',
+  },
+  'ek_la_bese_tahur': {
+    'baslik': 'La Ba’sa Tahouroun Incha’Allah (Parole d’apaisement au malade)',
+    'anlam': '« Pas de mal ; c’est une purification, si Allah le veut. »',
+  },
+  'ek_magfiret_rahmet_rizik': {
+    'baslik': 'Invocation pour le pardon, la miséricorde, la guidée et la subsistance',
+    'anlam': '« Ô Allah, pardonne-moi, fais-moi miséricorde, guide-moi, accorde-moi le salut et pourvois à mes besoins. »',
+  },
+  'ek_musa_rizik_duasi': {
+    'baslik': 'Invocation du Prophète Moussa pour le bien et la subsistance',
+    'anlam': '« Seigneur, j’ai grand besoin de tout bien que Tu feras descendre vers moi. »',
+  },
+  'ek_hem_hazen_borc': {
+    'baslik': 'Refuge contre l’angoisse, la paresse et le poids des dettes',
+    'anlam': '« Ô Allah, je cherche refuge auprès de Toi contre le souci et la tristesse, l’incapacité et la paresse, l’avarice, la lâcheté et le poids des dettes. »',
+  },
+  'ek_aslih_li_dini': {
+    'baslik': 'Invocation pour la préservation de la religion, de ce monde et de l’au-delà',
+    'anlam': '« Ô Allah, réforme ma religion qui est la sauvegarde de mes affaires, mon bas-monde où se trouve ma subsistance, et mon au-delà vers lequel est mon retour. »',
+  },
+  'ek_bereket_mal_evlat': {
+    'baslik': 'Invocation de bénédiction dans les biens et la famille',
+    'anlam': '« Ô Allah, accrois mes biens et ma descendance, et bénis ce que Tu m’as accordé. »',
+  },
+  'ek_istigfar_rizik_nuh': {
+    'baslik': 'La subsistance et la bénédiction par l’Istighfar (Conseil de Nouh)',
+    'anlam': '« Implorez le pardon de votre Seigneur, car Il est grand Pardonneur, pour qu’Il vous envoie du ciel des pluies abondantes et vous accorde biens et enfants. »',
+  },
+  'ek_tevekkul_rizik_talak': {
+    'baslik': 'La subsistance d’où l’on ne s’y attend pas (Sourate At-Talaq 2-3)',
+    'anlam': '« Et quiconque craint Allah, Il lui donnera une issue favorable, et lui accordera Ses dons par des moyens sur lesquels il ne comptait pas. Et quiconque place sa confiance en Allah, Il lui suffit. »',
+  },
+  'ek_muavvizeteyn': {
+    'baslik': 'Al-Ikhlas, Al-Falaq & An-Nas (Sourates protectrices — 3x matin et soir)',
+    'anlam': '« Dis : Je cherche protection auprès du Seigneur de l’aube naissante, contre le mal des êtres qu’Il a créés... et contre le mal de l’envieux quand il envie. »',
+  },
+  'ek_hasan_huseyin_nazar': {
+    'baslik': 'Protection contre le mauvais œil (pour Al-Hasan et Al-Housayn)',
+    'anlam': '« Je cherche protection par les paroles parfaites d’Allah contre tout démon, tout être venimeux et tout mauvais œil. »',
+  },
+  'ek_maşaallah_kehf': {
+    'baslik': 'Macha’Allah La Qouwwata Illa Billah (Devant un bienfait)',
+    'anlam': '« Ce qu’Allah veut ! Il n’y a de puissance que par Allah. »',
+  },
+  'ek_bereket_duasi_nazar': {
+    'baslik': 'Barakallahou Lah (Invocation de bénédiction contre le mauvais œil)',
+    'anlam': '« Ô Allah, bénis-le. »',
+  },
+  'ek_nazar_ayeti_kalem': {
+    'baslik': 'Verset contre le mauvais œil (Sourate Al-Qalam 51-52)',
+    'anlam': '« Peu s’en faut que ceux qui mécroient ne te transpercent par leurs regards, quand ils entendent le Coran... Mais ce n’est qu’un rappel pour les mondes. »',
+  },
+  'ek_evden_cikarken': {
+    'baslik': 'Invocation en sortant de la maison',
+    'anlam': '« Au nom d’Allah, je place ma confiance en Allah ; il n’y a de force ni de puissance que par Allah. »',
+  },
+  'ek_zevali_nimet': {
+    'baslik': 'Refuge contre la disparition des bienfaits',
+    'anlam': '« Ô Allah, je cherche refuge auprès de Toi contre la disparition de Tes bienfaits, l’altération de Ta préservation et Ton courroux soudain. »',
+  },
+  'ek_kabir_fitne_korunma': {
+    'baslik': 'Refuge contre la paresse et le châtiment de la tombe',
+    'anlam': '« Ô Allah, je cherche refuge auprès de Toi contre l’incapacité, la paresse, la lâcheté, l’avarice, ainsi que contre le châtiment de la tombe et les épreuves de la vie et de la mort. »',
+  },
+  'ek_uyku_oncesi': {
+    'baslik': 'Invocation protectrice avant de dormir',
+    'anlam': '« En Ton nom, mon Seigneur, je me couche et par Toi je me relève. Si Tu retiens mon âme, fais-lui miséricorde ; si Tu la renvoies, protège-la comme Tu protèges Tes pieux serviteurs. »',
+  },
+  'ek_hemezatis_seyatin': {
+    'baslik': 'Refuge contre les suggestions des démons',
+    'anlam': '« Seigneur, je cherche protection auprès de Toi contre les suggestions des diables, et je cherche protection auprès de Toi contre leur présence auprès de moi. »',
+  },
+  'ek_tesbihat_entes_selam': {
+    'baslik': 'Astaghfiroullah (3x) & Allahoumma Antas-Salam (Après la prière)',
+    'anlam': '« Je demande pardon à Allah (3x). Ô Allah, Tu es la Paix et de Toi vient la paix. Béni sois-Tu, ô Détenteur de la Majesté et de la Générosité. »',
+  },
+  'ek_tesbihat_33': {
+    'baslik': '33 Soubhanallah, 33 Alhamdoulillah, 33 Allahou Akbar & Tahlil',
+    'anlam': '« Quiconque glorifie Allah 33 fois, Le loue 33 fois et proclame Sa grandeur 33 fois après chaque prière, puis complète la centaine par l’unicité, voit ses péchés pardonnés. »',
+  },
+  'ek_einni_ala_zikrike': {
+    'baslik': 'Allahoumma A’inni Ala Dhikrika (Conseillé à Mou’adh)',
+    'anlam': '« Ô Allah, aide-moi à T’évoquer, à Te remercier et à T’adorer de la meilleure manière. »',
+  },
+  'ek_la_mania_lima_ataytе': {
+    'baslik': 'La Mani’a Lima A’tayta (Après les prières obligatoires)',
+    'anlam': '« Ô Allah, nul ne peut retenir ce que Tu donnes, ni donner ce que Tu retiens. »',
+  },
+  'ek_ayetel_kursi_namaz': {
+    'baslik': 'Ayat al-Koursi après chaque prière obligatoire',
+    'anlam': '« Quiconque récite Ayat al-Koursi après chaque prière obligatoire, rien ne l’empêche d’entrer au Paradis si ce n’est la mort. »',
+  },
+  'ek_salli_barik': {
+    'baslik': 'Salat al-Ibrahimiyyah (Salli & Barik)',
+    'anlam': '« Ô Allah, prie sur Mouhammad et sur la famille de Mouhammad comme Tu as prié sur Ibrahim, et bénis Mouhammad comme Tu as béni Ibrahim. »',
+  },
+  'ek_ebubekir_namaz_duasi': {
+    'baslik': 'Invocation enseignée à Abou Bakr pour sa prière',
+    'anlam': '« Ô Allah, je me suis fait beaucoup de tort à moi-même et nul ne pardonne les péchés si ce n’est Toi. Accorde-moi un pardon de Ta part et fais-moi miséricorde. »',
+  },
+  'ek_teşehhud_sonrasi_istiaze': {
+    'baslik': 'Refuge contre quatre choses lors du dernier Tachahhoud',
+    'anlam': '« Ô Allah, je cherche refuge auprès de Toi contre le châtiment de l’Enfer, le châtiment de la tombe, les épreuves de la vie et de la mort et l’épreuve du Faux Messie. »',
+  },
+};
 
 const List<String> kDuaKategorileriTr = [
   'Tümü',
@@ -358,14 +957,24 @@ class _DualarVeRabbenaListeWidgetState extends State<DualarVeRabbenaListeWidget>
       arapcaMetin: dua.arapca,
       konuTr: '${dua.kategoriTr} • ${dua.baslikTr}',
       konuEn: '${dua.kategoriEn} • ${dua.baslikEn}',
+      konuDe: '${dua.kategori('DE')} • ${dua.baslik('DE')}',
+      konuFr: '${dua.kategori('FR')} • ${dua.baslik('FR')}',
       mealTr: dua.anlamTr,
       mealEn: dua.anlamEn,
+      mealDe: dua.anlam('DE'),
+      mealFr: dua.anlam('FR'),
       kaynakKisaTr: dua.baslikTr,
       kaynakKisaEn: dua.baslikEn,
+      kaynakKisaDe: dua.baslik('DE'),
+      kaynakKisaFr: dua.baslik('FR'),
       dogrulanmisTr: 'Doğrulanmış Kaynak: ${dua.kaynakTr}',
       dogrulanmisEn: 'Verified Source: ${dua.kaynakEn}',
+      dogrulanmisDe: 'Verifizierte Quelle: ${dua.kaynak('DE')}',
+      dogrulanmisFr: 'Source vérifiée : ${dua.kaynak('FR')}',
       tefsirTr: 'Okunuşu: ${dua.okunusTr}',
       tefsirEn: 'Transliteration: ${dua.okunusTr}',
+      tefsirDe: 'Aussprache: ${dua.okunusTr}',
+      tefsirFr: 'Phonétique : ${dua.okunusTr}',
       arkaPlanRenkleri: palet,
       desenIndex: index % 8,
     );
@@ -380,7 +989,9 @@ class _DualarVeRabbenaListeWidgetState extends State<DualarVeRabbenaListeWidget>
       if (!katUygun) return false;
       if (_arama.trim().isEmpty) return true;
       final q = _arama.toLowerCase();
-      return d.baslikTr.toLowerCase().contains(q) ||
+      return d.baslik(dil).toLowerCase().contains(q) ||
+          d.anlam(dil).toLowerCase().contains(q) ||
+          d.baslikTr.toLowerCase().contains(q) ||
           d.baslikEn.toLowerCase().contains(q) ||
           d.kategoriTr.toLowerCase().contains(q) ||
           d.anlamTr.toLowerCase().contains(q) ||
@@ -397,11 +1008,15 @@ class _DualarVeRabbenaListeWidgetState extends State<DualarVeRabbenaListeWidget>
             onChanged: (v) => setState(() => _arama = v),
             style: TextStyle(color: widget.yaziRengi, fontSize: 14),
             decoration: InputDecoration(
-              hintText: dil == 'EN'
-                  ? 'Search Duas (e.g. Rabbana, Healing, Exam, Provision)...'
-                  : dil == 'AR'
-                      ? 'ابحث في الأدعية المأثورة والقرآنية...'
-                      : 'Dualar içinde ara (Örn: Rabbena, Şifa, Sınav, Rızık, İstiğfar)...',
+              hintText: dil == 'DE'
+                  ? 'Bittgebete durchsuchen (z.B. Rabbana, Heilung, Prüfung)...'
+                  : dil == 'FR'
+                      ? 'Rechercher une invocation (ex: Rabbana, Guérison, Examen)...'
+                      : dil == 'EN'
+                          ? 'Search Duas (e.g. Rabbana, Healing, Exam, Provision)...'
+                          : dil == 'AR'
+                              ? 'ابحث في الأدعية المأثورة والقرآنية...'
+                              : 'Dualar içinde ara (Örn: Rabbena, Şifa, Sınav, Rızık, İstiğfar)...',
               hintStyle: TextStyle(color: widget.ikincilYazi, fontSize: 12.5),
               prefixIcon: Icon(Icons.search_rounded, color: widget.vurguAltin),
               filled: true,
@@ -432,7 +1047,7 @@ class _DualarVeRabbenaListeWidgetState extends State<DualarVeRabbenaListeWidget>
               final secili = _seciliKategori == kat;
               return ChoiceChip(
                 label: Text(
-                  kat,
+                  kDuaKategoriEtiket(kat, dil),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -457,10 +1072,10 @@ class _DualarVeRabbenaListeWidgetState extends State<DualarVeRabbenaListeWidget>
             itemCount: filtrelenmis.length,
             itemBuilder: (context, idx) {
               final dua = filtrelenmis[idx];
-              final baslik = dil == 'EN' ? dua.baslikEn : dua.baslikTr;
-              final anlam = dil == 'EN' ? dua.anlamEn : dua.anlamTr;
-              final kaynak = dil == 'EN' ? dua.kaynakEn : dua.kaynakTr;
-              final kategori = dil == 'EN' ? dua.kategoriEn : dua.kategoriTr;
+              final baslik = dua.baslik(dil);
+              final anlam = dua.anlam(dil);
+              final kaynak = dua.kaynak(dil);
+              final kategori = dua.kategori(dil);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 14),

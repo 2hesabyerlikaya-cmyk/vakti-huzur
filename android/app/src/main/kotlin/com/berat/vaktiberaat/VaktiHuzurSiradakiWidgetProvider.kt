@@ -1,4 +1,4 @@
-package com.vaktihuzur.app
+package com.berat.vaktiberaat
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -22,7 +22,7 @@ class VaktiHuzurSiradakiWidgetProvider : HomeWidgetProvider() {
             val siradaki = widgetData.getString("widget_siradaki_vakit", "İkindi Vakti") ?: "İkindi Vakti"
             val kalan = widgetData.getString("widget_kalan_sure", "01s 24dk") ?: "01s 24dk"
 
-            views.setTextViewText(R.id.tv_siradaki_konum_hicri, "☪ Vakt-i Huzur • $konum")
+            views.setTextViewText(R.id.tv_siradaki_konum_hicri, "☪ Vakt-i Beraat • $konum")
             views.setTextViewText(R.id.tv_siradaki_ad, siradaki)
             views.setTextViewText(R.id.tv_siradaki_kalan, kalan)
 

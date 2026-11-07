@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.vaktihuzur.app"
+    namespace = "com.berat.vaktiberaat"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.vaktihuzur.app"
+        applicationId = "com.berat.vaktiberaat"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

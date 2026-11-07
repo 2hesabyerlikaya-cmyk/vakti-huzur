@@ -10,6 +10,7 @@ import 'prayer_location_calendar_service.dart';
 import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 import 'quran_api_service.dart';
 import 'quran_hadith_data.dart';
+import 'translations_and_logo.dart';
 
 // ============================================================================
 // 1. SESLİ KUR'AN-I KERİM DİNLEME SERVİSİ (ÇOKLU HAFIZ MP3 OYNATICI)
@@ -505,10 +506,10 @@ class _GunlukNamazTakipKartiState extends State<GunlukNamazTakipKarti> {
   }
 
   String _vakitBasligi(String key, String dil) {
-    if (dil == 'EN') {
+    if (dil == 'EN' || dil == 'DE' || dil == 'FR') {
       switch (key) {
         case 'sabah':
-          return 'Fajr';
+          return dil == 'DE' ? 'Fadschr' : 'Fajr';
         case 'ogle':
           return 'Dhuhr';
         case 'ikindi':
@@ -516,7 +517,7 @@ class _GunlukNamazTakipKartiState extends State<GunlukNamazTakipKarti> {
         case 'aksam':
           return 'Maghrib';
         case 'yatsi':
-          return 'Isha';
+          return dil == 'DE' ? 'Ischa' : 'Isha';
       }
     } else if (dil == 'AR') {
       switch (key) {
@@ -554,17 +555,23 @@ class _GunlukNamazTakipKartiState extends State<GunlukNamazTakipKarti> {
     final kilinanSayisi = _durum.values.where((v) => v).length;
     final yuzde = ((kilinanSayisi / 5) * 100).round();
 
-    final baslik = dil == 'EN'
-        ? 'My Daily Prayer Tracker'
-        : dil == 'AR'
-            ? 'جدول متابعة الصلوات اليومية'
-            : 'Günlük Namaz Takibim';
+    final baslik = Ceviri.sec(
+      dil,
+      tr: 'Günlük Namaz Takibim',
+      en: 'My Daily Prayer Tracker',
+      de: 'Tägliche Gebetsverfolgung',
+      fr: 'Suivi des Prières Quotidiennes',
+      ar: 'جدول متابعة الصلوات اليومية',
+    );
 
-    final durumMetni = dil == 'EN'
-        ? '%$yuzde - $kilinanSayisi/5 Prayers Completed'
-        : dil == 'AR'
-            ? '%$yuzde - تم أداء $kilinanSayisi/5 صلوات'
-            : '%$yuzde - $kilinanSayisi/5 Vakit Eda Edildi';
+    final durumMetni = Ceviri.sec(
+      dil,
+      tr: '%$yuzde - $kilinanSayisi/5 Vakit Eda Edildi',
+      en: '%$yuzde - $kilinanSayisi/5 Prayers Completed',
+      de: '%$yuzde - $kilinanSayisi/5 Gebete verrichtet',
+      fr: '%$yuzde - $kilinanSayisi/5 Prières accomplies',
+      ar: '%$yuzde - تم أداء $kilinanSayisi/5 صلوات',
+    );
 
     const anahtarlar = ['sabah', 'ogle', 'ikindi', 'aksam', 'yatsi'];
 
@@ -831,17 +838,59 @@ class KazaNamaziTakipKarti extends StatelessWidget {
   String _vakitAdi(String key) {
     switch (key) {
       case 'sabah':
-        return dil == 'EN' ? 'Fajr (Sabah)' : dil == 'AR' ? 'الفجر' : 'Sabah';
+        return Ceviri.sec(
+          dil,
+          tr: 'Sabah',
+          en: 'Fajr (Sabah)',
+          de: 'Fadschr (Morgengebet)',
+          fr: 'Fajr (Aube)',
+          ar: 'الفجر',
+        );
       case 'ogle':
-        return dil == 'EN' ? 'Dhuhr (Öğle)' : dil == 'AR' ? 'الظهر' : 'Öğle';
+        return Ceviri.sec(
+          dil,
+          tr: 'Öğle',
+          en: 'Dhuhr (Öğle)',
+          de: 'Dhuhr (Mittagsgebet)',
+          fr: 'Dhuhr (Midi)',
+          ar: 'الظهر',
+        );
       case 'ikindi':
-        return dil == 'EN' ? 'Asr (İkindi)' : dil == 'AR' ? 'العصر' : 'İkindi';
+        return Ceviri.sec(
+          dil,
+          tr: 'İkindi',
+          en: 'Asr (İkindi)',
+          de: 'Asr (Nachmittagsgebet)',
+          fr: 'Asr (Après-midi)',
+          ar: 'العصر',
+        );
       case 'aksam':
-        return dil == 'EN' ? 'Maghrib (Akşam)' : dil == 'AR' ? 'المغرب' : 'Akşam';
+        return Ceviri.sec(
+          dil,
+          tr: 'Akşam',
+          en: 'Maghrib (Akşam)',
+          de: 'Maghrib (Abendgebet)',
+          fr: 'Maghrib (Coucher)',
+          ar: 'المغرب',
+        );
       case 'yatsi':
-        return dil == 'EN' ? 'Isha (Yatsı)' : dil == 'AR' ? 'العشاء' : 'Yatsı';
+        return Ceviri.sec(
+          dil,
+          tr: 'Yatsı',
+          en: 'Isha (Yatsı)',
+          de: 'Ischa (Nachtgebet)',
+          fr: 'Isha (Nuit)',
+          ar: 'العشاء',
+        );
       case 'vitir':
-        return dil == 'EN' ? 'Witr (Vitir)' : dil == 'AR' ? 'الوتر' : 'Vitir';
+        return Ceviri.sec(
+          dil,
+          tr: 'Vitir',
+          en: 'Witr (Vitir)',
+          de: 'Witr-Gebet',
+          fr: 'Witr',
+          ar: 'الوتر',
+        );
       default:
         return key;
     }
@@ -885,11 +934,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  dil == 'EN'
-                      ? '$vakitBaslik Missed Prayer Count'
-                      : dil == 'AR'
-                          ? 'عدد قضاء صلاة $vakitBaslik'
-                          : '$vakitBaslik Kaza Sayısını Düzenle',
+                  Ceviri.sec(
+                    dil,
+                    tr: '$vakitBaslik Kaza Sayısını Düzenle',
+                    en: '$vakitBaslik Missed Prayer Count',
+                    de: '$vakitBaslik Nachholgebete bearbeiten',
+                    fr: 'Modifier le nombre de prières ($vakitBaslik)',
+                    ar: 'عدد قضاء صلاة $vakitBaslik',
+                  ),
                   style: TextStyle(
                     fontFamily: 'Lora',
                     color: yaziRengi,
@@ -905,11 +957,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                dil == 'EN'
-                    ? 'Enter total missed prayer count directly (e.g. 100 or 365):'
-                    : dil == 'AR'
-                        ? 'أدخل إجمالي عدد الصلوات الفائتة مباشرة (مثلاً ١٠٠ أو ٣٦٥):'
-                        : 'Toplu kaza namazı sayısını doğrudan yazabilir veya hızlı butonları kullanabilirsiniz (Örn: 100 veya 365):',
+                Ceviri.sec(
+                  dil,
+                  tr: 'Toplu kaza namazı sayısını doğrudan yazabilir veya hızlı butonları kullanabilirsiniz (Örn: 100 veya 365):',
+                  en: 'Enter total missed prayer count directly (e.g. 100 or 365):',
+                  de: 'Geben Sie die Gesamtzahl der nachzuholenden Gebete direkt ein (z. B. 100 oder 365):',
+                  fr: 'Saisissez directement le nombre total de prières manquées (ex. 100 ou 365) :',
+                  ar: 'أدخل إجمالي عدد الصلوات الفائتة مباشرة (مثلاً ١٠٠ أو ٣٦٥):',
+                ),
                 style: TextStyle(color: ikincilYazi, fontSize: 12.5, height: 1.4),
               ),
               const SizedBox(height: 14),
@@ -972,7 +1027,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
                     ),
                   ActionChip(
                     label: Text(
-                      dil == 'EN' ? 'Reset (0)' : dil == 'AR' ? 'تصفير (٠)' : 'Sıfırla (0)',
+                      Ceviri.sec(
+                        dil,
+                        tr: 'Sıfırla (0)',
+                        en: 'Reset (0)',
+                        de: 'Zurücksetzen (0)',
+                        fr: 'Réinitialiser (0)',
+                        ar: 'تصفير (٠)',
+                      ),
                       style: TextStyle(color: ikincilYazi, fontSize: 12),
                     ),
                     backgroundColor: arkaPlan.withValues(alpha: 0.4),
@@ -987,7 +1049,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text(
-                dil == 'EN' ? 'Cancel' : dil == 'AR' ? 'إلغاء' : 'İptal',
+                Ceviri.sec(
+                  dil,
+                  tr: 'İptal',
+                  en: 'Cancel',
+                  de: 'Abbrechen',
+                  fr: 'Annuler',
+                  ar: 'إلغاء',
+                ),
                 style: TextStyle(color: ikincilYazi),
               ),
             ),
@@ -1004,7 +1073,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
               },
               icon: const Icon(Icons.check_rounded, size: 18),
               label: Text(
-                dil == 'EN' ? 'Save' : dil == 'AR' ? 'حفظ' : 'Kaydet',
+                Ceviri.sec(
+                  dil,
+                  tr: 'Kaydet',
+                  en: 'Save',
+                  de: 'Speichern',
+                  fr: 'Enregistrer',
+                  ar: 'حفظ',
+                ),
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -1041,11 +1117,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            dil == 'EN'
-                                ? 'Missed Prayers Tracker (Qada)'
-                                : dil == 'AR'
-                                    ? 'جدول متابعة الصلوات الفائتة (القضاء)'
-                                    : 'Kaza Namazlarım (Çetele)',
+                            Ceviri.sec(
+                              dil,
+                              tr: 'Kaza Namazlarım (Çetele)',
+                              en: 'Missed Prayers Tracker (Qada)',
+                              de: 'Nachholgebete (Qada-Zähler)',
+                              fr: 'Suivi des Prières Manquées (Qada)',
+                              ar: 'جدول متابعة الصلوات الفائتة (القضاء)',
+                            ),
                             style: TextStyle(
                               fontFamily: 'Lora',
                               color: vurguAltin,
@@ -1065,11 +1144,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
                       border: Border.all(color: vurguAltin.withValues(alpha: 0.4)),
                     ),
                     child: Text(
-                      dil == 'EN'
-                          ? 'Total: $toplamKaza'
-                          : dil == 'AR'
-                              ? 'المجموع: $toplamKaza'
-                              : 'Toplam: $toplamKaza',
+                      Ceviri.sec(
+                        dil,
+                        tr: 'Toplam: $toplamKaza',
+                        en: 'Total: $toplamKaza',
+                        de: 'Gesamt: $toplamKaza',
+                        fr: 'Total : $toplamKaza',
+                        ar: 'المجموع: $toplamKaza',
+                      ),
                       style: TextStyle(
                         color: vurguAltin,
                         fontWeight: FontWeight.bold,
@@ -1081,11 +1163,14 @@ class KazaNamaziTakipKarti extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                dil == 'EN'
-                    ? 'Tap any number to enter a bulk count (e.g. 100 or 365) or use +/- buttons.'
-                    : dil == 'AR'
-                        ? 'اضغط على الرقم لإدخال عدد كبير مباشرة أو استخدم أزرار (+/-).'
-                        : 'Toplu sayı girmek için rakamın üzerine dokunun veya (+/-) butonlarıyla güncelleyin.',
+                Ceviri.sec(
+                  dil,
+                  tr: 'Toplu sayı girmek için rakamın üzerine dokunun veya (+/-) butonlarıyla güncelleyin.',
+                  en: 'Tap any number to enter a bulk count (e.g. 100 or 365) or use +/- buttons.',
+                  de: 'Tippen Sie auf eine Zahl für eine Direkteingabe oder nutzen Sie (+/-).',
+                  fr: 'Appuyez sur un nombre pour saisir un total ou utilisez les boutons (+/-).',
+                  ar: 'اضغط على الرقم لإدخال عدد كبير مباشرة أو استخدم أزرار (+/-).',
+                ),
                 style: TextStyle(color: ikincilYazi, fontSize: 11.5),
               ),
               const SizedBox(height: 12),
@@ -1696,13 +1781,65 @@ class BildirimAyarlariServisi {
       final konum = model.konumAdi;
 
       final vakitVerileri = <Map<String, String>>[
-        {'key': 'imsak', 'adTr': 'İmsak', 'adEn': 'Fajr (Imsak)', 'saat': model.imsak},
-        {'key': 'gunes', 'adTr': 'Güneş', 'adEn': 'Sunrise', 'saat': model.gunes},
-        {'key': 'ogle', 'adTr': 'Öğle', 'adEn': 'Dhuhr', 'saat': model.ogle},
-        {'key': 'ikindi', 'adTr': 'İkindi', 'adEn': 'Asr', 'saat': model.ikindi},
-        {'key': 'aksam', 'adTr': 'Akşam', 'adEn': 'Maghrib', 'saat': model.aksam},
-        {'key': 'yatsi', 'adTr': 'Yatsı', 'adEn': 'Isha', 'saat': model.yatsi},
+        {
+          'key': 'imsak',
+          'adTr': 'İmsak',
+          'adEn': 'Fajr (Imsak)',
+          'adDe': 'Fadschr (Imsak)',
+          'adFr': 'Fajr (Imsak)',
+          'saat': model.imsak,
+        },
+        {
+          'key': 'gunes',
+          'adTr': 'Güneş',
+          'adEn': 'Sunrise',
+          'adDe': 'Sonnenaufgang',
+          'adFr': 'Lever du soleil',
+          'saat': model.gunes,
+        },
+        {
+          'key': 'ogle',
+          'adTr': 'Öğle',
+          'adEn': 'Dhuhr',
+          'adDe': 'Dhuhr',
+          'adFr': 'Dhuhr',
+          'saat': model.ogle,
+        },
+        {
+          'key': 'ikindi',
+          'adTr': 'İkindi',
+          'adEn': 'Asr',
+          'adDe': 'Asr',
+          'adFr': 'Asr',
+          'saat': model.ikindi,
+        },
+        {
+          'key': 'aksam',
+          'adTr': 'Akşam',
+          'adEn': 'Maghrib',
+          'adDe': 'Maghrib',
+          'adFr': 'Maghrib',
+          'saat': model.aksam,
+        },
+        {
+          'key': 'yatsi',
+          'adTr': 'Yatsı',
+          'adEn': 'Isha',
+          'adDe': 'Ischa',
+          'adFr': 'Isha',
+          'saat': model.yatsi,
+        },
       ];
+
+      String vakitAdiSec(Map<String, String> v) {
+        return Ceviri.sec(
+          dil,
+          tr: v['adTr']!,
+          en: v['adEn']!,
+          de: v['adDe']!,
+          fr: v['adFr']!,
+        );
+      }
 
       (int, int)? saatParcala(String s) {
         final temiz = s.split(' ').first.trim();
@@ -1761,7 +1898,7 @@ class BildirimAyarlariServisi {
       for (int i = 0; i < vakitVerileri.length; i++) {
         final v = vakitVerileri[i];
         final key = v['key']!;
-        final ad = dil == 'EN' ? v['adEn']! : v['adTr']!;
+        final ad = vakitAdiSec(v);
         final saatStr = v['saat']!;
         final hm = saatParcala(saatStr);
         if (hm == null) continue;
@@ -1772,12 +1909,20 @@ class BildirimAyarlariServisi {
           final tamDetay = _sesModunaGoreDetayOlustur(sesModu);
           final zaman = gelecekZamanOlustur(hm.$1, hm.$2);
           final ezanEtiketi = sesModu == 'ezan' ? '🔊 ' : '';
-          final baslik = dil == 'EN'
-              ? '$ezanEtiketi🕌 $konum • $ad Time ($saatStr)'
-              : '$ezanEtiketi🕌 $konum • $ad Vakti Girdi ($saatStr)';
-          final icerik = dil == 'EN'
-              ? '$ad time has entered for $konum. Hayya alas-salah!'
-              : '$konum için $ad vakti girdi ($saatStr). Hayye ale’s-salâh, Hayye ale’l-felâh!';
+          final baslik = Ceviri.sec(
+            dil,
+            tr: '$ezanEtiketi🕌 $konum • $ad Vakti Girdi ($saatStr)',
+            en: '$ezanEtiketi🕌 $konum • $ad Time ($saatStr)',
+            de: '$ezanEtiketi🕌 $konum • $ad-Gebetszeit ($saatStr)',
+            fr: '$ezanEtiketi🕌 $konum • Heure de $ad ($saatStr)',
+          );
+          final icerik = Ceviri.sec(
+            dil,
+            tr: '$konum için $ad vakti girdi ($saatStr). Hayye ale’s-salâh, Hayye ale’l-felâh!',
+            en: '$ad time has entered for $konum. Hayya alas-salah!',
+            de: 'Die Gebetszeit für $ad in $konum hat begonnen ($saatStr). Hayya alas-salah!',
+            fr: 'L’heure de la prière de $ad est entrée pour $konum ($saatStr). Hayya alas-salah !',
+          );
           await guvenliZamanla(
             id: 100 + i,
             baslik: baslik,
@@ -1805,13 +1950,21 @@ class BildirimAyarlariServisi {
             if (uyariZaman.isBefore(simdi)) {
               uyariZaman = uyariZaman.add(const Duration(days: 1));
             }
-            final sonrakiAd = dil == 'EN' ? sonrakiV['adEn']! : sonrakiV['adTr']!;
-            final baslik = dil == 'EN'
-                ? '⏳ $konum • $ad Time Ending Soon'
-                : '⏳ $konum • $ad Vakti Çıkmak Üzere';
-            final icerik = dil == 'EN'
-                ? '25 minutes remaining until $sonrakiAd (${sonrakiV['saat']}). Remember to complete your $ad prayer.'
-                : '$sonrakiAd vaktine (${sonrakiV['saat']}) 25 dakika kaldı. $ad vaktini çıkmadan eda etmeyi unutmayın.';
+            final sonrakiAd = vakitAdiSec(sonrakiV);
+            final baslik = Ceviri.sec(
+              dil,
+              tr: '⏳ $konum • $ad Vakti Çıkmak Üzere',
+              en: '⏳ $konum • $ad Time Ending Soon',
+              de: '⏳ $konum • $ad-Zeit endet bald',
+              fr: '⏳ $konum • Fin proche de l’heure de $ad',
+            );
+            final icerik = Ceviri.sec(
+              dil,
+              tr: '$sonrakiAd vaktine (${sonrakiV['saat']}) 25 dakika kaldı. $ad vaktini çıkmadan eda etmeyi unutmayın.',
+              en: '25 minutes remaining until $sonrakiAd (${sonrakiV['saat']}). Remember to complete your $ad prayer.',
+              de: 'Noch 25 Minuten bis $sonrakiAd (${sonrakiV['saat']}). Vergessen Sie nicht, das $ad-Gebet rechtzeitig zu verrichten.',
+              fr: 'Il reste 25 minutes avant $sonrakiAd (${sonrakiV['saat']}). N’oubliez pas d’accomplir votre prière de $ad.',
+            );
             await guvenliZamanla(
               id: 200 + i,
               baslik: baslik,
@@ -1828,12 +1981,20 @@ class BildirimAyarlariServisi {
         final ayetZaman = gelecekZamanOlustur(10, 0);
         await guvenliZamanla(
           id: 300,
-          baslik: dil == 'EN'
-              ? '✨ Vakt-i Huzur • Verse & Hadith of the Day'
-              : '✨ Vakt-i Huzur • Günün Ayeti ve Hadis-i Şerifi',
-          icerik: dil == 'EN'
-              ? '“Verily, in the remembrance of Allah do hearts find rest.” (Surah Ar-Ra’d, 28)'
-              : '“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.” (Ra’d Suresi, 28. Ayet)',
+          baslik: Ceviri.sec(
+            dil,
+            tr: '✨ Vakt-i Beraat • Günün Ayeti ve Hadis-i Şerifi',
+            en: '✨ Vakt-i Beraat • Verse & Hadith of the Day',
+            de: '✨ Vakt-i Beraat • Vers & Hadith des Tages',
+            fr: '✨ Vakt-i Beraat • Verset & Hadith du Jour',
+          ),
+          icerik: Ceviri.sec(
+            dil,
+            tr: '“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.” (Ra’d Suresi, 28. Ayet)',
+            en: '“Verily, in the remembrance of Allah do hearts find rest.” (Surah Ar-Ra’d, 28)',
+            de: '„Wahrlich, im Gedenken Allahs finden die Herzen Ruhe.“ (Sure Ar-Ra’d, Vers 28)',
+            fr: '« N’est-ce point par l’évocation d’Allah que se tranquillisent les cœurs ? » (Sourate Ar-Ra’d, 28)',
+          ),
           zaman: ayetZaman,
           detay: _sesModunaGoreDetayOlustur('kisa'),
         );
@@ -1884,12 +2045,20 @@ class BildirimAyarlariServisi {
       final ezanDetay = _sesModunaGoreDetayOlustur('ezan');
       final hedefZaman = tz.TZDateTime.now(tz.local).add(const Duration(seconds: 5));
 
-      final baslik = dil == 'EN'
-          ? '🔊🕌 $konumAdi • $siradakiVakitAdi Time ($siradakiVakitSaat)'
-          : '🔊🕌 $konumAdi • $siradakiVakitAdi Vakti Girdi ($siradakiVakitSaat)';
-      final icerik = dil == 'EN'
-          ? 'Live Adhan Notification Test (adhan.wav / vakti_huzur_ezan_v2). Hayya alas-salah!'
-          : 'Gerçek Ezan Sesli Bildirim Testi! Hayye ale’s-salâh, Hayye ale’l-felâh!';
+      final baslik = Ceviri.sec(
+        dil,
+        tr: '🔊🕌 $konumAdi • $siradakiVakitAdi Vakti Girdi ($siradakiVakitSaat)',
+        en: '🔊🕌 $konumAdi • $siradakiVakitAdi Time ($siradakiVakitSaat)',
+        de: '🔊🕌 $konumAdi • $siradakiVakitAdi-Gebetszeit ($siradakiVakitSaat)',
+        fr: '🔊🕌 $konumAdi • Heure de $siradakiVakitAdi ($siradakiVakitSaat)',
+      );
+      final icerik = Ceviri.sec(
+        dil,
+        tr: 'Gerçek Ezan Sesli Bildirim Testi! Hayye ale’s-salâh, Hayye ale’l-felâh!',
+        en: 'Live Adhan Notification Test. Hayya alas-salah!',
+        de: 'Live-Adhan-Benachrichtigungstest! Hayya alas-salah!',
+        fr: 'Test de notification Adhan en direct ! Hayya alas-salah !',
+      );
 
       await _plugin.cancel(id: 998);
       try {
@@ -1938,14 +2107,31 @@ class BildirimAyarlariServisi {
   }
 
   static String _sesModuEtiketi(String mod, String dil) {
-    if (dil == 'EN') {
-      if (mod == 'ezan') return '🔊 Full Adhan';
-      if (mod == 'kisa') return '🔔 Short Tone';
-      return '🔕 Silent';
+    if (mod == 'ezan') {
+      return Ceviri.sec(
+        dil,
+        tr: '🔊 Tam Ezan Sesi',
+        en: '🔊 Full Adhan',
+        de: '🔊 Voller Adhan',
+        fr: '🔊 Adhan Complet',
+      );
     }
-    if (mod == 'ezan') return '🔊 Tam Ezan Sesi';
-    if (mod == 'kisa') return '🔔 Kısa Uyarı Sesi';
-    return '🔕 Sessiz';
+    if (mod == 'kisa') {
+      return Ceviri.sec(
+        dil,
+        tr: '🔔 Kısa Uyarı Sesi',
+        en: '🔔 Short Tone',
+        de: '🔔 Kurzer Ton',
+        fr: '🔔 Alerte Courte',
+      );
+    }
+    return Ceviri.sec(
+      dil,
+      tr: '🔕 Sessiz',
+      en: '🔕 Silent',
+      de: '🔕 Lautlos',
+      fr: '🔕 Silencieux',
+    );
   }
 
   static void panelGoster(
@@ -1969,37 +2155,37 @@ class BildirimAyarlariServisi {
     final vakitSatirlari = [
       {
         'key': 'imsak',
-        'ad': dil == 'EN' ? 'Fajr (Imsak)' : dil == 'AR' ? 'الفجر (الإمساك)' : 'İmsak',
+        'ad': Ceviri.m(dil, 'imsak'),
         'saat': kayitliVakit?.imsak ?? '06:05',
         'ikon': Icons.nightlight_outlined,
       },
       {
         'key': 'gunes',
-        'ad': dil == 'EN' ? 'Sunrise' : dil == 'AR' ? 'الشروق' : 'Güneş',
+        'ad': Ceviri.m(dil, 'gunes'),
         'saat': kayitliVakit?.gunes ?? '07:31',
         'ikon': Icons.wb_twilight_rounded,
       },
       {
         'key': 'ogle',
-        'ad': dil == 'EN' ? 'Dhuhr' : dil == 'AR' ? 'الظهر' : 'Öğle',
+        'ad': Ceviri.m(dil, 'ogle'),
         'saat': kayitliVakit?.ogle ?? '12:53',
         'ikon': Icons.wb_sunny_outlined,
       },
       {
         'key': 'ikindi',
-        'ad': dil == 'EN' ? 'Asr' : dil == 'AR' ? 'العصر' : 'İkindi',
+        'ad': Ceviri.m(dil, 'ikindi'),
         'saat': kayitliVakit?.ikindi ?? '15:38',
         'ikon': Icons.sunny_snowing,
       },
       {
         'key': 'aksam',
-        'ad': dil == 'EN' ? 'Maghrib' : dil == 'AR' ? 'المغرب' : 'Akşam',
+        'ad': Ceviri.m(dil, 'aksam'),
         'saat': kayitliVakit?.aksam ?? '18:04',
         'ikon': Icons.nights_stay_outlined,
       },
       {
         'key': 'yatsi',
-        'ad': dil == 'EN' ? 'Isha' : dil == 'AR' ? 'العشاء' : 'Yatsı',
+        'ad': Ceviri.m(dil, 'yatsi'),
         'saat': kayitliVakit?.yatsi ?? '19:25',
         'ikon': Icons.bedtime_outlined,
       },
@@ -2059,9 +2245,13 @@ class BildirimAyarlariServisi {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  dil == 'EN'
-                                      ? 'Adhan Sound & Notification Settings'
-                                      : 'Ezan Sesli Bildirim Ayarları',
+                                  Ceviri.sec(
+                                    dil,
+                                    tr: 'Ezan Sesli Bildirim Ayarları',
+                                    en: 'Adhan Sound & Notification Settings',
+                                    de: 'Adhan-Ton & Benachrichtigungen',
+                                    fr: 'Paramètres Adhan & Notifications',
+                                  ),
                                   style: TextStyle(
                                     fontFamily: 'Lora',
                                     fontSize: 16.5,
@@ -2070,7 +2260,13 @@ class BildirimAyarlariServisi {
                                   ),
                                 ),
                                 Text(
-                                  '$aktifKonum • 🔊 Bildirimde Ezan Oku (Sesli Ezan)',
+                                  Ceviri.sec(
+                                    dil,
+                                    tr: '$aktifKonum • 🔊 Bildirimde Ezan Oku (Sesli Ezan)',
+                                    en: '$aktifKonum • 🔊 Play Adhan on Notification',
+                                    de: '$aktifKonum • 🔊 Adhan bei Gebetszeit abspielen',
+                                    fr: '$aktifKonum • 🔊 Lire l’Adhan lors de la notification',
+                                  ),
                                   style: TextStyle(color: vurguAltin, fontSize: 11.5, fontWeight: FontWeight.w600),
                                 ),
                               ],
@@ -2104,9 +2300,13 @@ class BildirimAyarlariServisi {
                                 const SizedBox(width: 6),
                                 Expanded(
                                   child: Text(
-                                    dil == 'EN'
-                                        ? '🔊 Play Adhan on Notification (Sound Mode):'
-                                        : '🔊 Bildirimde Ezan Oku (Genel Ses Seçimi):',
+                                    Ceviri.sec(
+                                      dil,
+                                      tr: '🔊 Bildirimde Ezan Oku (Genel Ses Seçimi):',
+                                      en: '🔊 Play Adhan on Notification (Sound Mode):',
+                                      de: '🔊 Adhan bei Benachrichtigung (Tonmodus):',
+                                      fr: '🔊 Lire l’Adhan (Mode sonore général) :',
+                                    ),
                                     style: TextStyle(
                                       color: yumusakAltin,
                                       fontWeight: FontWeight.bold,
@@ -2119,7 +2319,7 @@ class BildirimAyarlariServisi {
                                   onTap: () {
                                     HapticFeedback.lightImpact();
                                     bildirimSesiCalBridge(
-                                      'Vakt-i Huzur Ezan Sesi',
+                                      'Vakt-i Beraat Ezan Sesi',
                                       'Ezan sesi önizlemesi',
                                       sesModu: ayar.genelSesModu == 'sessiz' ? 'ezan' : ayar.genelSesModu,
                                     );
@@ -2137,7 +2337,13 @@ class BildirimAyarlariServisi {
                                         Icon(Icons.play_arrow_rounded, size: 14, color: vurguAltin),
                                         const SizedBox(width: 3),
                                         Text(
-                                          dil == 'EN' ? 'Listen' : 'Ezanı Dinle',
+                                          Ceviri.sec(
+                                            dil,
+                                            tr: 'Ezanı Dinle',
+                                            en: 'Listen',
+                                            de: 'Anhören',
+                                            fr: 'Écouter',
+                                          ),
                                           style: TextStyle(
                                             color: vurguAltin,
                                             fontSize: 10.5,
@@ -2165,7 +2371,7 @@ class BildirimAyarlariServisi {
                                           guncelle(yeniAyar, vakitModel: kayitliVakit, dil: dil);
                                           if (mod != 'sessiz') {
                                             bildirimSesiCalBridge(
-                                              'Vakt-i Huzur',
+                                              'Vakt-i Beraat',
                                               'Ses Önizleme',
                                               sesModu: mod,
                                             );
@@ -2221,7 +2427,13 @@ class BildirimAyarlariServisi {
                             Expanded(
                               flex: 6,
                               child: Text(
-                                dil == 'EN' ? 'Prayer & Sound Mode' : 'Vakit & Ses Seçimi',
+                                Ceviri.sec(
+                                  dil,
+                                  tr: 'Vakit & Ses Seçimi',
+                                  en: 'Prayer & Sound Mode',
+                                  de: 'Gebet & Tonmodus',
+                                  fr: 'Prière & Mode Sonore',
+                                ),
                                 style: TextStyle(
                                   color: vurguAltin,
                                   fontWeight: FontWeight.bold,
@@ -2232,7 +2444,13 @@ class BildirimAyarlariServisi {
                             Expanded(
                               flex: 3,
                               child: Text(
-                                dil == 'EN' ? 'On Time' : 'Vaktinde',
+                                Ceviri.sec(
+                                  dil,
+                                  tr: 'Vaktinde',
+                                  en: 'On Time',
+                                  de: 'Pünktlich',
+                                  fr: 'À l’heure',
+                                ),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: vurguAltin,
@@ -2244,7 +2462,13 @@ class BildirimAyarlariServisi {
                             Expanded(
                               flex: 3,
                               child: Text(
-                                dil == 'EN' ? 'Before End' : 'Çıkmadan',
+                                Ceviri.sec(
+                                  dil,
+                                  tr: 'Çıkmadan',
+                                  en: 'Before End',
+                                  de: 'Vor Ende',
+                                  fr: 'Avant la fin',
+                                ),
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: vurguAltin,
@@ -2298,12 +2522,15 @@ class BildirimAyarlariServisi {
                                               children: [
                                                 Row(
                                                   children: [
-                                                    Text(
-                                                      ad,
-                                                      style: TextStyle(
-                                                        color: yaziRengi,
-                                                        fontWeight: FontWeight.bold,
-                                                        fontSize: 13,
+                                                    Flexible(
+                                                      child: Text(
+                                                        ad,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: TextStyle(
+                                                          color: yaziRengi,
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 13,
+                                                        ),
                                                       ),
                                                     ),
                                                     const SizedBox(width: 6),
@@ -2431,9 +2658,13 @@ class BildirimAyarlariServisi {
                                   size: 20,
                                 ),
                                 title: Text(
-                                  dil == 'EN'
-                                      ? 'Daily Verse & Hadith Notification'
-                                      : 'Günün Ayeti & Hadisi Bildirimi',
+                                  Ceviri.sec(
+                                    dil,
+                                    tr: 'Günün Ayeti & Hadisi Bildirimi',
+                                    en: 'Daily Verse & Hadith Notification',
+                                    de: 'Tägliche Vers- & Hadith-Benachrichtigung',
+                                    fr: 'Notification Quotidienne Verset & Hadith',
+                                  ),
                                   style: TextStyle(
                                     color: yaziRengi,
                                     fontWeight: FontWeight.bold,
@@ -2441,9 +2672,13 @@ class BildirimAyarlariServisi {
                                   ),
                                 ),
                                 subtitle: Text(
-                                  dil == 'EN'
-                                      ? 'Daily inspiring Qur’an verse and Sahih Hadith at 10:00'
-                                      : 'Her gün saat 10:00’da seçkin bir ayet ve hadis bildirimi',
+                                  Ceviri.sec(
+                                    dil,
+                                    tr: 'Her gün saat 10:00’da seçkin bir ayet ve hadis bildirimi',
+                                    en: 'Daily inspiring Qur’an verse and Sahih Hadith at 10:00',
+                                    de: 'Täglich um 10:00 Uhr ein inspirierender Koranvers und Sahih-Hadith',
+                                    fr: 'Chaque jour à 10h00, un verset du Coran et un hadith authentique',
+                                  ),
                                   style: TextStyle(color: ikincilYazi, fontSize: 11),
                                 ),
                                 value: ayar.gununAyetiBildirimi,
@@ -2505,9 +2740,13 @@ class BildirimAyarlariServisi {
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
-                                      dil == 'EN'
-                                          ? '⏳ Adhan notification scheduled in 5 seconds! Lock screen or wait to hear the Adhan.'
-                                          : '⏳ 5 saniye sonra gerçek Ezan Sesli Bildirim düşecek! (Ekranı kilitleyebilir veya bekleyebilirsiniz)',
+                                      Ceviri.sec(
+                                        dil,
+                                        tr: '⏳ 5 saniye sonra gerçek Ezan Sesli Bildirim düşecek! (Ekranı kilitleyebilir veya bekleyebilirsiniz)',
+                                        en: '⏳ Adhan notification scheduled in 5 seconds! Lock screen or wait to hear the Adhan.',
+                                        de: '⏳ Adhan-Benachrichtigung in 5 Sekunden geplant! Sperren Sie den Bildschirm oder warten Sie.',
+                                        fr: '⏳ Notification Adhan programmée dans 5 secondes ! Verrouillez l’écran ou patientez.',
+                                      ),
                                       style: TextStyle(
                                         color: yaziRengi,
                                         fontWeight: FontWeight.w600,
@@ -2522,9 +2761,13 @@ class BildirimAyarlariServisi {
                         },
                         icon: const Icon(Icons.volume_up_rounded, size: 19),
                         label: Text(
-                          dil == 'EN'
-                              ? '🔊 Ezan Bildirimini Şimdi Test Et (5 sn sonra)'
-                              : '🔊 Ezan Bildirimini Şimdi Test Et (5 sn sonra)',
+                          Ceviri.sec(
+                            dil,
+                            tr: '🔊 Ezan Bildirimini Şimdi Test Et (5 sn sonra)',
+                            en: '🔊 Test Adhan Notification Now (in 5s)',
+                            de: '🔊 Adhan-Benachrichtigung jetzt testen (in 5 Sek.)',
+                            fr: '🔊 Tester la notification Adhan (dans 5 s)',
+                          ),
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       ),

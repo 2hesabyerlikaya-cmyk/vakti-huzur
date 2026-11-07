@@ -18,7 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="✨ Vakt-i Huzur • Günün Ayeti &amp; Hadisi"
+            android:text="✨ Vakt-i Beraat • Günün Ayeti &amp; Hadisi"
             android:textColor="#D9B650"
             android:textSize="11.5sp"
             android:textStyle="bold" />

@@ -1,4 +1,4 @@
-package com.vaktihuzur.app
+package com.berat.vaktiberaat
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

@@ -1,4 +1,4 @@
-package com.vaktihuzur.app
+package com.berat.vaktiberaat
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -20,8 +20,8 @@ class VaktiHuzurHadisWidgetProvider : HomeWidgetProvider() {
 
             val baslik = widgetData.getString(
                 "widget_hadis_baslik",
-                "☪ Vakt-i Huzur • Günün Hadisi"
-            ) ?: "☪ Vakt-i Huzur • Günün Hadisi"
+                "☪ Vakt-i Beraat • Günün Hadisi"
+            ) ?: "☪ Vakt-i Beraat • Günün Hadisi"
             val arapca = widgetData.getString(
                 "widget_hadis_arapca",
                 "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ"

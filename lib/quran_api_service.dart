@@ -15,6 +15,8 @@ class CanliAyetModel {
   final String arapca;
   final String mealTr;
   final String mealEn;
+  final String mealDe;
+  final String mealFr;
   final int cuz;
   final int sayfa;
 
@@ -24,9 +26,19 @@ class CanliAyetModel {
     required this.arapca,
     required this.mealTr,
     required this.mealEn,
+    this.mealDe = '',
+    this.mealFr = '',
     required this.cuz,
     required this.sayfa,
   });
+
+  String mealGetir(String dil) {
+    if (dil == 'DE' && mealDe.isNotEmpty) return mealDe;
+    if (dil == 'FR' && mealFr.isNotEmpty) return mealFr;
+    if (dil == 'EN') return mealEn;
+    if (dil == 'AR') return arapca;
+    return mealTr;
+  }
 
   Map<String, dynamic> toJson() => {
         'ayetNo': ayetNo,
@@ -34,6 +46,8 @@ class CanliAyetModel {
         'arapca': arapca,
         'mealTr': mealTr,
         'mealEn': mealEn,
+        'mealDe': mealDe,
+        'mealFr': mealFr,
         'cuz': cuz,
         'sayfa': sayfa,
       };
@@ -45,6 +59,8 @@ class CanliAyetModel {
       arapca: m['arapca']?.toString() ?? '',
       mealTr: m['mealTr']?.toString() ?? '',
       mealEn: m['mealEn']?.toString() ?? '',
+      mealDe: m['mealDe']?.toString() ?? '',
+      mealFr: m['mealFr']?.toString() ?? '',
       cuz: (m['cuz'] as num?)?.toInt() ?? 1,
       sayfa: (m['sayfa'] as num?)?.toInt() ?? 1,
     );
@@ -58,14 +74,24 @@ class DinamikReelsKart {
   final String arapcaMetin;
   final String konuTr;
   final String konuEn;
+  final String konuDe;
+  final String konuFr;
   final String mealTr;
   final String mealEn;
+  final String mealDe;
+  final String mealFr;
   final String kaynakKisaTr;
   final String kaynakKisaEn;
+  final String kaynakKisaDe;
+  final String kaynakKisaFr;
   final String dogrulanmisTr;
   final String dogrulanmisEn;
+  final String dogrulanmisDe;
+  final String dogrulanmisFr;
   final String tefsirTr;
   final String tefsirEn;
+  final String tefsirDe;
+  final String tefsirFr;
   final List<Color> arkaPlanRenkleri;
   final int desenIndex;
   int begeniSayisi;
@@ -79,14 +105,24 @@ class DinamikReelsKart {
     required this.arapcaMetin,
     required this.konuTr,
     required this.konuEn,
+    this.konuDe = '',
+    this.konuFr = '',
     required this.mealTr,
     required this.mealEn,
+    this.mealDe = '',
+    this.mealFr = '',
     required this.kaynakKisaTr,
     required this.kaynakKisaEn,
+    this.kaynakKisaDe = '',
+    this.kaynakKisaFr = '',
     required this.dogrulanmisTr,
     required this.dogrulanmisEn,
+    this.dogrulanmisDe = '',
+    this.dogrulanmisFr = '',
     required this.tefsirTr,
     required this.tefsirEn,
+    this.tefsirDe = '',
+    this.tefsirFr = '',
     required this.arkaPlanRenkleri,
     required this.desenIndex,
     this.begeniSayisi = 0,
@@ -95,16 +131,42 @@ class DinamikReelsKart {
   });
 
   String turBasligi(String dil) {
+    if (dil == 'DE') return ayetMi ? 'Edler Koranvers' : 'Prophetischer Hadith';
+    if (dil == 'FR') return ayetMi ? 'Noble Verset du Coran' : 'Hadith Prophétique';
     if (dil == 'EN') return ayetMi ? 'Holy Qur’an Verse' : 'Prophetic Hadith';
     if (dil == 'AR') return ayetMi ? 'آية كريمة' : 'حديث شريف';
     return ayetMi ? 'Ayet-i Kerime' : 'Hadis-i Şerif';
   }
 
-  String konu(String dil) => dil == 'EN' ? konuEn : konuTr;
-  String meal(String dil) => dil == 'EN' ? mealEn : (dil == 'AR' ? arapcaMetin : mealTr);
-  String kaynakKisa(String dil) => dil == 'EN' ? kaynakKisaEn : kaynakKisaTr;
-  String dogrulanmis(String dil) => dil == 'EN' ? dogrulanmisEn : dogrulanmisTr;
-  String tefsir(String dil) => dil == 'EN' ? tefsirEn : tefsirTr;
+  String konu(String dil) {
+    if (dil == 'DE') return konuDe.isNotEmpty ? konuDe : konuEn;
+    if (dil == 'FR') return konuFr.isNotEmpty ? konuFr : konuEn;
+    return dil == 'EN' ? konuEn : konuTr;
+  }
+
+  String meal(String dil) {
+    if (dil == 'DE') return mealDe.isNotEmpty ? mealDe : mealEn;
+    if (dil == 'FR') return mealFr.isNotEmpty ? mealFr : mealEn;
+    return dil == 'EN' ? mealEn : (dil == 'AR' ? arapcaMetin : mealTr);
+  }
+
+  String kaynakKisa(String dil) {
+    if (dil == 'DE') return kaynakKisaDe.isNotEmpty ? kaynakKisaDe : kaynakKisaEn;
+    if (dil == 'FR') return kaynakKisaFr.isNotEmpty ? kaynakKisaFr : kaynakKisaEn;
+    return dil == 'EN' ? kaynakKisaEn : kaynakKisaTr;
+  }
+
+  String dogrulanmis(String dil) {
+    if (dil == 'DE') return dogrulanmisDe.isNotEmpty ? dogrulanmisDe : dogrulanmisEn;
+    if (dil == 'FR') return dogrulanmisFr.isNotEmpty ? dogrulanmisFr : dogrulanmisEn;
+    return dil == 'EN' ? dogrulanmisEn : dogrulanmisTr;
+  }
+
+  String tefsir(String dil) {
+    if (dil == 'DE') return tefsirDe.isNotEmpty ? tefsirDe : tefsirEn;
+    if (dil == 'FR') return tefsirFr.isNotEmpty ? tefsirFr : tefsirEn;
+    return dil == 'EN' ? tefsirEn : tefsirTr;
+  }
 }
 
 // ============================================================================
@@ -170,6 +232,8 @@ class KuranApiServisi {
               arapca: besmeleTemizle(hamArapca, sureNo, ayetNo),
               mealTr: m['mealTr']?.toString() ?? '',
               mealEn: m['mealEn']?.toString() ?? '',
+              mealDe: m['mealDe']?.toString() ?? '',
+              mealFr: m['mealFr']?.toString() ?? '',
               cuz: (m['cuz'] as num?)?.toInt() ?? 1,
               sayfa: (m['sayfa'] as num?)?.toInt() ?? 1,
             ),
@@ -184,7 +248,7 @@ class KuranApiServisi {
 
     // 2. Cihaz hafızasındaki (localStorage) önbelleği kontrol et
     try {
-      final kayitliRaw = web.window.localStorage.getItem('nur_huzur_sure_cache_v1_$sureNo');
+      final kayitliRaw = web.window.localStorage.getItem('nur_huzur_sure_cache_v2_$sureNo');
       if (kayitliRaw != null && kayitliRaw.isNotEmpty) {
         final decodedList = jsonDecode(kayitliRaw) as List<dynamic>;
         final kayitliAyetler = decodedList
@@ -197,9 +261,9 @@ class KuranApiServisi {
       }
     } catch (_) {}
 
-    // 3. Çevrimiçi API üzerinden çek
+    // 3. Çevrimiçi API üzerinden çek (Arapça + Türkçe Diyanet + İngilizce Sahih + Almanca Bubenheim + Fransızca Hamidullah)
     final url = Uri.parse(
-      'https://api.alquran.cloud/v1/surah/$sureNo/editions/quran-uthmani,tr.diyanet,en.sahih',
+      'https://api.alquran.cloud/v1/surah/$sureNo/editions/quran-uthmani,tr.diyanet,en.sahih,de.bubenheim,fr.hamidullah',
     );
 
     try {
@@ -211,12 +275,20 @@ class KuranApiServisi {
           final arAyahs = (dataList[0] as Map<String, dynamic>)['ayahs'] as List<dynamic>;
           final trAyahs = (dataList[1] as Map<String, dynamic>)['ayahs'] as List<dynamic>;
           final enAyahs = (dataList[2] as Map<String, dynamic>)['ayahs'] as List<dynamic>;
+          final deAyahs = dataList.length > 3
+              ? ((dataList[3] as Map<String, dynamic>)['ayahs'] as List<dynamic>)
+              : enAyahs;
+          final frAyahs = dataList.length > 4
+              ? ((dataList[4] as Map<String, dynamic>)['ayahs'] as List<dynamic>)
+              : enAyahs;
 
           final List<CanliAyetModel> sonuc = [];
           for (int i = 0; i < arAyahs.length; i++) {
             final ar = arAyahs[i] as Map<String, dynamic>;
             final tr = i < trAyahs.length ? trAyahs[i] as Map<String, dynamic> : ar;
             final en = i < enAyahs.length ? enAyahs[i] as Map<String, dynamic> : ar;
+            final de = i < deAyahs.length ? deAyahs[i] as Map<String, dynamic> : en;
+            final fr = i < frAyahs.length ? frAyahs[i] as Map<String, dynamic> : en;
             final ayetNo = (ar['numberInSurah'] as num).toInt();
             final hamArapca = (ar['text'] as String).trim();
 
@@ -227,6 +299,8 @@ class KuranApiServisi {
                 arapca: besmeleTemizle(hamArapca, sureNo, ayetNo),
                 mealTr: (tr['text'] as String).trim(),
                 mealEn: (en['text'] as String).trim(),
+                mealDe: (de['text'] as String).trim(),
+                mealFr: (fr['text'] as String).trim(),
                 cuz: (ar['juz'] as num?)?.toInt() ?? 1,
                 sayfa: (ar['page'] as num?)?.toInt() ?? 1,
               ),
@@ -236,7 +310,7 @@ class KuranApiServisi {
           _sureOnbellek[sureNo] = sonuc;
           try {
             web.window.localStorage.setItem(
-              'nur_huzur_sure_cache_v1_$sureNo',
+              'nur_huzur_sure_cache_v2_$sureNo',
               jsonEncode(sonuc.map((a) => a.toJson()).toList()),
             );
           } catch (_) {}
@@ -252,7 +326,7 @@ class KuranApiServisi {
   static Future<DinamikReelsKart?> canliAyetReelsKartiGetir(int globalAyetNo, int siraIndex) async {
     final gecerliNo = ((globalAyetNo - 1) % 6236) + 1;
     final url = Uri.parse(
-      'https://api.alquran.cloud/v1/ayah/$gecerliNo/editions/quran-uthmani,tr.diyanet,en.sahih',
+      'https://api.alquran.cloud/v1/ayah/$gecerliNo/editions/quran-uthmani,tr.diyanet,en.sahih,de.bubenheim,fr.hamidullah',
     );
 
     try {
@@ -264,6 +338,8 @@ class KuranApiServisi {
           final ar = dataList[0] as Map<String, dynamic>;
           final tr = dataList[1] as Map<String, dynamic>;
           final en = dataList[2] as Map<String, dynamic>;
+          final de = dataList.length > 3 ? dataList[3] as Map<String, dynamic> : en;
+          final fr = dataList.length > 4 ? dataList[4] as Map<String, dynamic> : en;
 
           final surahObj = ar['surah'] as Map<String, dynamic>;
           final sureNo = (surahObj['number'] as num).toInt();
@@ -282,18 +358,32 @@ class KuranApiServisi {
             arapcaMetin: temizArapca,
             konuTr: '${sureMeta.adTr} Suresi (${sureMeta.anlamTr}) • $cuzNo. Cüz',
             konuEn: 'Surah ${sureMeta.adEn} (${sureMeta.anlamEn}) • Juz $cuzNo',
+            konuDe: 'Sure ${sureMeta.adEn} • Dschuz $cuzNo',
+            konuFr: 'Sourate ${sureMeta.adEn} • Juz $cuzNo',
             mealTr: '“${(tr['text'] as String).trim()}”',
             mealEn: '“${(en['text'] as String).trim()}”',
+            mealDe: '„${(de['text'] as String).trim()}“',
+            mealFr: '« ${(fr['text'] as String).trim()} »',
             kaynakKisaTr: '${sureMeta.adTr} Suresi, $ayetNo. Ayet',
             kaynakKisaEn: 'Surah ${sureMeta.adEn}, Verse $ayetNo',
+            kaynakKisaDe: 'Sure ${sureMeta.adEn}, Vers $ayetNo',
+            kaynakKisaFr: 'Sourate ${sureMeta.adEn}, Verset $ayetNo',
             dogrulanmisTr:
                 'Doğrulanmış Kaynak: T.C. Diyanet İşleri Başkanlığı Kur’an-ı Kerim Meali • ${sureMeta.adTr} $sureNo/$ayetNo (Sayfa: $sayfaNo)',
             dogrulanmisEn:
                 'Verified Source: Presidency of Religious Affairs & Sahih Int. • ${sureMeta.adEn} $sureNo:$ayetNo (Page: $sayfaNo)',
+            dogrulanmisDe:
+                'Verifizierte Quelle: Bubenheim & Elyas Koranübersetzung • Sure ${sureMeta.adEn} $sureNo:$ayetNo (Seite: $sayfaNo)',
+            dogrulanmisFr:
+                'Source vérifiée : Traduction du Coran par Muhammad Hamidullah • Sourate ${sureMeta.adEn} $sureNo:$ayetNo (Page : $sayfaNo)',
             tefsirTr:
                 '${sureMeta.yer} olan ${sureMeta.adTr} Suresi’nin $ayetNo. ayet-i kerimesidir ($cuzNo. Cüz, $sayfaNo. Sayfa).',
             tefsirEn:
                 'Verse $ayetNo of Surah ${sureMeta.adEn} (${sureMeta.yer}, Juz $cuzNo, Page $sayfaNo).',
+            tefsirDe:
+                'Vers $ayetNo der Sure ${sureMeta.adEn} (Dschuz $cuzNo, Seite $sayfaNo).',
+            tefsirFr:
+                'Verset $ayetNo de la Sourate ${sureMeta.adEn} (Juz $cuzNo, Page $sayfaNo).',
             arkaPlanRenkleri: kReelsArkaPlanPaletleri[paletIdx],
             desenIndex: paletIdx,
             begeniSayisi: 0,
@@ -306,7 +396,8 @@ class KuranApiServisi {
 
   /// Sahih Hadis havuzundan dinamik Reels kartı üretir (Başlangıç beğenisi: 0)
   static DinamikReelsKart sahihHadisReelsKartiOlustur(int hadisIndex, int siraIndex) {
-    final h = kSahihHadisHavuzu[hadisIndex % kSahihHadisHavuzu.length];
+    final idx = hadisIndex % kSahihHadisHavuzu.length;
+    final h = kSahihHadisHavuzu[idx];
     final paletIdx = siraIndex % kReelsArkaPlanPaletleri.length;
 
     return DinamikReelsKart(
@@ -315,14 +406,24 @@ class KuranApiServisi {
       arapcaMetin: h['arapca']!,
       konuTr: h['konuTr']!,
       konuEn: h['konuEn']!,
+      konuDe: hadisKonuGetir(idx, 'DE'),
+      konuFr: hadisKonuGetir(idx, 'FR'),
       mealTr: h['mealTr']!,
       mealEn: h['mealEn']!,
+      mealDe: hadisMealGetir(idx, 'DE'),
+      mealFr: hadisMealGetir(idx, 'FR'),
       kaynakKisaTr: h['kaynakKisa']!,
       kaynakKisaEn: h['kaynakKisa']!,
+      kaynakKisaDe: h['kaynakKisa']!,
+      kaynakKisaFr: h['kaynakKisa']!,
       dogrulanmisTr: h['dogrulanmis']!,
-      dogrulanmisEn: h['dogrulanmis']!,
+      dogrulanmisEn: hadisDogrulanmisGetir(idx, 'EN'),
+      dogrulanmisDe: hadisDogrulanmisGetir(idx, 'DE'),
+      dogrulanmisFr: hadisDogrulanmisGetir(idx, 'FR'),
       tefsirTr: h['tefsirTr']!,
       tefsirEn: h['tefsirEn']!,
+      tefsirDe: hadisTefsirGetir(idx, 'DE'),
+      tefsirFr: hadisTefsirGetir(idx, 'FR'),
       arkaPlanRenkleri: kReelsArkaPlanPaletleri[paletIdx],
       desenIndex: paletIdx,
       begeniSayisi: 0,
@@ -339,6 +440,8 @@ class KuranApiServisi {
           arapca: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
           mealTr: 'Rahmân ve Rahîm olan Allah’ın adıyla.',
           mealEn: 'In the name of Allah, the Entirely Merciful, the Especially Merciful.',
+          mealDe: 'Im Namen Allahs, des Allerbarmers, des Barmherzigen.',
+          mealFr: 'Au nom d’Allah, le Tout Miséricordieux, le Très Miséricordieux.',
           cuz: 1,
           sayfa: 1,
         ),
@@ -348,6 +451,8 @@ class KuranApiServisi {
           arapca: 'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
           mealTr: 'Hamd, âlemlerin Rabbi olan Allah’a mahsustur.',
           mealEn: 'All praise is due to Allah, Lord of the worlds.',
+          mealDe: 'Alles Lob gebührt Allah, dem Herrn der Welten.',
+          mealFr: 'Louange à Allah, Seigneur de l’univers.',
           cuz: 1,
           sayfa: 1,
         ),
@@ -360,6 +465,8 @@ class KuranApiServisi {
         arapca: 'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
         mealTr: '${meta.adTr} Suresi (${meta.ayetSayisi} Ayet)',
         mealEn: 'Surah ${meta.adEn} (${meta.ayetSayisi} Verses)',
+        mealDe: 'Sure ${meta.adEn} (${meta.ayetSayisi} Verse)',
+        mealFr: 'Sourate ${meta.adEn} (${meta.ayetSayisi} Versets)',
         cuz: 1,
         sayfa: 1,
       ),

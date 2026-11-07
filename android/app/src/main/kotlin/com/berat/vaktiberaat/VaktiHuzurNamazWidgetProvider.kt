@@ -1,4 +1,4 @@
-package com.vaktihuzur.app
+package com.berat.vaktiberaat
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -32,10 +32,24 @@ class VaktiHuzurNamazWidgetProvider : HomeWidgetProvider() {
             val aksam = widgetData.getString("widget_aksam", "18:24") ?: "18:24"
             val yatsi = widgetData.getString("widget_yatsi", "19:44") ?: "19:44"
 
-            views.setTextViewText(R.id.tv_widget_baslik, "☪ Vakt-i Huzur • $konum")
+            val etImsak = widgetData.getString("widget_etiket_imsak", "İmsak") ?: "İmsak"
+            val etGunes = widgetData.getString("widget_etiket_gunes", "Güneş") ?: "Güneş"
+            val etOgle = widgetData.getString("widget_etiket_ogle", "Öğle") ?: "Öğle"
+            val etIkindi = widgetData.getString("widget_etiket_ikindi", "İkindi") ?: "İkindi"
+            val etAksam = widgetData.getString("widget_etiket_aksam", "Akşam") ?: "Akşam"
+            val etYatsi = widgetData.getString("widget_etiket_yatsi", "Yatsı") ?: "Yatsı"
+
+            views.setTextViewText(R.id.tv_widget_baslik, "☪ Vakt-i Beraat • $konum")
             views.setTextViewText(R.id.tv_widget_hicri, hicri)
             views.setTextViewText(R.id.tv_siradaki_vakit, siradaki)
             views.setTextViewText(R.id.tv_kalan_sure, kalan)
+
+            views.setTextViewText(R.id.tv_etiket_imsak, etImsak)
+            views.setTextViewText(R.id.tv_etiket_gunes, etGunes)
+            views.setTextViewText(R.id.tv_etiket_ogle, etOgle)
+            views.setTextViewText(R.id.tv_etiket_ikindi, etIkindi)
+            views.setTextViewText(R.id.tv_etiket_aksam, etAksam)
+            views.setTextViewText(R.id.tv_etiket_yatsi, etYatsi)
 
             views.setTextViewText(R.id.tv_vakit_imsak, imsak)
             views.setTextViewText(R.id.tv_vakit_gunes, gunes)

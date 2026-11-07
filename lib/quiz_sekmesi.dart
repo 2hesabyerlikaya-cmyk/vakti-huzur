@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 import 'translations_and_logo.dart';
 import 'quiz_soru_havuzu.dart';
+import 'quiz_ceviri_de_fr.dart';
 
 // ============================================================================
 // GÜNLÜK İSLAMİ QUİZ MODELİ VE SORU HAVUZU
@@ -27,6 +28,7 @@ class QuizSoruModel {
   final int dogruIndex; // 0, 1, 2, 3
   final String aciklamaTr;
   final String aciklamaEn;
+  final List<int> secenekSirasi;
 
   const QuizSoruModel({
     required this.id,
@@ -42,12 +44,45 @@ class QuizSoruModel {
     required this.dogruIndex,
     required this.aciklamaTr,
     required this.aciklamaEn,
+    this.secenekSirasi = const [0, 1, 2, 3],
   });
 
-  String soru(String dil) => dil == 'EN' ? soruEn : dil == 'AR' ? soruAr : soruTr;
-  String kategori(String dil) => dil == 'EN' ? kategoriEn : dil == 'AR' ? kategoriAr : kategoriTr;
-  List<String> secenekler(String dil) => dil == 'EN' ? seceneklerEn : dil == 'AR' ? seceneklerAr : seceneklerTr;
-  String aciklama(String dil) => dil == 'EN' ? aciklamaEn : aciklamaTr;
+  String soru(String dil) {
+    if (dil == 'DE' && kQuizCeviriDe.containsKey(id)) return kQuizCeviriDe[id]!.soru;
+    if (dil == 'FR' && kQuizCeviriFr.containsKey(id)) return kQuizCeviriFr[id]!.soru;
+    if (dil == 'EN') return soruEn;
+    if (dil == 'AR') return soruAr;
+    return soruTr;
+  }
+
+  String kategori(String dil) {
+    if (dil == 'DE' && kQuizCeviriDe.containsKey(id)) return kQuizCeviriDe[id]!.kategori;
+    if (dil == 'FR' && kQuizCeviriFr.containsKey(id)) return kQuizCeviriFr[id]!.kategori;
+    if (dil == 'EN') return kategoriEn;
+    if (dil == 'AR') return kategoriAr;
+    return kategoriTr;
+  }
+
+  List<String> secenekler(String dil) {
+    if (dil == 'DE' && kQuizCeviriDe.containsKey(id)) {
+      final ham = kQuizCeviriDe[id]!.secenekler;
+      return secenekSirasi.map((i) => ham[i.clamp(0, ham.length - 1)]).toList();
+    }
+    if (dil == 'FR' && kQuizCeviriFr.containsKey(id)) {
+      final ham = kQuizCeviriFr[id]!.secenekler;
+      return secenekSirasi.map((i) => ham[i.clamp(0, ham.length - 1)]).toList();
+    }
+    if (dil == 'EN') return seceneklerEn;
+    if (dil == 'AR') return seceneklerAr;
+    return seceneklerTr;
+  }
+
+  String aciklama(String dil) {
+    if (dil == 'DE' && kQuizCeviriDe.containsKey(id)) return kQuizCeviriDe[id]!.aciklama;
+    if (dil == 'FR' && kQuizCeviriFr.containsKey(id)) return kQuizCeviriFr[id]!.aciklama;
+    if (dil == 'EN') return aciklamaEn;
+    return aciklamaTr;
+  }
 
   /// Şıkları (A, B, C, D) ve doğru cevabı rastgele karıştırılmış (shuffled) yeni bir QuizSoruModel döndürür.
   QuizSoruModel karistir({int? seed}) {
@@ -58,6 +93,7 @@ class QuizSoruModel {
     final yeniSecTr = siraliIndeksler.map((i) => seceneklerTr[i]).toList();
     final yeniSecEn = siraliIndeksler.map((i) => seceneklerEn[i]).toList();
     final yeniSecAr = siraliIndeksler.map((i) => seceneklerAr[i]).toList();
+    final yeniSira = siraliIndeksler.map((i) => secenekSirasi[i]).toList();
     final yeniDogru = siraliIndeksler.indexOf(dogruIndex);
 
     return QuizSoruModel(
@@ -74,6 +110,7 @@ class QuizSoruModel {
       dogruIndex: yeniDogru,
       aciklamaTr: aciklamaTr,
       aciklamaEn: aciklamaEn,
+      secenekSirasi: yeniSira,
     );
   }
 }
@@ -495,6 +532,9 @@ class GunlukQuizServisi {
               dogruIndex: (m['dogruIndex'] as num).toInt(),
               aciklamaTr: m['aciklamaTr'] ?? '',
               aciklamaEn: m['aciklamaEn'] ?? '',
+              secenekSirasi: m['secenekSirasi'] != null
+                  ? (m['secenekSirasi'] as List).map((e) => (e as num).toInt()).toList()
+                  : const [0, 1, 2, 3],
             );
             // Her ekrana gelirken A, B, C, D şıklarının yerini (shuffle) karıştır
             onbellekSorular.add(soruModel.karistir());
@@ -548,6 +588,7 @@ class GunlukQuizServisi {
                 'dogruIndex': s.dogruIndex,
                 'aciklamaTr': s.aciklamaTr,
                 'aciklamaEn': s.aciklamaEn,
+                'secenekSirasi': s.secenekSirasi,
               })
           .toList());
       _prefs?.setString(bugunCacheKey, serbestJson);
@@ -745,11 +786,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    dil == 'EN'
-                        ? 'Daily Islamic Quiz'
-                        : dil == 'AR'
-                            ? 'المسابقة الإسلامية اليومية'
-                            : 'Günlük İslami Quiz',
+                    Ceviri.sec(
+                      dil,
+                      tr: 'Günlük İslami Quiz',
+                      en: 'Daily Islamic Quiz',
+                      de: 'Tägliches Islam-Quiz',
+                      fr: 'Quiz Islamique Quotidien',
+                      ar: 'المسابقة الإسلامية اليومية',
+                    ),
                     style: TextStyle(
                       fontFamily: 'Lora',
                       fontSize: 16,
@@ -758,11 +802,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                     ),
                   ),
                   Text(
-                    dil == 'EN'
-                        ? '5 Questions Every Day'
-                        : dil == 'AR'
-                            ? '٥ أسئلة يومياً لزيادة المعرفة'
-                            : 'Her Gün Yeni 5 Soru ile İlim & Hikmet',
+                    Ceviri.sec(
+                      dil,
+                      tr: 'Her Gün Yeni 5 Soru ile İlim & Hikmet',
+                      en: '5 Questions Every Day',
+                      de: 'Jeden Tag 5 neue Fragen zu Wissen & Weisheit',
+                      fr: '5 nouvelles questions chaque jour',
+                      ar: '٥ أسئلة يومياً لزيادة المعرفة',
+                    ),
                     style: TextStyle(
                       fontSize: 11,
                       color: tema.vurguAltin.withValues(alpha: 0.9),
@@ -817,11 +864,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                       ),
                     ),
                     Text(
-                      dil == 'EN'
-                          ? 'Question ${_aktifSoruIndex + 1} / 5'
-                          : dil == 'AR'
-                              ? 'السؤال ${_aktifSoruIndex + 1} من ٥'
-                              : 'Soru ${_aktifSoruIndex + 1} / 5',
+                      Ceviri.sec(
+                        dil,
+                        tr: 'Soru ${_aktifSoruIndex + 1} / 5',
+                        en: 'Question ${_aktifSoruIndex + 1} / 5',
+                        de: 'Frage ${_aktifSoruIndex + 1} / 5',
+                        fr: 'Question ${_aktifSoruIndex + 1} / 5',
+                        ar: 'السؤال ${_aktifSoruIndex + 1} من ٥',
+                      ),
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
@@ -868,7 +918,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                     Icon(Icons.help_outline_rounded, color: tema.vurguAltin, size: 22),
                     const SizedBox(width: 8),
                     Text(
-                      dil == 'EN' ? 'Daily Question' : dil == 'AR' ? 'سؤال اليوم' : 'Günün Sorusu',
+                      Ceviri.sec(
+                        dil,
+                        tr: 'Günün Sorusu',
+                        en: 'Daily Question',
+                        de: 'Frage des Tages',
+                        fr: 'Question du Jour',
+                        ar: 'سؤال اليوم',
+                      ),
                       style: TextStyle(
                         color: tema.vurguAltin,
                         fontSize: 12,
@@ -945,8 +1002,22 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                       children: [
                         Text(
                           seciliSecenek == soru.dogruIndex
-                              ? (dil == 'EN' ? 'Correct!' : dil == 'AR' ? 'إجابة صحيحة!' : 'Tebrikler, Doğru Cevap!')
-                              : (dil == 'EN' ? 'Incorrect' : dil == 'AR' ? 'إجابة غير صحيحة' : 'Doğru Cevap: ${secenekler[soru.dogruIndex]}'),
+                              ? Ceviri.sec(
+                                  dil,
+                                  tr: 'Tebrikler, Doğru Cevap!',
+                                  en: 'Correct!',
+                                  de: 'Herzlichen Glückwunsch, richtige Antwort!',
+                                  fr: 'Félicitations, bonne réponse !',
+                                  ar: 'إجابة صحيحة!',
+                                )
+                              : Ceviri.sec(
+                                  dil,
+                                  tr: 'Doğru Cevap: ${secenekler[soru.dogruIndex]}',
+                                  en: 'Correct Answer: ${secenekler[soru.dogruIndex]}',
+                                  de: 'Richtige Antwort: ${secenekler[soru.dogruIndex]}',
+                                  fr: 'Bonne réponse : ${secenekler[soru.dogruIndex]}',
+                                  ar: 'إجابة غير صحيحة',
+                                ),
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13.5,
@@ -985,8 +1056,22 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
               ),
               label: Text(
                 _aktifSoruIndex + 1 == 5
-                    ? (dil == 'EN' ? 'View Today\'s Score' : dil == 'AR' ? 'عرض نتيجة اليوم' : 'Günün Skorunu Gör')
-                    : (dil == 'EN' ? 'Next Question' : dil == 'AR' ? 'السؤال التالي' : 'Sonraki Soruya Geç'),
+                    ? Ceviri.sec(
+                        dil,
+                        tr: 'Günün Skorunu Gör',
+                        en: 'View Today\'s Score',
+                        de: 'Heutiges Ergebnis ansehen',
+                        fr: 'Voir le score du jour',
+                        ar: 'عرض نتيجة اليوم',
+                      )
+                    : Ceviri.sec(
+                        dil,
+                        tr: 'Sonraki Soruya Geç',
+                        en: 'Next Question',
+                        de: 'Nächste Frage',
+                        fr: 'Question suivante',
+                        ar: 'السؤال التالي',
+                      ),
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
             ),
@@ -1089,23 +1174,32 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
   Widget _skorVeYarinEkrani(ModernTema tema, String dil) {
     String tebrikMesaji;
     if (_skor == 5) {
-      tebrikMesaji = dil == 'EN'
-          ? '🌟 Perfect! 5 out of 5! May Allah increase your sacred knowledge.'
-          : dil == 'AR'
-              ? '🌟 ممتاز! ٥ من ٥ كاملة! زادكم الله علماً ونوراً.'
-              : '🌟 Mükemmel! 5\'te 5 Tam Puan! İlim ve maneviyatınız daim olsun.';
+      tebrikMesaji = Ceviri.sec(
+        dil,
+        tr: '🌟 Mükemmel! 5\'te 5 Tam Puan! İlim ve maneviyatınız daim olsun.',
+        en: '🌟 Perfect! 5 out of 5! May Allah increase your sacred knowledge.',
+        de: '🌟 Perfekt! 5 von 5 Punkten! Möge Allah Ihr Wissen und Ihre Spiritualität mehren.',
+        fr: '🌟 Parfait ! 5 sur 5 ! Qu’Allah accroisse votre savoir et votre spiritualité.',
+        ar: '🌟 ممتاز! ٥ من ٥ كاملة! زادكم الله علماً ونوراً.',
+      );
     } else if (_skor >= 3) {
-      tebrikMesaji = dil == 'EN'
-          ? '🌿 Great result! You answered $_skor out of 5 correctly.'
-          : dil == 'AR'
-              ? '🌿 نتيجة ممتازة! أجبت على $_skor من ٥ أسئلة بشكل صحيح.'
-              : '🌿 Gayet Başarılı! 5 sorudan $_skor tanesini doğru bildiniz.';
+      tebrikMesaji = Ceviri.sec(
+        dil,
+        tr: '🌿 Gayet Başarılı! 5 sorudan $_skor tanesini doğru bildiniz.',
+        en: '🌿 Great result! You answered $_skor out of 5 correctly.',
+        de: '🌿 Sehr gut! Sie haben $_skor von 5 Fragen richtig beantwortet.',
+        fr: '🌿 Très beau résultat ! Vous avez répondu correctement à $_skor questions sur 5.',
+        ar: '🌿 نتيجة ممتازة! أجبت على $_skor من ٥ أسئلة بشكل صحيح.',
+      );
     } else {
-      tebrikMesaji = dil == 'EN'
-          ? '📖 A good effort! Every question is a seed of sacred wisdom.'
-          : dil == 'AR'
-              ? '📖 محاولة مباركة! كل معلومة دينية خطوة نحو النور.'
-              : '📖 Güzel bir gayret! Öğrenilen her İslami hakikat bir nurdur.';
+      tebrikMesaji = Ceviri.sec(
+        dil,
+        tr: '📖 Güzel bir gayret! Öğrenilen her İslami hakikat bir nurdur.',
+        en: '📖 A good effort! Every question is a seed of sacred wisdom.',
+        de: '📖 Schöne Bemühung! Jede gelernte islamische Weisheit ist ein Licht.',
+        fr: '📖 Bel effort ! Chaque vérité islamique apprise est une lumière.',
+        ar: '📖 محاولة مباركة! كل معلومة دينية خطوة نحو النور.',
+      );
     }
 
     return SafeArea(
@@ -1152,11 +1246,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  dil == 'EN'
-                      ? 'Today\'s Quiz Completed!'
-                      : dil == 'AR'
-                          ? 'اكتملت مسابقة اليوم!'
-                          : 'Günün Quizini Tamamladınız!',
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Günün Quizini Tamamladınız!',
+                    en: 'Today\'s Quiz Completed!',
+                    de: 'Heutiges Quiz abgeschlossen!',
+                    fr: 'Quiz du jour terminé !',
+                    ar: 'اكتملت مسابقة اليوم!',
+                  ),
                   style: TextStyle(
                     fontFamily: 'Lora',
                     fontSize: 20,
@@ -1167,7 +1264,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  dil == 'EN' ? 'Your Daily Score:' : dil == 'AR' ? 'نتيجتك اليوم:' : 'Günün Skoru:',
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Günün Skoru:',
+                    en: 'Your Daily Score:',
+                    de: 'Ihr heutiges Ergebnis:',
+                    fr: 'Votre score du jour :',
+                    ar: 'نتيجتك اليوم:',
+                  ),
                   style: TextStyle(
                     color: tema.ikincilYazi,
                     fontSize: 13,
@@ -1216,11 +1320,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                     const SizedBox(width: 10),
                     Flexible(
                       child: Text(
-                        dil == 'EN'
-                            ? 'Come Back Tomorrow for 5 New Questions!'
-                            : dil == 'AR'
-                                ? 'عد غداً للحصول على ٥ أسئلة جديدة!'
-                                : 'Yarın Yeni 5 Soru İçin Tekrar Gel!',
+                        Ceviri.sec(
+                          dil,
+                          tr: 'Yarın Yeni 5 Soru İçin Tekrar Gel!',
+                          en: 'Come Back Tomorrow for 5 New Questions!',
+                          de: 'Kommen Sie morgen für 5 neue Fragen wieder!',
+                          fr: 'Revenez demain pour 5 nouvelles questions !',
+                          ar: 'عد غداً للحصول على ٥ أسئلة جديدة!',
+                        ),
                         style: TextStyle(
                           fontFamily: 'Lora',
                           fontSize: 15.5,
@@ -1234,11 +1341,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  dil == 'EN'
-                      ? 'New questions unlock every midnight. Time remaining:'
-                      : dil == 'AR'
-                          ? 'تتجدد الأسئلة تلقائياً منتصف الليل. الوقت المتبقي:'
-                          : 'Her gece 00:00\'da yeni sorular eklenir. Kalan süre:',
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Her gece 00:00\'da yeni sorular eklenir. Kalan süre:',
+                    en: 'New questions unlock every midnight. Time remaining:',
+                    de: 'Jede Nacht um 00:00 Uhr werden neue Fragen freigeschaltet. Verbleibende Zeit:',
+                    fr: 'De nouvelles questions chaque minuit. Temps restant :',
+                    ar: 'تتجدد الأسئلة تلقائياً منتصف الليل. الوقت المتبقي:',
+                  ),
                   style: TextStyle(fontSize: 12, color: tema.ikincilYazi),
                   textAlign: TextAlign.center,
                 ),
@@ -1277,11 +1387,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
             onPressed: _pratikYenidenBaslat,
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: Text(
-              dil == 'EN'
-                  ? 'Retake Today\'s Questions (Practice)'
-                  : dil == 'AR'
-                      ? 'إعادة حل أسئلة اليوم (تدريب)'
-                      : 'Soruları Yeniden Çöz (Pratik Yap)',
+              Ceviri.sec(
+                dil,
+                tr: 'Soruları Yeniden Çöz (Pratik Yap)',
+                en: 'Retake Today\'s Questions (Practice)',
+                de: 'Fragen erneut lösen (Übungsmodus)',
+                fr: 'Refaire les questions (Mode entraînement)',
+                ar: 'إعادة حل أسئلة اليوم (تدريب)',
+              ),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
             ),
           ),
@@ -1289,7 +1402,14 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
 
           // Bugünün 5 Sorusunun İncelemesi (Review)
           Text(
-            dil == 'EN' ? 'Question Review & Tafsir Notes' : dil == 'AR' ? 'مراجعة أسئلة اليوم وتفسيرها' : 'Bugünün Soruları ve Hikmetleri',
+            Ceviri.sec(
+              dil,
+              tr: 'Bugünün Soruları ve Hikmetleri',
+              en: 'Question Review & Tafsir Notes',
+              de: 'Heutige Fragen & Erläuterungen',
+              fr: 'Révision des questions & sagesses',
+              ar: 'مراجعة أسئلة اليوم وتفسيرها',
+            ),
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
@@ -1355,7 +1475,7 @@ class _GunlukIslamiQuizSekmesiState extends State<GunlukIslamiQuizSekmesi> {
           ),
           const SizedBox(height: 6),
           Text(
-            '✓ ${dil == 'EN' ? 'Correct: ' : dil == 'AR' ? 'الصحيح: ' : 'Doğru: '}${secenekler[soru.dogruIndex]}',
+            '✓ ${Ceviri.sec(dil, tr: 'Doğru: ', en: 'Correct: ', de: 'Richtig: ', fr: 'Correct : ', ar: 'الصحيح: ')}${secenekler[soru.dogruIndex]}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

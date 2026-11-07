@@ -38,7 +38,7 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
   String get _paylasimMetni {
     final k = widget.kart;
     final dil = widget.dil;
-    return '${k.arapcaMetin}\n\n${k.meal(dil)}\n— ${k.kaynakKisa(dil)}\n\n✨ Vakt-i Huzur';
+    return '${k.arapcaMetin}\n\n${k.meal(dil)}\n— ${k.kaynakKisa(dil)}\n\n✨ Vakt-i Beraat';
   }
 
   Future<void> _gorseliIndir({bool instagramIcin = false}) async {
@@ -108,7 +108,7 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
         backgroundColor: Color(0xFF123C2D),
         behavior: SnackBarBehavior.floating,
         content: Text(
-          'Ayet/Hadis metni "Vakt-i Huzur" imzasıyla panoya kopyalandı.',
+          'Ayet/Hadis metni "Vakt-i Beraat" imzasıyla panoya kopyalandı.',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -274,7 +274,7 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
                                   ),
                                 ),
 
-                                // Alt: Uygulama Logosu & "Vakt-i Huzur" İmzası
+                                // Alt: Uygulama Logosu & "Vakt-i Beraat" İmzası
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -294,7 +294,7 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
                                       ModernIslamiLogo(boyut: 20),
                                       SizedBox(width: 7),
                                       Text(
-                                        'Vakt-i Huzur',
+                                        'Vakt-i Beraat',
                                         style: TextStyle(
                                           fontFamily: 'Lora',
                                           color: softGold,

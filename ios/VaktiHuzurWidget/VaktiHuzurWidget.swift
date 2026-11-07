@@ -94,6 +94,12 @@ struct VaktiHuzurEntry: TimelineEntry {
     let ikindi: String
     let aksam: String
     let yatsi: String
+    let etImsak: String
+    let etGunes: String
+    let etOgle: String
+    let etIkindi: String
+    let etAksam: String
+    let etYatsi: String
     let ayetBaslik: String
     let ayetArapca: String
     let ayetMeal: String
@@ -127,7 +133,7 @@ struct VaktiHuzurProvider: TimelineProvider {
         // Sideloadly (ücretsiz Apple ID) ve App Store uyumluluğu:
         // Standart UserDefaults.standard ve varsa App Group UserDefaults birlikte okunur.
         let std = UserDefaults.standard
-        let grp = UserDefaults(suiteName: "group.com.vaktihuzur.app")
+        let grp = UserDefaults(suiteName: "group.com.berat.vaktiberaat")
         let oto = istanbulVarsayilanVakitler()
         func str(_ key: String, _ varsayilan: String) -> String {
             if let v = std.string(forKey: "flutter.\(key)"), !v.isEmpty { return v }
@@ -147,6 +153,12 @@ struct VaktiHuzurProvider: TimelineProvider {
             ikindi: str("widget_ikindi", oto.ikindi),
             aksam: str("widget_aksam", oto.aksam),
             yatsi: str("widget_yatsi", oto.yatsi),
+            etImsak: str("widget_etiket_imsak", "İmsak"),
+            etGunes: str("widget_etiket_gunes", "Güneş"),
+            etOgle: str("widget_etiket_ogle", "Öğle"),
+            etIkindi: str("widget_etiket_ikindi", "İkindi"),
+            etAksam: str("widget_etiket_aksam", "Akşam"),
+            etYatsi: str("widget_etiket_yatsi", "Yatsı"),
             ayetBaslik: str("widget_ayet_baslik", "✨ Günün Ayeti"),
             ayetArapca: str("widget_ayet_arapca", "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ"),
             ayetMeal: str("widget_ayet_meal", "“Biliniz ki, kalpler ancak Allah’ı anmakla huzur bulur.”"),
@@ -259,14 +271,14 @@ struct VaktiHuzurNamazWidgetView: View {
             // 2 Satır x 3 Sütun 6 Vakit
             VStack(spacing: 4) {
                 HStack(spacing: 4) {
-                    kucukVakitHucre("İms", entry.imsak)
-                    kucukVakitHucre("Gün", entry.gunes)
-                    kucukVakitHucre("Öğl", entry.ogle)
+                    kucukVakitHucre(String(entry.etImsak.prefix(4)), entry.imsak)
+                    kucukVakitHucre(String(entry.etGunes.prefix(4)), entry.gunes)
+                    kucukVakitHucre(String(entry.etOgle.prefix(4)), entry.ogle)
                 }
                 HStack(spacing: 4) {
-                    kucukVakitHucre("İkn", entry.ikindi)
-                    kucukVakitHucre("Akş", entry.aksam)
-                    kucukVakitHucre("Yat", entry.yatsi)
+                    kucukVakitHucre(String(entry.etIkindi.prefix(4)), entry.ikindi)
+                    kucukVakitHucre(String(entry.etAksam.prefix(4)), entry.aksam)
+                    kucukVakitHucre(String(entry.etYatsi.prefix(4)), entry.yatsi)
                 }
             }
         }
@@ -279,7 +291,7 @@ struct VaktiHuzurNamazWidgetView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("☪ Vakt-i Huzur • \(entry.konum)")
+                    Text("☪ Vakt-i Beraat • \(entry.konum)")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(yumusakAltin)
                         .lineLimit(1)
@@ -312,12 +324,12 @@ struct VaktiHuzurNamazWidgetView: View {
             Spacer(minLength: 0)
 
             HStack(spacing: 5) {
-                vakitKutusu("İmsak", entry.imsak)
-                vakitKutusu("Güneş", entry.gunes)
-                vakitKutusu("Öğle", entry.ogle)
-                vakitKutusu("İkindi", entry.ikindi)
-                vakitKutusu("Akşam", entry.aksam)
-                vakitKutusu("Yatsı", entry.yatsi)
+                vakitKutusu(entry.etImsak, entry.imsak)
+                vakitKutusu(entry.etGunes, entry.gunes)
+                vakitKutusu(entry.etOgle, entry.ogle)
+                vakitKutusu(entry.etIkindi, entry.ikindi)
+                vakitKutusu(entry.etAksam, entry.aksam)
+                vakitKutusu(entry.etYatsi, entry.yatsi)
             }
         }
         .padding(13)
@@ -523,7 +535,7 @@ struct VaktiHuzurSiradakiWidgetView: View {
             switch family {
             case .accessoryRectangular:
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("☪ Vakt-i Huzur • \(entry.konum)")
+                    Text("☪ Vakt-i Beraat • \(entry.konum)")
                         .font(.system(size: 10.5, weight: .semibold))
                         .lineLimit(1)
                     Text(entry.siradakiVakit)
@@ -637,7 +649,7 @@ struct VaktiHuzurNamazWidget: Widget {
         StaticConfiguration(kind: kind, provider: VaktiHuzurProvider()) { entry in
             VaktiHuzurNamazWidgetView(entry: entry)
         }
-        .configurationDisplayName("Vakt-i Huzur: Günlük Vakitler & Sayaç")
+        .configurationDisplayName("Vakt-i Beraat: Günlük Vakitler & Sayaç")
         .description("Zümrüt yeşili ve altın sarısı temada tüm namaz vakitlerini ve geri sayımı gösterir.")
         .supportedFamilies(desteklenenAilelerNamaz())
         .vaktiHuzurKenarBosluksuz()
@@ -658,7 +670,7 @@ struct VaktiHuzurAyetWidget: Widget {
         StaticConfiguration(kind: kind, provider: VaktiHuzurProvider()) { entry in
             VaktiHuzurAyetWidgetView(entry: entry)
         }
-        .configurationDisplayName("Vakt-i Huzur: Günün Ayeti")
+        .configurationDisplayName("Vakt-i Beraat: Günün Ayeti")
         .description("2 farklı boyutta seçkin Kur’an ayetini Arapça ve mealiyle gösterir.")
         .supportedFamilies(desteklenenAilelerAyet())
         .vaktiHuzurKenarBosluksuz()
@@ -679,7 +691,7 @@ struct VaktiHuzurHadisWidget: Widget {
         StaticConfiguration(kind: kind, provider: VaktiHuzurProvider()) { entry in
             VaktiHuzurHadisWidgetView(entry: entry)
         }
-        .configurationDisplayName("Vakt-i Huzur: Günün Hadisi")
+        .configurationDisplayName("Vakt-i Beraat: Günün Hadisi")
         .description("2 farklı boyutta sahih hadis-i şerifi Arapça ve tercümesiyle gösterir.")
         .supportedFamilies(desteklenenAilelerHadis())
         .vaktiHuzurKenarBosluksuz()
@@ -700,7 +712,7 @@ struct VaktiHuzurSiradakiWidget: Widget {
         StaticConfiguration(kind: kind, provider: VaktiHuzurProvider()) { entry in
             VaktiHuzurSiradakiWidgetView(entry: entry)
         }
-        .configurationDisplayName("Vakt-i Huzur: Kilit Ekranı & Sıradaki Vakit")
+        .configurationDisplayName("Vakt-i Beraat: Kilit Ekranı & Sıradaki Vakit")
         .description("Kilit ekranında ve ana ekranda sıradaki vakti ve kalan süreyi gösterir.")
         .supportedFamilies(desteklenenAilelerSiradaki())
         .vaktiHuzurKenarBosluksuz()
@@ -721,7 +733,7 @@ struct VaktiHuzurZikirWidget: Widget {
         StaticConfiguration(kind: kind, provider: VaktiHuzurProvider()) { entry in
             VaktiHuzurZikirWidgetView(entry: entry)
         }
-        .configurationDisplayName("Vakt-i Huzur: Günlük Zikir")
+        .configurationDisplayName("Vakt-i Beraat: Günlük Zikir")
         .description("Günün zikrini ve tesbih sayacını gösterir.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .vaktiHuzurKenarBosluksuz()

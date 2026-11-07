@@ -5,11 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:home_widget/home_widget.dart';
 import 'prayer_location_calendar_service.dart';
 import 'quran_hadith_data.dart';
+import 'translations_and_logo.dart';
 import 'zikirmatik_ve_esmaul_husna.dart';
 import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as web;
 
 // ============================================================================
-// VAKT-İ HUZUR — ANDROID (SAMSUNG VB.) & iOS ANA EKRAN / KİLİT EKRANI WİDGET SERVİSİ
+// VAKT-İ BERAAT — ANDROID (SAMSUNG VB.) & iOS ANA EKRAN / KİLİT EKRANI WİDGET SERVİSİ
 // 5 AYRI WİDGET DESTEĞİ:
 // 1. Günün Ayeti
 // 2. Günün Hadisi
@@ -22,16 +23,40 @@ class GunlukWidgetAyetModel {
   final String arapca;
   final String mealTr;
   final String mealEn;
+  final String mealDe;
+  final String mealFr;
   final String kaynakTr;
   final String kaynakEn;
+  final String kaynakDe;
+  final String kaynakFr;
 
   const GunlukWidgetAyetModel({
     required this.arapca,
     required this.mealTr,
     required this.mealEn,
+    required this.mealDe,
+    required this.mealFr,
     required this.kaynakTr,
     required this.kaynakEn,
+    required this.kaynakDe,
+    required this.kaynakFr,
   });
+
+  String meal(String dil) => Ceviri.sec(
+        dil,
+        tr: mealTr,
+        en: mealEn,
+        de: mealDe,
+        fr: mealFr,
+      );
+
+  String kaynak(String dil) => Ceviri.sec(
+        dil,
+        tr: kaynakTr,
+        en: kaynakEn,
+        de: kaynakDe,
+        fr: kaynakFr,
+      );
 }
 
 const List<GunlukWidgetAyetModel> kSecmeWidgetAyetleri = [
@@ -39,50 +64,78 @@ const List<GunlukWidgetAyetModel> kSecmeWidgetAyetleri = [
     arapca: 'أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ',
     mealTr: '“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.”',
     mealEn: '“Unquestionably, by the remembrance of Allah do hearts find rest.”',
+    mealDe: '„Wahrlich, im Gedenken Allahs finden die Herzen Ruhe.“',
+    mealFr: '« N’est-ce point par l’évocation d’Allah que se tranquillisent les cœurs ? »',
     kaynakTr: 'Ra’d Suresi, 28. Ayet',
     kaynakEn: 'Surah Ar-Ra’d, 28',
+    kaynakDe: 'Sure Ar-Ra’d, Vers 28',
+    kaynakFr: 'Sourate Ar-Ra’d, 28',
   ),
   GunlukWidgetAyetModel(
     arapca: 'فَإِنَّ مَعَ الْعُسْرِ يُسْرًا ۝ إِنَّ مَعَ الْعُسْرِ يُسْرًا',
     mealTr: '“Şüphesiz güçlükle beraber bir kolaylık vardır. Gerçekten, güçlükle beraber bir kolaylık vardır.”',
     mealEn: '“For indeed, with hardship comes ease. Indeed, with hardship comes ease.”',
+    mealDe: '„Wahrlich, mit der Erschwernis ist Erleichterung. Wahrlich, mit der Erschwernis ist Erleichterung.“',
+    mealFr: '« Car vraiment, avec la difficulté il y a une facilité. Oui, avec la difficulté il y a une facilité. »',
     kaynakTr: 'İnşirah Suresi, 5-6. Ayetler',
     kaynakEn: 'Surah Ash-Sharh, 5-6',
+    kaynakDe: 'Sure Asch-Scharh, 5-6',
+    kaynakFr: 'Sourate Ach-Charh, 5-6',
   ),
   GunlukWidgetAyetModel(
     arapca: 'يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ إِنَّ اللَّهَ مَعَ الصَّابِرِينَ',
     mealTr: '“Ey iman edenler! Sabır ve namaz ile Allah’tan yardım dileyin. Şüphesiz Allah sabredenlerle beraberdir.”',
     mealEn: '“O you who have believed, seek help through patience and prayer. Indeed, Allah is with the patient.”',
+    mealDe: '„O die ihr glaubt, sucht Hilfe in der Geduld und im Gebet! Gewiss, Allah ist mit den Standhaften.“',
+    mealFr: '« Ô les croyants ! Cherchez secours dans l’endurance et la Salât. Car Allah est avec les endurants. »',
     kaynakTr: 'Bakara Suresi, 153. Ayet',
     kaynakEn: 'Surah Al-Baqarah, 153',
+    kaynakDe: 'Sure Al-Baqara, Vers 153',
+    kaynakFr: 'Sourate Al-Baqara, 153',
   ),
   GunlukWidgetAyetModel(
     arapca: 'لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا',
     mealTr: '“Allah hiçbir kimseye gücünün yettiğinden başkasını yüklemez.”',
     mealEn: '“Allah does not charge a soul except within its capacity.”',
+    mealDe: '„Allah erlegt keiner Seele mehr auf, als sie zu leisten vermag.“',
+    mealFr: '« Allah n’impose à aucune âme une charge supérieure à sa capacité. »',
     kaynakTr: 'Bakara Suresi, 286. Ayet',
     kaynakEn: 'Surah Al-Baqarah, 286',
+    kaynakDe: 'Sure Al-Baqara, Vers 286',
+    kaynakFr: 'Sourate Al-Baqara, 286',
   ),
   GunlukWidgetAyetModel(
     arapca: 'وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ أُجِيبُ دَعْوَةَ الدَّاعِ إِذَا دَعَانِ',
     mealTr: '“Kullarım beni senden sorarlarsa, bilsinler ki gerçekten ben onlara çok yakınım. Bana dua edince dua edenin duasına icabet ederim.”',
     mealEn: '“When My servants ask you concerning Me, indeed I am near. I respond to the invocation of the supplicant.”',
+    mealDe: '„Und wenn Meine Diener dich nach Mir fragen, so bin Ich nahe; Ichantworte dem Ruf des Bittenden, wenn er Mich anruft.“',
+    mealFr: '« Et quand Mes serviteurs t’interrogent sur Moi, alors Je suis tout proche : Je réponds à l’appel de celui qui Me prie. »',
     kaynakTr: 'Bakara Suresi, 186. Ayet',
     kaynakEn: 'Surah Al-Baqarah, 186',
+    kaynakDe: 'Sure Al-Baqara, Vers 186',
+    kaynakFr: 'Sourate Al-Baqara, 186',
   ),
   GunlukWidgetAyetModel(
     arapca: 'وَمَنْ يَتَّقِ اللَّهَ يَجْعَلْ لَهُ مَخْرَجًا ۝ وَيَرْزُقْهُ مِنْ حَيْثُ لَا يَحْتَسِبُ',
     mealTr: '“Kim Allah’tan korkup sakınırsa, Allah ona bir çıkış yolu ihsan eder ve onu ummadığı yerden rızıklandırır.”',
     mealEn: '“Whoever fears Allah, He will make for him a way out and provide for him from where he does not expect.”',
+    mealDe: '„Und wer Allah fürchtet, dem schafft Er einen Ausweg und versorgt ihn, von wo er nicht damit rechnet.“',
+    mealFr: '« Et quiconque craint Allah, Il lui donnera une issue favorable, et lui accordera Ses dons par des moyens insoupçonnés. »',
     kaynakTr: 'Talâk Suresi, 2-3. Ayetler',
     kaynakEn: 'Surah At-Talaq, 2-3',
+    kaynakDe: 'Sure At-Talaq, 2-3',
+    kaynakFr: 'Sourate At-Talaq, 2-3',
   ),
   GunlukWidgetAyetModel(
     arapca: 'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
     mealTr: '“Rabbimiz! Bize dünyada da iyilik ve güzellik ver, ahirette de iyilik ve güzellik ver; bizi ateş azabından koru.”',
     mealEn: '“Our Lord! Grant us good in this world and good in the Hereafter, and protect us from the Fire.”',
+    mealDe: '„Unser Herr, gib uns im Diesseits Gutes und im Jenseits Gutes und bewahre uns vor der Strafe des Feuers!“',
+    mealFr: '« Seigneur ! Accorde-nous belle part ici-bas, et belle part aussi dans l’au-delà ; et protège-nous du châtiment du Feu. »',
     kaynakTr: 'Bakara Suresi, 201. Ayet',
     kaynakEn: 'Surah Al-Baqarah, 201',
+    kaynakDe: 'Sure Al-Baqara, Vers 201',
+    kaynakFr: 'Sourate Al-Baqara, 201',
   ),
 ];
 
@@ -158,14 +211,17 @@ class VaktiHuzurWidgetServisi {
         kSecmeWidgetAyetleri.length;
     final a = kSecmeWidgetAyetleri[idx];
     return (
-      baslik: dil == 'EN'
-          ? '✨ Vakt-i Huzur • Verse of the Day'
-          : dil == 'AR'
-              ? '✨ Vakt-i Huzur • آية اليوم'
-              : '✨ Vakt-i Huzur • Günün Ayeti',
+      baslik: Ceviri.sec(
+        dil,
+        tr: '✨ Vakt-i Beraat • Günün Ayeti',
+        en: '✨ Vakt-i Beraat • Verse of the Day',
+        de: '✨ Vakt-i Beraat • Vers des Tages',
+        fr: '✨ Vakt-i Beraat • Verset du Jour',
+        ar: '✨ Vakt-i Beraat • آية اليوم',
+      ),
       arapca: a.arapca,
-      meal: dil == 'EN' ? a.mealEn : a.mealTr,
-      kaynak: dil == 'EN' ? a.kaynakEn : a.kaynakTr,
+      meal: a.meal(dil),
+      kaynak: a.kaynak(dil),
     );
   }
 
@@ -179,18 +235,19 @@ class VaktiHuzurWidgetServisi {
         kSahihHadisHavuzu.length;
     final h = kSahihHadisHavuzu[idx];
     return (
-      baslik: dil == 'EN'
-          ? '☪ Vakt-i Huzur • Hadith of the Day'
-          : dil == 'AR'
-              ? '☪ Vakt-i Huzur • حديث اليوم'
-              : '☪ Vakt-i Huzur • Günün Hadisi',
+      baslik: Ceviri.sec(
+        dil,
+        tr: '☪ Vakt-i Beraat • Günün Hadisi',
+        en: '☪ Vakt-i Beraat • Hadith of the Day',
+        de: '☪ Vakt-i Beraat • Hadith des Tages',
+        fr: '☪ Vakt-i Beraat • Hadith du Jour',
+        ar: '☪ Vakt-i Beraat • حديث اليوم',
+      ),
       arapca: h['arapca'] ?? '',
-      meal: dil == 'EN'
-          ? (h['mealEn'] ?? h['mealTr'] ?? '')
-          : (h['mealTr'] ?? ''),
-      kaynak: dil == 'EN'
-          ? (h['kaynakKisaEn'] ?? h['kaynakKisaTr'] ?? '')
-          : (h['kaynakKisaTr'] ?? ''),
+      meal: hadisMealGetir(idx, dil),
+      kaynak: dil == 'TR'
+          ? (h['kaynakKisaTr'] ?? '')
+          : (h['kaynakKisaEn'] ?? h['kaynakKisaTr'] ?? ''),
     );
   }
 
@@ -202,9 +259,13 @@ class VaktiHuzurWidgetServisi {
     return (
       arapca: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ',
       okunus: 'Sübhânallâhi ve bi-hamdihî',
-      anlam: dil == 'EN'
-          ? '“Glory be to Allah and His is the praise.”'
-          : '“Allah’ı hamd ile noksan sıfatlardan tenzih ederim.”',
+      anlam: Ceviri.sec(
+        dil,
+        tr: '“Allah’ı hamd ile noksan sıfatlardan tenzih ederim.”',
+        en: '“Glory be to Allah and His is the praise.”',
+        de: '„Gepriesen sei Allah und Ihm gebührt alles Lob.“',
+        fr: '« Gloire et pureté à Allah, et à Lui la louange. »',
+      ),
       sayac: '$toplam / 100',
     );
   }
@@ -233,10 +294,23 @@ class VaktiHuzurWidgetServisi {
     try {
       // Sideloadly (ücretsiz Apple ID) ve App Store ortak uyumluluğu için:
       // Verileri hem standart localStorage/SharedPreferences içine hem de HomeWidget AppGroup içine kaydet.
-      final siradakiStr = dil == 'EN' ? 'Next: $siradakiVakitAdi' : 'Sıradaki: $siradakiVakitAdi';
+      final siradakiStr = Ceviri.sec(
+        dil,
+        tr: 'Sıradaki: $siradakiVakitAdi',
+        en: 'Next: $siradakiVakitAdi',
+        de: 'Nächstes: $siradakiVakitAdi',
+        fr: 'Suivante : $siradakiVakitAdi',
+      );
+      final etiketImsak = Ceviri.m(dil, 'imsak');
+      final etiketGunes = Ceviri.m(dil, 'gunes');
+      final etiketOgle = Ceviri.m(dil, 'ogle');
+      final etiketIkindi = Ceviri.m(dil, 'ikindi');
+      final etiketAksam = Ceviri.m(dil, 'aksam');
+      final etiketYatsi = Ceviri.m(dil, 'yatsi');
+
       final Map<String, String> tumWidgetVerileri = {
         'widget_konum': vakitModel.konumAdi,
-        'widget_hicri_tarih': vakitModel.hicriTarihTr,
+        'widget_hicri_tarih': dil == 'TR' ? vakitModel.hicriTarihTr : vakitModel.hicriTarihEn,
         'widget_siradaki_vakit': siradakiStr,
         'widget_kalan_sure': kalanSureMetni,
         'widget_imsak': vakitModel.imsak,
@@ -245,6 +319,12 @@ class VaktiHuzurWidgetServisi {
         'widget_ikindi': vakitModel.ikindi,
         'widget_aksam': vakitModel.aksam,
         'widget_yatsi': vakitModel.yatsi,
+        'widget_etiket_imsak': etiketImsak,
+        'widget_etiket_gunes': etiketGunes,
+        'widget_etiket_ogle': etiketOgle,
+        'widget_etiket_ikindi': etiketIkindi,
+        'widget_etiket_aksam': etiketAksam,
+        'widget_etiket_yatsi': etiketYatsi,
         'widget_ayet_baslik': ayet.baslik,
         'widget_ayet_arapca': ayet.arapca,
         'widget_ayet_meal': ayet.meal,
@@ -274,11 +354,11 @@ class VaktiHuzurWidgetServisi {
       await Future.wait([
         // Temel Namaz Vakitleri & Sıradaki Vakit
         HomeWidget.saveWidgetData<String>('widget_konum', vakitModel.konumAdi),
-        HomeWidget.saveWidgetData<String>('widget_hicri_tarih', vakitModel.hicriTarihTr),
         HomeWidget.saveWidgetData<String>(
-          'widget_siradaki_vakit',
-          dil == 'EN' ? 'Next: $siradakiVakitAdi' : 'Sıradaki: $siradakiVakitAdi',
+          'widget_hicri_tarih',
+          dil == 'TR' ? vakitModel.hicriTarihTr : vakitModel.hicriTarihEn,
         ),
+        HomeWidget.saveWidgetData<String>('widget_siradaki_vakit', siradakiStr),
         HomeWidget.saveWidgetData<String>('widget_kalan_sure', kalanSureMetni),
         HomeWidget.saveWidgetData<String>('widget_imsak', vakitModel.imsak),
         HomeWidget.saveWidgetData<String>('widget_gunes', vakitModel.gunes),
@@ -286,6 +366,12 @@ class VaktiHuzurWidgetServisi {
         HomeWidget.saveWidgetData<String>('widget_ikindi', vakitModel.ikindi),
         HomeWidget.saveWidgetData<String>('widget_aksam', vakitModel.aksam),
         HomeWidget.saveWidgetData<String>('widget_yatsi', vakitModel.yatsi),
+        HomeWidget.saveWidgetData<String>('widget_etiket_imsak', etiketImsak),
+        HomeWidget.saveWidgetData<String>('widget_etiket_gunes', etiketGunes),
+        HomeWidget.saveWidgetData<String>('widget_etiket_ogle', etiketOgle),
+        HomeWidget.saveWidgetData<String>('widget_etiket_ikindi', etiketIkindi),
+        HomeWidget.saveWidgetData<String>('widget_etiket_aksam', etiketAksam),
+        HomeWidget.saveWidgetData<String>('widget_etiket_yatsi', etiketYatsi),
 
         // Günün Ayeti
         HomeWidget.saveWidgetData<String>('widget_ayet_baslik', ayet.baslik),
@@ -519,9 +605,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  widget.dil == 'EN'
-                      ? 'All 5 Vakt-i Huzur Widgets successfully synced!'
-                      : '5 Vakt-i Huzur Widget’ının tüm verileri başarıyla güncellendi!',
+                  Ceviri.sec(
+                    widget.dil,
+                    tr: '5 Vakt-i Beraat Widget’ının tüm verileri başarıyla güncellendi!',
+                    en: 'All 5 Vakt-i Beraat Widgets successfully synced!',
+                    de: 'Alle 5 Vakt-i Beraat Widgets erfolgreich synchronisiert!',
+                    fr: 'Les 5 widgets Vakt-i Beraat ont été synchronisés avec succès !',
+                  ),
                   style: TextStyle(
                     color: widget.yaziRengi,
                     fontWeight: FontWeight.w600,
@@ -541,9 +631,15 @@ class _KilitEkraniVeWidgetAyarlariSheetState
     final ok = await VaktiHuzurWidgetServisi.androidAnaEkranaSabitle(widgetTipi: tip);
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Ana ekrana basılı tutup "Widget’lar" menüsünden Vakt-i Huzur’u seçebilirsiniz.',
+            Ceviri.sec(
+              widget.dil,
+              tr: 'Ana ekrana basılı tutup "Widget’lar" menüsünden Vakt-i Beraat’ı seçebilirsiniz.',
+              en: 'Long-press the home screen and select Vakt-i Beraat from Widgets.',
+              de: 'Halten Sie den Startbildschirm gedrückt und wählen Sie Vakt-i Beraat unter Widgets.',
+              fr: 'Appuyez longuement sur l’écran d’accueil et sélectionnez Vakt-i Beraat dans Widgets.',
+            ),
           ),
         ),
       );
@@ -559,11 +655,56 @@ class _KilitEkraniVeWidgetAyarlariSheetState
     final zikir = VaktiHuzurWidgetServisi.gunlukZikirGetir(dil: dil);
 
     final widgetBasliklari = [
-      {'ad': '1. Günün Ayeti', 'ikon': Icons.menu_book_rounded},
-      {'ad': '2. Günün Hadisi', 'ikon': Icons.verified_rounded},
-      {'ad': '3. Sıradaki Namaz', 'ikon': Icons.hourglass_top_rounded},
-      {'ad': '4. 6 Vakit Çizelgesi', 'ikon': Icons.mosque_rounded},
-      {'ad': '5. Günlük Zikir', 'ikon': Icons.touch_app_rounded},
+      {
+        'ad': Ceviri.sec(
+          dil,
+          tr: '1. Günün Ayeti',
+          en: '1. Verse of the Day',
+          de: '1. Vers des Tages',
+          fr: '1. Verset du Jour',
+        ),
+        'ikon': Icons.menu_book_rounded,
+      },
+      {
+        'ad': Ceviri.sec(
+          dil,
+          tr: '2. Günün Hadisi',
+          en: '2. Hadith of the Day',
+          de: '2. Hadith des Tages',
+          fr: '2. Hadith du Jour',
+        ),
+        'ikon': Icons.verified_rounded,
+      },
+      {
+        'ad': Ceviri.sec(
+          dil,
+          tr: '3. Sıradaki Namaz',
+          en: '3. Next Prayer',
+          de: '3. Nächstes Gebet',
+          fr: '3. Prochaine Prière',
+        ),
+        'ikon': Icons.hourglass_top_rounded,
+      },
+      {
+        'ad': Ceviri.sec(
+          dil,
+          tr: '4. 6 Vakit Çizelgesi',
+          en: '4. 6 Prayer Schedule',
+          de: '4. 6-Gebetszeitenplan',
+          fr: '4. Horaires des 6 Prières',
+        ),
+        'ikon': Icons.mosque_rounded,
+      },
+      {
+        'ad': Ceviri.sec(
+          dil,
+          tr: '5. Günlük Zikir',
+          en: '5. Daily Dhikr',
+          de: '5. Tägliches Dhikr',
+          fr: '5. Dhikr Quotidien',
+        ),
+        'ikon': Icons.touch_app_rounded,
+      },
     ];
 
     return DraggableScrollableSheet(
@@ -615,11 +756,14 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            dil == 'EN'
-                                ? '5 Home & Lock Screen Widgets'
-                                : dil == 'AR'
-                                    ? '٥ ويدجت لشاشة القفل والرئيسية'
-                                    : '5 Farklı Widget & Kilit Ekranı',
+                            Ceviri.sec(
+                              dil,
+                              tr: '5 Farklı Widget & Kilit Ekranı',
+                              en: '5 Home & Lock Screen Widgets',
+                              de: '5 Start- & Sperrbildschirm-Widgets',
+                              fr: '5 Widgets d’Accueil & Écran Verrouillé',
+                              ar: '٥ ويدجت لشاشة القفل والرئيسية',
+                            ),
                             style: TextStyle(
                               fontFamily: 'Lora',
                               fontSize: 17.5,
@@ -628,9 +772,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                             ),
                           ),
                           Text(
-                            dil == 'EN'
-                                ? 'Samsung / Android & iPhone (iOS) Live Preview'
-                                : 'Samsung / Android & iPhone (iOS) Canlı Önizleme',
+                            Ceviri.sec(
+                              dil,
+                              tr: 'Samsung / Android & iPhone (iOS) Canlı Önizleme',
+                              en: 'Samsung / Android & iPhone (iOS) Live Preview',
+                              de: 'Samsung / Android & iPhone (iOS) Live-Vorschau',
+                              fr: 'Aperçu en direct Samsung / Android & iPhone (iOS)',
+                            ),
                             style: TextStyle(color: widget.ikincilYazi, fontSize: 11.5),
                           ),
                         ],
@@ -804,7 +952,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                           onPressed: () => _anaEkranaSabitleTiklandi(_seciliWidgetTipi),
                           icon: const Icon(Icons.add_to_home_screen_rounded, size: 18),
                           label: Text(
-                            dil == 'EN' ? 'Add to Home Screen' : 'Bu Widget’ı Ekle',
+                            Ceviri.sec(
+                              dil,
+                              tr: 'Bu Widget’ı Ekle',
+                              en: 'Add to Home Screen',
+                              de: 'Zum Startbildschirm hinzufügen',
+                              fr: 'Ajouter à l’écran d’accueil',
+                            ),
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5),
                           ),
                         ),
@@ -813,7 +967,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                     ],
                     if (_seciliWidgetTipi == 0 || _seciliWidgetTipi == 1) ...[
                       IconButton(
-                        tooltip: 'Sonraki Ayet / Hadis',
+                        tooltip: Ceviri.sec(
+                          dil,
+                          tr: 'Sonraki Ayet / Hadis',
+                          en: 'Next Verse / Hadith',
+                          de: 'Nächster Vers / Hadith',
+                          fr: 'Verset / Hadith suivant',
+                        ),
                         style: IconButton.styleFrom(
                           backgroundColor: widget.kartRengi,
                           side: BorderSide(color: widget.vurguAltin.withValues(alpha: 0.3)),
@@ -848,9 +1008,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                         )
                       : const Icon(Icons.sync_rounded, size: 20),
                   label: Text(
-                    dil == 'EN'
-                        ? 'Sync All 5 Widgets Now'
-                        : '5 Widget’ı Şimdi Senkronize Et',
+                    Ceviri.sec(
+                      dil,
+                      tr: '5 Widget’ı Şimdi Senkronize Et',
+                      en: 'Sync All 5 Widgets Now',
+                      de: 'Alle 5 Widgets jetzt synchronisieren',
+                      fr: 'Synchroniser les 5 Widgets maintenant',
+                    ),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                 ),
@@ -858,7 +1022,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
 
                 // TÜM 5 WİDGETIN ÖZET LİSTESİ
                 Text(
-                  dil == 'EN' ? 'All 5 Available Widgets:' : 'Kullanılabilir 5 Widget Türü:',
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Kullanılabilir 5 Widget Türü:',
+                    en: 'All 5 Available Widgets:',
+                    de: 'Alle 5 verfügbaren Widgets:',
+                    fr: 'Les 5 types de widgets disponibles :',
+                  ),
                   style: TextStyle(
                     color: widget.yumusakAltin,
                     fontSize: 13,
@@ -867,32 +1037,62 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                 ),
                 const SizedBox(height: 8),
                 _widgetBilgiSatiri(
-                  '1. Günün Ayeti',
-                  'Günün Kur’an ayetini Arapça metni, meali ve suresiyle ana ekranda gösterir.',
+                  widgetBasliklari[0]['ad'] as String,
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Günün Kur’an ayetini Arapça metni, meali ve suresiyle ana ekranda gösterir.',
+                    en: 'Displays the daily Qur’an verse with Arabic text, translation and Surah.',
+                    de: 'Zeigt den täglichen Koranvers mit arabischem Text, Übersetzung und Sure an.',
+                    fr: 'Affiche le verset du jour avec le texte arabe, la traduction et la sourate.',
+                  ),
                   Icons.menu_book_rounded,
                   0,
                 ),
                 _widgetBilgiSatiri(
-                  '2. Günün Hadisi',
-                  'Buhârî ve Müslim kaynaklı sahih hadis-i şerifi ve hikmetini gösterir.',
+                  widgetBasliklari[1]['ad'] as String,
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Buhârî ve Müslim kaynaklı sahih hadis-i şerifi ve hikmetini gösterir.',
+                    en: 'Displays authentic Sahih Hadith from Bukhari and Muslim.',
+                    de: 'Zeigt authentische Sahih-Hadithe aus Buchari und Muslim.',
+                    fr: 'Affiche des hadiths authentiques de Boukhari et Mouslim.',
+                  ),
                   Icons.verified_rounded,
                   1,
                 ),
                 _widgetBilgiSatiri(
-                  '3. Sıradaki Namaz',
-                  'Sıradaki vakti ve kalan süreyi büyük harflerle canlı geri sayımla gösterir.',
+                  widgetBasliklari[2]['ad'] as String,
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Sıradaki vakti ve kalan süreyi büyük harflerle canlı geri sayımla gösterir.',
+                    en: 'Shows the next prayer time and live countdown in large font.',
+                    de: 'Zeigt die nächste Gebetszeit und den Live-Countdown groß an.',
+                    fr: 'Affiche la prochaine prière et le compte à rebours en grand format.',
+                  ),
                   Icons.hourglass_top_rounded,
                   2,
                 ),
                 _widgetBilgiSatiri(
-                  '4. 6 Vakit Çizelgesi',
-                  'İmsak, Güneş, Öğle, İkindi, Akşam ve Yatsı vakitlerini tam liste sunar.',
+                  widgetBasliklari[3]['ad'] as String,
+                  Ceviri.sec(
+                    dil,
+                    tr: 'İmsak, Güneş, Öğle, İkindi, Akşam ve Yatsı vakitlerini tam liste sunar.',
+                    en: 'Shows all 6 daily prayer times in a full table.',
+                    de: 'Zeigt alle 6 täglichen Gebetszeiten in einer Übersicht.',
+                    fr: 'Affiche les 6 horaires de prière quotidiens dans un tableau complet.',
+                  ),
                   Icons.mosque_rounded,
                   3,
                 ),
                 _widgetBilgiSatiri(
-                  '5. Günlük Zikir',
-                  'Günün tesbihatını, Arapça zikrini ve Zikirmatik sayacını ekranda tutar.',
+                  widgetBasliklari[4]['ad'] as String,
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Günün tesbihatını, Arapça zikrini ve Zikirmatik sayacını ekranda tutar.',
+                    en: 'Keeps the daily dhikr, Arabic text, and Tasbih counter on screen.',
+                    de: 'Zeigt das tägliche Dhikr, den arabischen Text und den Tasbih-Zähler.',
+                    fr: 'Garde le dhikr quotidien, le texte arabe et le compteur Tasbih à l’écran.',
+                  ),
                   Icons.touch_app_rounded,
                   4,
                 ),
@@ -913,20 +1113,37 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                         children: [
                           Icon(Icons.info_outline_rounded, color: widget.vurguAltin, size: 17),
                           const SizedBox(width: 7),
-                          Text(
-                            'Telefonunuzun Ekranına Nasıl Eklenir?',
-                            style: TextStyle(
-                              color: widget.yumusakAltin,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12.5,
+                          Expanded(
+                            child: Text(
+                              Ceviri.sec(
+                                dil,
+                                tr: 'Telefonunuzun Ekranına Nasıl Eklenir?',
+                                en: 'How to Add to Your Phone Screen?',
+                                de: 'Wie fügt man es zum Bildschirm hinzu?',
+                                fr: 'Comment l’ajouter à l’écran de votre téléphone ?',
+                              ),
+                              style: TextStyle(
+                                color: widget.yumusakAltin,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.5,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '• Samsung / Android: Ana ekranda boş bir yere basılı tutun ➔ "Widget’lar"a dokunun ➔ "Vakt-i Huzur" altındaki 5 widget’tan dilediğinizi ekranınıza sürükleyin.\n'
-                        '• iPhone (iOS): Ana ekrana veya Kilit Ekranına basılı tutun ➔ "+" / "Özelleştir" butonuna dokunup "Vakt-i Huzur" widget’ını seçin.',
+                        Ceviri.sec(
+                          dil,
+                          tr: '• Samsung / Android: Ana ekranda boş bir yere basılı tutun ➔ "Widget’lar"a dokunun ➔ "Vakt-i Beraat" altındaki 5 widget’tan dilediğinizi ekranınıza sürükleyin.\n'
+                              '• iPhone (iOS): Ana ekrana veya Kilit Ekranına basılı tutun ➔ "+" / "Özelleştir" butonuna dokunup "Vakt-i Beraat" widget’ını seçin.',
+                          en: '• Samsung / Android: Long-press an empty area on the home screen ➔ tap "Widgets" ➔ drag any of the 5 widgets under "Vakt-i Beraat".\n'
+                              '• iPhone (iOS): Long-press the Home or Lock Screen ➔ tap "+" / "Customize" and select "Vakt-i Beraat".',
+                          de: '• Samsung / Android: Halten Sie eine freie Stelle auf dem Startbildschirm gedrückt ➔ tippen Sie auf „Widgets“ ➔ ziehen Sie eines der 5 Widgets unter „Vakt-i Beraat“.\n'
+                              '• iPhone (iOS): Halten Sie den Start- oder Sperrbildschirm gedrückt ➔ tippen Sie auf „+“ / „Anpassen“ und wählen Sie „Vakt-i Beraat“.',
+                          fr: '• Samsung / Android : Appuyez longuement sur un espace vide de l’écran d’accueil ➔ appuyez sur « Widgets » ➔ faites glisser l’un des 5 widgets sous « Vakt-i Beraat ».\n'
+                              '• iPhone (iOS) : Appuyez longuement sur l’écran d’accueil ou verrouillé ➔ appuyez sur « + » / « Personnaliser » et choisissez « Vakt-i Beraat ».',
+                        ),
                         style: TextStyle(
                           color: widget.ikincilYazi,
                           fontSize: 11.5,
@@ -1000,6 +1217,14 @@ class _KilitEkraniVeWidgetAyarlariSheetState
     required ({String baslik, String arapca, String meal, String kaynak}) hadis,
     required ({String arapca, String okunus, String anlam, String sayac}) zikir,
   }) {
+    final dil = widget.dil;
+    final imsakEtiket = Ceviri.m(dil, 'imsak');
+    final gunesEtiket = Ceviri.m(dil, 'gunes');
+    final ogleEtiket = Ceviri.m(dil, 'ogle');
+    final ikindiEtiket = Ceviri.m(dil, 'ikindi');
+    final aksamEtiket = Ceviri.m(dil, 'aksam');
+    final yatsiEtiket = Ceviri.m(dil, 'yatsi');
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1153,7 +1378,7 @@ class _KilitEkraniVeWidgetAyarlariSheetState
             return Column(
               children: [
                 Text(
-                  '☪ Vakt-i Huzur • ${v.konumAdi}',
+                  '☪ Vakt-i Beraat • ${v.konumAdi}',
                   style: const TextStyle(
                     color: Color(0xFFD9B650),
                     fontSize: 12,
@@ -1162,7 +1387,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Sıradaki: ${widget.siradakiVakitAdi} Vakti',
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Sıradaki: ${widget.siradakiVakitAdi} Vakti',
+                    en: 'Next: ${widget.siradakiVakitAdi}',
+                    de: 'Nächstes: ${widget.siradakiVakitAdi}',
+                    fr: 'Suivante : ${widget.siradakiVakitAdi}',
+                  ),
                   style: const TextStyle(
                     color: Color(0xFFF2E2B6),
                     fontSize: 15,
@@ -1180,7 +1411,13 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                   ),
                 ),
                 Text(
-                  'Kalan Süre • Diyanet',
+                  Ceviri.sec(
+                    dil,
+                    tr: 'Kalan Süre • Diyanet',
+                    en: 'Remaining Time • Diyanet',
+                    de: 'Verbleibende Zeit • Diyanet',
+                    fr: 'Temps restant • Diyanet',
+                  ),
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 11),
                 ),
               ],
@@ -1197,7 +1434,7 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '☪ Vakt-i Huzur • ${v.konumAdi}',
+                            '☪ Vakt-i Beraat • ${v.konumAdi}',
                             style: const TextStyle(
                               color: Color(0xFFF2E2B6),
                               fontWeight: FontWeight.bold,
@@ -1205,7 +1442,7 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                             ),
                           ),
                           Text(
-                            v.hicriTarihTr,
+                            dil == 'TR' ? v.hicriTarihTr : v.hicriTarihEn,
                             style: const TextStyle(
                               color: Color(0xFFB7D4C5),
                               fontSize: 10.5,
@@ -1248,12 +1485,36 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _widgetVakitSutun('İmsak', v.imsak, widget.siradakiVakitAdi == 'İmsak'),
-                    _widgetVakitSutun('Güneş', v.gunes, widget.siradakiVakitAdi == 'Güneş'),
-                    _widgetVakitSutun('Öğle', v.ogle, widget.siradakiVakitAdi == 'Öğle'),
-                    _widgetVakitSutun('İkindi', v.ikindi, widget.siradakiVakitAdi == 'İkindi'),
-                    _widgetVakitSutun('Akşam', v.aksam, widget.siradakiVakitAdi == 'Akşam'),
-                    _widgetVakitSutun('Yatsı', v.yatsi, widget.siradakiVakitAdi == 'Yatsı'),
+                    _widgetVakitSutun(
+                      imsakEtiket,
+                      v.imsak,
+                      widget.siradakiVakitAdi == imsakEtiket || widget.siradakiVakitAdi == 'İmsak',
+                    ),
+                    _widgetVakitSutun(
+                      gunesEtiket,
+                      v.gunes,
+                      widget.siradakiVakitAdi == gunesEtiket || widget.siradakiVakitAdi == 'Güneş',
+                    ),
+                    _widgetVakitSutun(
+                      ogleEtiket,
+                      v.ogle,
+                      widget.siradakiVakitAdi == ogleEtiket || widget.siradakiVakitAdi == 'Öğle',
+                    ),
+                    _widgetVakitSutun(
+                      ikindiEtiket,
+                      v.ikindi,
+                      widget.siradakiVakitAdi == ikindiEtiket || widget.siradakiVakitAdi == 'İkindi',
+                    ),
+                    _widgetVakitSutun(
+                      aksamEtiket,
+                      v.aksam,
+                      widget.siradakiVakitAdi == aksamEtiket || widget.siradakiVakitAdi == 'Akşam',
+                    ),
+                    _widgetVakitSutun(
+                      yatsiEtiket,
+                      v.yatsi,
+                      widget.siradakiVakitAdi == yatsiEtiket || widget.siradakiVakitAdi == 'Yatsı',
+                    ),
                   ],
                 ),
               ],
@@ -1266,10 +1527,16 @@ class _KilitEkraniVeWidgetAyarlariSheetState
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        '📿 Vakt-i Huzur • Günlük Zikir',
-                        style: TextStyle(
+                        Ceviri.sec(
+                          dil,
+                          tr: '📿 Vakt-i Beraat • Günlük Zikir',
+                          en: '📿 Vakt-i Beraat • Daily Dhikr',
+                          de: '📿 Vakt-i Beraat • Tägliches Dhikr',
+                          fr: '📿 Vakt-i Beraat • Dhikr Quotidien',
+                        ),
+                        style: const TextStyle(
                           color: Color(0xFFD9B650),
                           fontWeight: FontWeight.bold,
                           fontSize: 11.5,

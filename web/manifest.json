@@ -1,11 +1,11 @@
 {
-    "name": "Vakt-i Huzur",
-    "short_name": "Vakt-i Huzur",
+    "name": "Vakt-i Beraat",
+    "short_name": "Vakt-i Beraat",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#091A13",
     "theme_color": "#0D261C",
-    "description": "Vakt-i Huzur — Kur'an-ı Kerim, Sahih Hadis Akışı, Diyanet Namaz Vakitleri, Kıble Pusulası, Dualar ve Dijital Zikirmatik.",
+    "description": "Vakt-i Beraat — Kur'an-ı Kerim, Sahih Hadis Akışı, Diyanet Namaz Vakitleri, Kıble Pusulası, Dualar ve Dijital Zikirmatik.",
     "orientation": "portrait",
     "prefer_related_applications": false,
     "icons": [

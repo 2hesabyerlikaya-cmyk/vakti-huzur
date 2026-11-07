@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'hadis_ceviri_de_fr.dart';
+export 'hadis_ceviri_de_fr.dart';
 
 // ============================================================================
 // 114 SURENİN TAM LİSTESİ (FÂTİHA'DAN NÂS'A EKSİKSİZ METADATA)
@@ -25,6 +27,28 @@ class SureMeta {
     this.ayetSayisi,
     this.yer,
   );
+
+  String baslik(String dil) {
+    if (dil == 'EN') return 'Surah $adEn';
+    if (dil == 'DE') return 'Sure $adEn';
+    if (dil == 'FR') return 'Sourate $adEn';
+    if (dil == 'AR') return 'سورة $arapca';
+    return '$adTr Suresi';
+  }
+
+  String anlam(String dil) {
+    if (dil == 'EN' || dil == 'DE' || dil == 'FR') return anlamEn;
+    return anlamTr;
+  }
+
+  String yerEtiketi(String dil) {
+    final mekkiMi = yer.toLowerCase().contains('mekk');
+    if (dil == 'EN') return mekkiMi ? 'Meccan' : 'Medinan';
+    if (dil == 'DE') return mekkiMi ? 'Mekkanisch' : 'Medinensisch';
+    if (dil == 'FR') return mekkiMi ? 'Mecquoise' : 'Médinoise';
+    if (dil == 'AR') return mekkiMi ? 'مكية' : 'مدنية';
+    return yer;
+  }
 }
 
 const List<SureMeta> kTum114Sure = [
@@ -1894,3 +1918,64 @@ const List<Map<String, String>> kSahihHadisHavuzu = [
     'tefsirEn': 'A comprehensive prophetic supplication uniting spiritual guidance, moral purity, and inner richness.',
   },
 ];
+
+String hadisKonuGetir(int index, String dil) {
+  final idx = index % kSahihHadisHavuzu.length;
+  final h = kSahihHadisHavuzu[idx];
+  if (dil == 'DE' && idx < kSahihHadisCeviriDe.length) {
+    return kSahihHadisCeviriDe[idx]['konu'] ?? h['konuEn']!;
+  }
+  if (dil == 'FR' && idx < kSahihHadisCeviriFr.length) {
+    return kSahihHadisCeviriFr[idx]['konu'] ?? h['konuEn']!;
+  }
+  if (dil == 'EN') return h['konuEn']!;
+  return h['konuTr']!;
+}
+
+String hadisMealGetir(int index, String dil) {
+  final idx = index % kSahihHadisHavuzu.length;
+  final h = kSahihHadisHavuzu[idx];
+  if (dil == 'DE' && idx < kSahihHadisCeviriDe.length) {
+    return kSahihHadisCeviriDe[idx]['meal'] ?? h['mealEn']!;
+  }
+  if (dil == 'FR' && idx < kSahihHadisCeviriFr.length) {
+    return kSahihHadisCeviriFr[idx]['meal'] ?? h['mealEn']!;
+  }
+  if (dil == 'EN') return h['mealEn']!;
+  return h['mealTr']!;
+}
+
+String hadisTefsirGetir(int index, String dil) {
+  final idx = index % kSahihHadisHavuzu.length;
+  final h = kSahihHadisHavuzu[idx];
+  if (dil == 'DE' && idx < kSahihHadisCeviriDe.length) {
+    return kSahihHadisCeviriDe[idx]['tefsir'] ?? h['tefsirEn']!;
+  }
+  if (dil == 'FR' && idx < kSahihHadisCeviriFr.length) {
+    return kSahihHadisCeviriFr[idx]['tefsir'] ?? h['tefsirEn']!;
+  }
+  if (dil == 'EN') return h['tefsirEn']!;
+  return h['tefsirTr']!;
+}
+
+String hadisDogrulanmisGetir(int index, String dil) {
+  final idx = index % kSahihHadisHavuzu.length;
+  final raw = kSahihHadisHavuzu[idx]['dogrulanmis'] ?? '';
+  if (dil == 'DE') {
+    return raw
+        .replaceFirst('Doğrulanmış Kaynak:', 'Verifizierte Quelle:')
+        .replaceAll('Hadis No:', 'Hadith Nr.:');
+  }
+  if (dil == 'FR') {
+    return raw
+        .replaceFirst('Doğrulanmış Kaynak:', 'Source vérifiée :')
+        .replaceAll('Hadis No:', 'Hadith n° :');
+  }
+  if (dil == 'EN') {
+    return raw
+        .replaceFirst('Doğrulanmış Kaynak:', 'Verified Source:')
+        .replaceAll('Hadis No:', 'Hadith No:');
+  }
+  return raw;
+}
+

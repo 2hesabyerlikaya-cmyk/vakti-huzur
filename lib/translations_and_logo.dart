@@ -186,17 +186,68 @@ class _RubElHizbHilalLogoPainter extends CustomPainter {
 }
 
 // ============================================================================
-// 3 DİL ÇEVİRİ SÖZLÜĞÜ (TR / EN / AR)
+// 5 DİL ÇEVİRİ SÖZLÜĞÜ (TR / EN / DE / FR / AR) & OTOMATİK SİSTEM DİLİ ALGILAMA
 // ============================================================================
 
 class Ceviri {
+  static const String _dilStorageKey = 'vakti_beraat_secili_dil_v1';
+
+  /// Telefonun sistem diline göre (veya kaydedilmiş tercihe göre) başlangıç dilini döndürür
+  static String baslangicDiliniBelirle() {
+    try {
+      final kayitli = web.window.localStorage.getItem(_dilStorageKey);
+      if (kayitli != null && _sozluk.containsKey(kayitli)) {
+        return kayitli;
+      }
+    } catch (_) {}
+    try {
+      final sysCode = WidgetsBinding.instance.platformDispatcher.locale.languageCode.toLowerCase();
+      if (sysCode == 'de') return 'DE';
+      if (sysCode == 'fr') return 'FR';
+      if (sysCode == 'en') return 'EN';
+      if (sysCode == 'ar') return 'AR';
+      if (sysCode == 'tr') return 'TR';
+    } catch (_) {}
+    return 'TR';
+  }
+
+  /// Seçilen dili kalıcı olarak kaydeder
+  static void diliKaydet(String dil) {
+    try {
+      web.window.localStorage.setItem(_dilStorageKey, dil);
+    } catch (_) {}
+  }
+
+  /// TR / EN / DE / FR arasında yardımcı çok dilli metin seçici
+  static String sec(
+    String dil, {
+    required String tr,
+    required String en,
+    String? de,
+    String? fr,
+    String? ar,
+  }) {
+    switch (dil) {
+      case 'DE':
+        return de ?? en;
+      case 'FR':
+        return fr ?? en;
+      case 'EN':
+        return en;
+      case 'AR':
+        return ar ?? en;
+      default:
+        return tr;
+    }
+  }
+
   static String m(String dil, String anahtar) {
-    return _sozluk[dil]?[anahtar] ?? _sozluk['TR']![anahtar] ?? anahtar;
+    return _sozluk[dil]?[anahtar] ?? _sozluk['EN']?[anahtar] ?? _sozluk['TR']![anahtar] ?? anahtar;
   }
 
   static const Map<String, Map<String, String>> _sozluk = {
     'TR': {
-      'app_title': 'Vakt-i Huzur',
+      'app_title': 'Vakt-i Beraat',
       'app_subtitle': 'Kurumsal İslami Rehber',
       'tab_reels': 'Akış (Reels)',
       'tab_home': 'Ana Sayfa',
@@ -212,8 +263,8 @@ class Ceviri {
       'share': 'Paylaş',
       'copied_msg': 'doğrulama bilgisiyle panoya kopyalandı.',
       'drawer_theme_title': 'ARKA PLAN TEMASI SEÇİMİ',
-      'drawer_font_title': 'YAZI BOYUTU AYARI (ARAPÇA & TÜRKÇE)',
-      'drawer_lang_title': 'DİL SEÇİMİ / LANGUAGE',
+      'drawer_font_title': 'YAZI BOYUTU AYARI (ARAPÇA & MEAL)',
+      'drawer_lang_title': 'DİL SEÇİMİ / LANGUAGE / SPRACHE / LANGUE',
       'drawer_saved': 'Kaydedilenler (Favoriler)',
       'drawer_calendar': 'Dini Günler Takvimi',
       'saved_empty': 'Henüz kaydedilmiş bir ayet veya hadis bulunmuyor.\nAkış sekmesindeki kaydet ikonuna dokunarak ekleyebilirsiniz.',
@@ -262,7 +313,7 @@ class Ceviri {
       'infinite_badge': 'Sonsuz Akış • 6236 Ayet & Sahih Hadis',
     },
     'EN': {
-      'app_title': 'Vakt-i Huzur',
+      'app_title': 'Vakt-i Beraat',
       'app_subtitle': 'Official Islamic Guide',
       'tab_reels': 'Spiritual Flow',
       'tab_home': 'Prayer Times',
@@ -279,7 +330,7 @@ class Ceviri {
       'copied_msg': 'copied to clipboard with verified source.',
       'drawer_theme_title': 'BACKGROUND THEME SELECTION',
       'drawer_font_title': 'FONT SIZE (ARABIC & TRANSLATION)',
-      'drawer_lang_title': 'LANGUAGE / DİL SEÇİMİ',
+      'drawer_lang_title': 'LANGUAGE / DİL / SPRACHE / LANGUE',
       'drawer_saved': 'Saved Bookmarks',
       'drawer_calendar': 'Islamic Holy Days Calendar',
       'saved_empty': 'No verses or hadiths bookmarked yet.\nTap the bookmark icon on any card in the Flow tab.',
@@ -317,7 +368,7 @@ class Ceviri {
       'theme_1_sub': 'Kiswah obsidian black & pure gold embroidery',
       'theme_2_name': '3. Burgundy Ruby & Gold',
       'theme_2_sub': 'Deep burgundy ruby (#2A121B) & royal gold (#D4AF37)',
-      'theme_3_name': '4. Klasik Ottoman Iznik Tile Blue',
+      'theme_3_name': '4. Classic Ottoman Iznik Tile Blue',
       'theme_3_sub': 'Iznik turquoise, cobalt blue & gold',
       'theme_4_name': '5. Minimalist Nur / Beige',
       'theme_4_sub': 'Soft Mushaf parchment beige & deep emerald',
@@ -327,8 +378,140 @@ class Ceviri {
       'loading_surah': 'Loading all verses of the Surah from the official database...',
       'infinite_badge': 'Infinite Flow • 6,236 Verses & Sahih Hadiths',
     },
+    'DE': {
+      'app_title': 'Vakt-i Beraat',
+      'app_subtitle': 'Islamischer Gebets- & Koranführer',
+      'tab_reels': 'Spiritueller Feed',
+      'tab_home': 'Gebetszeiten',
+      'tab_quiz': 'Quiz',
+      'tab_library': 'Bibliothek',
+      'flow_title': 'Spiritueller Feed',
+      'short_tafsir': 'Kurzer Kommentar & Weisheit',
+      'swipe_hint': 'Wischen',
+      'liked_showcase_title': 'Geliebte Verse & Hadithe',
+      'liked_empty': 'Noch keine markierten Verse oder Hadithe. Tippen Sie im Feed auf das Herz-Symbol, um sie hier zu speichern.',
+      'saved': 'Gespeichert',
+      'save': 'Speichern',
+      'share': 'Teilen',
+      'copied_msg': 'mit verifizierter Quelle in die Zwischenablage kopiert.',
+      'drawer_theme_title': 'HINTERGRUND-THEMA AUSWÄHLEN',
+      'drawer_font_title': 'SCHRIFTGRÖSSE (ARABISCH & ÜBERSETZUNG)',
+      'drawer_lang_title': 'SPRACHE / LANGUAGE / DİL SEÇİMİ',
+      'drawer_saved': 'Gespeicherte Favoriten',
+      'drawer_calendar': 'Islamischer Festtagskalender',
+      'saved_empty': 'Noch keine Verse oder Hadithe gespeichert.\nTippen Sie auf das Lesezeichen-Symbol im Feed.',
+      'calendar_title': 'Islamische Festtage & Nächte (1448 n.H.)',
+      'date_banner': 'Sonntag, 25. Oktober 2026  •  14. Dschumada al-Ula 1448',
+      'remaining_time': 'Verbleibende Zeit bis',
+      'adhan_label': 'Adhan',
+      'diyanet_cal': 'Diyanet Gebetskalender',
+      'next_badge': 'Nächstes',
+      'imsak': 'Fadschr',
+      'gunes': 'Sonnenaufgang',
+      'ogle': 'Dhuhr',
+      'ikindi': 'Assr',
+      'aksam': 'Maghrib',
+      'yatsi': 'Ischa',
+      'dua_title': 'Bittgebet des Tages',
+      'dua_meaning': '„Unser Herr, gib uns im Diesseits Gutes und im Jenseits Gutes und bewahre uns vor der Strafe des Höllenfeuers.“',
+      'dua_source': 'Quelle: Koranübersetzung Bubenheim & Elyas — Sure Al-Baqara, Vers 201',
+      'qibla_title': 'Qibla-Finder (Qibla-Kompass)',
+      'turn_left': 'Nach links drehen',
+      'align_qibla': 'Zur Qibla ausrichten',
+      'turn_right': 'Nach rechts drehen',
+      'lib_title': 'Islamische Bibliothek',
+      'tab_quran': 'Der Edle Koran',
+      'tab_hadith': 'Hadith-Sammlung',
+      'verse_unit': 'Verse',
+      'mode_list': 'Übersetzungs-Listenansicht',
+      'mode_mushaf': 'Arabische Mushaf-Seitenansicht',
+      'pronunciation': 'Aussprache',
+      'tafsir_note': 'Tafsir-Hinweis',
+      'mushaf_footer': 'Uthmanische Mushaf-Schreibweise',
+      'theme_0_name': '1. Medina-Grün & Kuppel',
+      'theme_0_sub': 'Ruhe der Rawdah & grüne Kuppel-Töne (Standard)',
+      'theme_1_name': '2. Kaaba-Nacht & Gold',
+      'theme_1_sub': 'Kiswah-Schwarz & reine Goldstickerei',
+      'theme_2_name': '3. Burgunder-Rubin & Gold',
+      'theme_2_sub': 'Tiefes Rubinrot (#2A121B) & Königsgold (#D4AF37)',
+      'theme_3_name': '4. Klassisches Osmanisches Iznik-Blau',
+      'theme_3_sub': 'Iznik-Türkis, Kobaltblau & Gold',
+      'theme_4_name': '5. Minimalistisches Nur / Beige',
+      'theme_4_sub': 'Sanftes Mushaf-Pergamentbeige & Smaragdgrün',
+      'theme_5_name': '6. Fotothema (Moschee- & Naturfotos)',
+      'theme_5_sub': '24 ausgewählte HD-Moschee-, Kaaba- & Naturhintergründe',
+      'search_surah': 'Unter 114 Suren suchen (z.B. Ya-Sin, Mulk, 36)...',
+      'loading_surah': 'Alle Verse der Sure werden geladen (Bubenheim & Elyas)...',
+      'infinite_badge': 'Unendlicher Feed • 6.236 Verse & Sahih Hadithe',
+    },
+    'FR': {
+      'app_title': 'Vakt-i Beraat',
+      'app_subtitle': 'Guide Islamique & Horaires de Prière',
+      'tab_reels': 'Flux Spirituel',
+      'tab_home': 'Heures de Prière',
+      'tab_quiz': 'Quiz',
+      'tab_library': 'Bibliothèque',
+      'flow_title': 'Flux Spirituel',
+      'short_tafsir': 'Bref Commentaire & Sagesse',
+      'swipe_hint': 'Glisser',
+      'liked_showcase_title': 'Versets & Hadiths Aimés',
+      'liked_empty': 'Aucun verset ou hadith aimé pour le moment. Appuyez sur l’icône cœur dans le flux pour les ajouter ici.',
+      'saved': 'Enregistré',
+      'save': 'Enregistrer',
+      'share': 'Partager',
+      'copied_msg': 'copié dans le presse-papiers avec sa source vérifiée.',
+      'drawer_theme_title': 'CHOIX DU THÈME D’ARRIÈRE-PLAN',
+      'drawer_font_title': 'TAILLE DE POLICE (ARABE & TRADUCTION)',
+      'drawer_lang_title': 'LANGUE / LANGUAGE / SPRACHE / DİL',
+      'drawer_saved': 'Favoris Enregistrés',
+      'drawer_calendar': 'Calendrier des Jours Saints Islamiques',
+      'saved_empty': 'Aucun verset ou hadith enregistré pour le moment.\nAppuyez sur l’icône de signet dans le flux.',
+      'calendar_title': 'Jours et Nuits Bénis de l’Islam (1448 H)',
+      'date_banner': 'Dimanche 25 Octobre 2026  •  14 Joumada al-Oula 1448',
+      'remaining_time': 'Temps Restant Avant',
+      'adhan_label': 'Adhan',
+      'diyanet_cal': 'Calendrier Officiel Diyanet',
+      'next_badge': 'Suivante',
+      'imsak': 'Fajr',
+      'gunes': 'Lever',
+      'ogle': 'Dhuhr',
+      'ikindi': 'Asr',
+      'aksam': 'Maghrib',
+      'yatsi': 'Isha',
+      'dua_title': 'Invocation du Jour',
+      'dua_meaning': '« Seigneur ! Accorde-nous belle part ici-bas, et belle part aussi dans l’au-delà ; et protège-nous du châtiment du Feu ! »',
+      'dua_source': 'Source : Traduction Muhammad Hamidullah — Sourate Al-Baqarah, Verset 201',
+      'qibla_title': 'Boussole Qibla (Direction de la Mecque)',
+      'turn_left': 'Tourner à gauche',
+      'align_qibla': 'Aligner sur la Qibla',
+      'turn_right': 'Tourner à droite',
+      'lib_title': 'Bibliothèque Islamique',
+      'tab_quran': 'Le Saint Coran',
+      'tab_hadith': 'Corpus de Hadiths',
+      'verse_unit': 'Versets',
+      'mode_list': 'Vue Liste avec Traduction',
+      'mode_mushaf': 'Vue Page du Moushaf Arabe',
+      'pronunciation': 'Phonétique',
+      'tafsir_note': 'Note de Tafsir',
+      'mushaf_footer': 'Moushaf en Graphie Othmanienne',
+      'theme_0_name': '1. Vert de Médine & Dôme',
+      'theme_0_sub': 'Sérénité de la Rawdah et tons du Dôme Vert (Défaut)',
+      'theme_1_name': '2. Nuit de la Kaaba & Or',
+      'theme_1_sub': 'Noir de la Kiswah et broderies d’or pur',
+      'theme_2_name': '3. Rubis Bordeaux & Or',
+      'theme_2_sub': 'Bordeaux profond (#2A121B) et or royal (#D4AF37)',
+      'theme_3_name': '4. Bleu Faïence Ottomane d’Iznik',
+      'theme_3_sub': 'Turquoise d’Iznik, bleu cobalt et or',
+      'theme_4_name': '5. Minimaliste Nour / Beige',
+      'theme_4_sub': 'Beige parchemin du Moushaf et émeraude foncé',
+      'theme_5_name': '6. Thème Visuel (Photos Mosquées & Nature)',
+      'theme_5_sub': '24 Arrière-plans HD de mosquées, de la Kaaba et de la nature',
+      'search_surah': 'Rechercher parmi les 114 Sourates (ex: Ya-Sin, Mulk, 36)...',
+      'loading_surah': 'Chargement des versets de la Sourate (Traduction Hamidullah)...',
+      'infinite_badge': 'Flux Infini • 6 236 Versets & Hadiths Sahih',
+    },
     'AR': {
-      'app_title': 'Vakt-i Huzur',
+      'app_title': 'Vakt-i Beraat',
       'app_subtitle': 'الدليل الإسلامي المعتمد',
       'tab_reels': 'نفحات إيمانية',
       'tab_home': 'الرئيسية',
@@ -397,13 +580,119 @@ class Ceviri {
 
   /// Reels kartlarını seçili dile göre döndürür
   static Map<String, String> reelsMetin(String dil, String id) {
-    if (dil == 'EN') {
+    if (dil == 'DE') {
+      return _reelsDe[id] ?? _reelsEn[id] ?? _reelsTr[id]!;
+    } else if (dil == 'FR') {
+      return _reelsFr[id] ?? _reelsEn[id] ?? _reelsTr[id]!;
+    } else if (dil == 'EN') {
       return _reelsEn[id] ?? _reelsTr[id]!;
     } else if (dil == 'AR') {
       return _reelsAr[id] ?? _reelsTr[id]!;
     }
     return _reelsTr[id]!;
   }
+
+  static const Map<String, Map<String, String>> _reelsDe = {
+    '1': {
+      'tur': 'Edler Koranvers',
+      'konu': 'Hilfe suchen durch Geduld & Gebet',
+      'meal': '„O die ihr glaubt, sucht Hilfe in der Geduld und im Gebet! Gewiss, Allah ist mit den Standhaften.“',
+      'kaynakKisa': 'Sure Al-Baqara, Vers 153',
+      'dogrulanmis': 'Verifizierte Quelle: Bubenheim & Elyas Koranübersetzung • Al-Baqara 2:153',
+      'tefsir': 'Geduld bewahrt die Standhaftigkeit des Herzens, während das Gebet den Gläubigen direkt mit seinem Herrn verbindet.',
+    },
+    '2': {
+      'tur': 'Prophetischer Hadith',
+      'konu': 'Der Wert der Absichten & Aufrichtigkeit',
+      'meal': '„Die Taten sind entsprechend den Absichten, und jedem Menschen gebührt nur das, was er beabsichtigt hat.“',
+      'kaynakKisa': 'Sahih al-Buchari, Offenbarung 1',
+      'dogrulanmis': 'Verifizierte Quelle: Sahih al-Buchari, Buch der Offenbarung, Kap. 1 — Hadith Nr. 1',
+      'tefsir': 'Der Wert jeder guten Tat bei Allah hängt von der aufrichtigen Absicht im Herzen ab.',
+    },
+    '3': {
+      'tur': 'Edler Koranvers',
+      'konu': 'Mit der Erschwernis kommt die Erleichterung',
+      'meal': '„Denn gewiss, mit der Erschwernis ist Erleichterung. Gewiss, mit der Erschwernis ist Erleichterung.“',
+      'kaynakKisa': 'Sure Asch-Scharh, Verse 5-6',
+      'dogrulanmis': 'Verifizierte Quelle: Bubenheim & Elyas Koranübersetzung • Asch-Scharh 94:5-6',
+      'tefsir': 'In jeder Prüfung liegt bereits eine göttliche Tür der Erleichterung verborgen.',
+    },
+    '4': {
+      'tur': 'Prophetischer Hadith',
+      'konu': 'Reinheit des Herzens & rechtschaffene Taten',
+      'meal': '„Gewiss, Allah schaut nicht auf euer Äußeres und euren Besitz, sondern Er schaut auf eure Herzen und eure Taten.“',
+      'kaynakKisa': 'Sahih Muslim, Birr 34',
+      'dogrulanmis': 'Verifizierte Quelle: Sahih Muslim, Buch der Güte, Kap. 10 — Hadith Nr. 2564',
+      'tefsir': 'Was den Menschen vor Allah erhöht, ist ein barmherziges, aufrichtiges Herz und rechtschaffenes Handeln.',
+    },
+    '5': {
+      'tur': 'Edler Koranvers',
+      'konu': 'Ruhe der Herzen im Gedenken Allahs',
+      'meal': '„Wahrlich, im Gedenken Allahs finden die Herzen Ruhe!“',
+      'kaynakKisa': 'Sure Ar-Ra’d, Vers 28',
+      'dogrulanmis': 'Verifizierte Quelle: Bubenheim & Elyas Koranübersetzung • Ar-Ra’d 13:28',
+      'tefsir': 'Die menschliche Seele findet wahren inneren Frieden nur in der Erinnerung an ihren Schöpfer.',
+    },
+    '6': {
+      'tur': 'Prophetischer Hadith',
+      'konu': 'Erleichtert und erschwert nicht',
+      'meal': '„Erleichtert und erschwert nicht; verkündet frohe Botschaft und schreckt nicht ab.“',
+      'kaynakKisa': 'Sahih al-Buchari, Wissen 11',
+      'dogrulanmis': 'Verifizierte Quelle: Sahih al-Buchari, Buch des Wissens, Kap. 11 — Hadith Nr. 69',
+      'tefsir': 'Dieser Hadith erinnert daran, dass der Islam eine Religion der Barmherzigkeit, Güte und Hoffnung ist.',
+    },
+  };
+
+  static const Map<String, Map<String, String>> _reelsFr = {
+    '1': {
+      'tur': 'Noble Verset',
+      'konu': 'Chercher secours par la patience et la prière',
+      'meal': '« Ô vous qui avez cru ! Cherchez secours dans l’endurance et la prière, car Allah est avec les endurants. »',
+      'kaynakKisa': 'Sourate Al-Baqarah, Verset 153',
+      'dogrulanmis': 'Source vérifiée : Traduction Muhammad Hamidullah • Al-Baqarah 2:153',
+      'tefsir': 'La patience préserve la force du cœur, tandis que la prière relie directement le croyant à son Seigneur.',
+    },
+    '2': {
+      'tur': 'Hadith Prophétique',
+      'konu': 'La valeur des intentions et la sincérité',
+      'meal': '« Les actes ne valent que par les intentions, et chacun n’a pour lui que ce qu’il a eu réellement l’intention de faire. »',
+      'kaynakKisa': 'Sahih al-Boukhari, Révélation 1',
+      'dogrulanmis': 'Source vérifiée : Sahih al-Boukhari, Livre de la Révélation, Ch. 1 — Hadith n° 1',
+      'tefsir': 'La valeur spirituelle de toute bonne action auprès d’Allah dépend de la sincérité du cœur.',
+    },
+    '3': {
+      'tur': 'Noble Verset',
+      'konu': 'La facilité accompagne la difficulté',
+      'meal': '« À côté de la difficulté est, certes, une facilité ! À côté de la difficulté est, certes, une facilité ! »',
+      'kaynakKisa': 'Sourate Ach-Charh, Versets 5-6',
+      'dogrulanmis': 'Source vérifiée : Traduction Muhammad Hamidullah • Ach-Charh 94:5-6',
+      'tefsir': 'Au cœur de chaque épreuve se cache une porte divine de soulagement et de miséricorde.',
+    },
+    '4': {
+      'tur': 'Hadith Prophétique',
+      'konu': 'La pureté du cœur et les bonnes œuvres',
+      'meal': '« Certes, Allah ne regarde ni votre apparence ni vos biens, mais Il regarde vos cœurs et vos œuvres. »',
+      'kaynakKisa': 'Sahih Mouslim, Birr 34',
+      'dogrulanmis': 'Source vérifiée : Sahih Mouslim, Livre de la Piété, Ch. 10 — Hadith n° 2564',
+      'tefsir': 'Ce qui élève l’être humain auprès d’Allah est un cœur sincère, miséricordieux et des actes pieux.',
+    },
+    '5': {
+      'tur': 'Noble Verset',
+      'konu': 'L’apaisement des cœurs par le rappel d’Allah',
+      'meal': '« N’est-ce point par l’évocation d’Allah que se tranquillisent les cœurs ? »',
+      'kaynakKisa': 'Sourate Ar-Ra’d, Verset 28',
+      'dogrulanmis': 'Source vérifiée : Traduction Muhammad Hamidullah • Ar-Ra’d 13:28',
+      'tefsir': 'L’âme humaine ne trouve la véritable paix intérieure que dans le souvenir et la confiance en son Créateur.',
+    },
+    '6': {
+      'tur': 'Hadith Prophétique',
+      'konu': 'Facilitez et ne rendez pas les choses difficiles',
+      'meal': '« Facilitez et ne rendez pas les choses difficiles ; annoncez la bonne nouvelle et ne faites pas fuir les gens. »',
+      'kaynakKisa': 'Sahih al-Boukhari, Science 11',
+      'dogrulanmis': 'Source vérifiée : Sahih al-Boukhari, Livre de la Science, Ch. 11 — Hadith n° 69',
+      'tefsir': 'Ce hadith rappelle que l’Islam est une religion de miséricorde, de douceur et d’espérance.',
+    },
+  };
 
   static const Map<String, Map<String, String>> _reelsTr = {
     '1': {

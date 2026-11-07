@@ -1,4 +1,4 @@
-package com.vaktihuzur.app
+package com.berat.vaktiberaat
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -8,7 +8,7 @@ import android.content.SharedPreferences
 import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetProvider
 
-class VaktiHuzurAyetHadisWidgetProvider : HomeWidgetProvider() {
+class VaktiHuzurAyetWidgetProvider : HomeWidgetProvider() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -19,19 +19,19 @@ class VaktiHuzurAyetHadisWidgetProvider : HomeWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.vakti_huzur_ayet_widget)
 
             val baslik = widgetData.getString(
-                "widget_icerik_baslik",
-                "✨ Vakt-i Huzur • Günün Ayeti"
-            ) ?: "✨ Vakt-i Huzur • Günün Ayeti"
+                "widget_ayet_baslik",
+                "✨ Vakt-i Beraat • Günün Ayeti"
+            ) ?: "✨ Vakt-i Beraat • Günün Ayeti"
             val arapca = widgetData.getString(
-                "widget_icerik_arapca",
+                "widget_ayet_arapca",
                 "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ"
             ) ?: "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ"
             val meal = widgetData.getString(
-                "widget_icerik_meal",
+                "widget_ayet_meal",
                 "“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.”"
             ) ?: "“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.”"
             val kaynak = widgetData.getString(
-                "widget_icerik_kaynak",
+                "widget_ayet_kaynak",
                 "Ra’d Suresi, 28. Ayet"
             ) ?: "Ra’d Suresi, 28. Ayet"
 

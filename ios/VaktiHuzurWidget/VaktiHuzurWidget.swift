@@ -501,6 +501,18 @@ private let vurguAltin = Color(red: 0.85, green: 0.71, blue: 0.31)
 private let yumusakAltin = Color(red: 0.95, green: 0.89, blue: 0.71)
 private let naneBeyaz = Color(red: 0.72, green: 0.83, blue: 0.77)
 
+// MARK: - Canlı Geri Sayım Yardımcı Görünümü (iOS 16+ timerInterval & iOS 14+ .timer)
+@ViewBuilder
+private func canliGeriSayimMetni(_ entry: VaktiHuzurEntry) -> some View {
+    if #available(iOSApplicationExtension 16.0, *) {
+        Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+            .monospacedDigit()
+    } else {
+        Text(entry.hedefTarih, style: .timer)
+            .monospacedDigit()
+    }
+}
+
 // MARK: - iOS 17+ containerBackground Uyumluluk Eklentisi
 extension View {
     @ViewBuilder
@@ -617,10 +629,9 @@ struct VaktiHuzurNamazWidgetView: View {
                 .foregroundColor(.white)
                 .lineLimit(1)
 
-            Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+            canliGeriSayimMetni(entry)
                 .font(.system(size: 20, weight: .heavy))
                 .foregroundColor(yumusakAltin)
-                .monospacedDigit()
                 .lineLimit(1)
 
             Spacer(minLength: 0)
@@ -654,10 +665,9 @@ struct VaktiHuzurNamazWidgetView: View {
                         .font(.system(size: 10.5, weight: .bold))
                         .foregroundColor(vurguAltin)
                         .lineLimit(1)
-                    Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+                    canliGeriSayimMetni(entry)
                         .font(.system(size: 11.5, weight: .bold))
                         .foregroundColor(.white)
-                        .monospacedDigit()
                         .lineLimit(1)
                 }
                 .padding(.horizontal, 8)
@@ -882,10 +892,9 @@ struct VaktiHuzurSiradakiWidgetView: View {
                 .font(.system(size: 13.5, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-            Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+            canliGeriSayimMetni(entry)
                 .font(.system(size: 22, weight: .heavy))
                 .foregroundColor(yumusakAltin)
-                .monospacedDigit()
                 .lineLimit(1)
             Spacer(minLength: 0)
             Text("Vaktine Kalan Süre • Diyanet")

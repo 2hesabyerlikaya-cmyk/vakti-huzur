@@ -1519,8 +1519,8 @@ class BildirimAyarlariServisi {
   static const String _storageKey = 'nur_huzur_bildirim_ayarlari_v3';
 
   // 3 Farklı Ses Kanalı (Android 8.0+ kanal sesleri oluşturulduktan sonra değiştirilemediği için her ses moduna özel kanal):
-  // 1. Tam Ezan Sesi Kanalı -> android/app/src/main/res/raw/adhan.mp3 (Kanal önbelleklemesini aşmak için vakti_huzur_ezan_v2)
-  static const String _kanalTamEzanId = 'vakti_huzur_ezan_v2';
+  // 1. Tam Ezan Sesi Kanalı -> android/app/src/main/res/raw/adhan.mp3 (Yüksek sesli Medine Ezanı için vakti_beraat_medine_ezan_v3)
+  static const String _kanalTamEzanId = 'vakti_beraat_medine_ezan_v3';
   // 2. Kısa Uyarı Sesi Kanalı -> android/app/src/main/res/raw/adhan_short.wav
   static const String _kanalKisaUyariId = 'vakti_huzur_kisa_uyari_v2';
   // 3. Sessiz Bildirim Kanalı -> playSound: false

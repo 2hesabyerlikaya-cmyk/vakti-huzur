@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -32,53 +33,90 @@ class PaylasimStoryBottomSheet extends StatefulWidget {
 }
 
 class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
+  static const MethodChannel _nativeMediaChannel =
+      MethodChannel('com.berat.vaktiberaat/native_media');
+
   final GlobalKey _storyKey = GlobalKey();
   bool _islemYapiliyor = false;
 
   String get _paylasimMetni {
     final k = widget.kart;
     final dil = widget.dil;
-    return '${k.arapcaMetin}\n\n${k.meal(dil)}\n— ${k.kaynakKisa(dil)}\n\n✨ Vakt-i Beraat';
+    return '${k.arapcaMetin}\n\n${k.meal(dil)}\n— ${k.kaynakKisa(dil)}\n\nVakt-i Beraat';
   }
 
-  Future<void> _gorseliIndir({bool instagramIcin = false}) async {
-    if (_islemYapiliyor) return;
-    setState(() => _islemYapiliyor = true);
-
+  Future<Uint8List?> _storyKartiniPngyeCevir() async {
     try {
+      await Future.delayed(const Duration(milliseconds: 30));
       final boundary =
           _storyKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary != null) {
-        final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-        final ByteData? byteData =
-            await image.toByteData(format: ui.ImageByteFormat.png);
-        if (byteData != null) {
-          final bytes = byteData.buffer.asUint8List();
-          final base64Png = base64Encode(bytes);
-          final dataUrl = 'data:image/png;base64,$base64Png';
+      if (boundary == null) return null;
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData =
+          await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List();
+    } catch (_) {
+      return null;
+    }
+  }
 
-          final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
-          anchor.href = dataUrl;
-          anchor.download = 'vakti_huzur_story_${widget.kart.id}.png';
-          anchor.click();
-        }
+  Future<void> _gorseliGaleriyeIndir() async {
+    if (_islemYapiliyor) return;
+    setState(() => _islemYapiliyor = true);
+    HapticFeedback.mediumImpact();
+
+    try {
+      final bytes = await _storyKartiniPngyeCevir();
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('PNG oluşturulamadı');
       }
 
-      if (instagramIcin) {
-        await Clipboard.setData(ClipboardData(text: _paylasimMetni));
+      final fileName = 'vakti_beraat_${widget.kart.id}_${DateTime.now().millisecondsSinceEpoch}.png';
+
+      bool basarili = false;
+      if (kIsWeb) {
+        final base64Png = base64Encode(bytes);
+        final dataUrl = 'data:image/png;base64,$base64Png';
+        final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+        anchor.href = dataUrl;
+        anchor.download = fileName;
+        anchor.click();
+        basarili = true;
+      } else {
+        final sonuc = await _nativeMediaChannel.invokeMethod<bool>(
+          'saveImageToGallery',
+          {
+            'bytes': bytes,
+            'fileName': fileName,
+          },
+        );
+        basarili = sonuc == true;
       }
 
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF123C2D),
             behavior: SnackBarBehavior.floating,
             content: Text(
-              instagramIcin
-                  ? '9:16 Instagram Story görseli indirildi ve metin panoya kopyalandı!'
-                  : '9:16 yüksek çözünürlüklü Story görseli indirildi!',
-              style: const TextStyle(color: Colors.white),
+              basarili
+                  ? Ceviri.sec(
+                      widget.dil,
+                      tr: 'Galeriye kaydedildi',
+                      en: 'Saved to gallery',
+                      de: 'In der Galerie gespeichert',
+                      fr: 'Enregistré dans la galerie',
+                    )
+                  : Ceviri.sec(
+                      widget.dil,
+                      tr: 'Galeri izni verilmedi veya kaydedilemedi.',
+                      en: 'Could not save to gallery.',
+                      de: 'Konnte nicht gespeichert werden.',
+                      fr: 'Impossible d’enregistrer dans la galerie.',
+                    ),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
         );
@@ -94,22 +132,75 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
     }
   }
 
-  void _whatsAppIleGonder() {
-    final encoded = Uri.encodeComponent(_paylasimMetni);
-    web.window.open('https://wa.me/?text=$encoded', '_blank');
-    Navigator.pop(context);
+  Future<void> _storyPaylas({required String hedef}) async {
+    if (_islemYapiliyor) return;
+    setState(() => _islemYapiliyor = true);
+    HapticFeedback.mediumImpact();
+
+    try {
+      final bytes = await _storyKartiniPngyeCevir();
+      await Clipboard.setData(ClipboardData(text: _paylasimMetni));
+
+      if (kIsWeb) {
+        if (hedef == 'whatsapp') {
+          final encoded = Uri.encodeComponent(_paylasimMetni);
+          web.window.open('https://wa.me/?text=$encoded', '_blank');
+        } else if (bytes != null) {
+          final base64Png = base64Encode(bytes);
+          final dataUrl = 'data:image/png;base64,$base64Png';
+          final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
+          anchor.href = dataUrl;
+          anchor.download = 'vakti_beraat_story_${widget.kart.id}.png';
+          anchor.click();
+        }
+        if (mounted) Navigator.pop(context);
+        return;
+      }
+
+      if (bytes != null && bytes.isNotEmpty) {
+        await _nativeMediaChannel.invokeMethod<bool>(
+          'shareImage',
+          {
+            'bytes': bytes,
+            'fileName': 'vakti_beraat_story_${widget.kart.id}.png',
+            'text': _paylasimMetni,
+            'target': hedef,
+          },
+        );
+      }
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Paylaşım penceresi açılırken bir hata oluştu.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _islemYapiliyor = false);
+    }
   }
 
-  void _metniKopyala() {
-    Clipboard.setData(ClipboardData(text: _paylasimMetni));
+  Future<void> _metniKopyala() async {
+    HapticFeedback.selectionClick();
+    await Clipboard.setData(ClipboardData(text: _paylasimMetni));
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Color(0xFF123C2D),
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF123C2D),
         behavior: SnackBarBehavior.floating,
         content: Text(
-          'Ayet/Hadis metni "Vakt-i Beraat" imzasıyla panoya kopyalandı.',
-          style: TextStyle(color: Colors.white),
+          Ceviri.sec(
+            widget.dil,
+            tr: 'Metin kopyalandı',
+            en: 'Text copied to clipboard',
+            de: 'Text in die Zwischenablage kopiert',
+            fr: 'Texte copié dans le presse-papiers',
+          ),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -144,9 +235,15 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Hikaye (9:16 Story) & Mesaj Olarak Paylaş',
-              style: TextStyle(
+            Text(
+              Ceviri.sec(
+                dil,
+                tr: 'Hikaye (9:16 Story) & Mesaj Olarak Paylaş',
+                en: 'Share as 9:16 Story & Message',
+                de: 'Als 9:16 Story & Nachricht teilen',
+                fr: 'Partager en Story 9:16 & Message',
+              ),
+              style: const TextStyle(
                 fontFamily: 'Lora',
                 color: softGold,
                 fontSize: 16.5,
@@ -199,7 +296,7 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Üst Etiket
+                                // Dinamik Üst Etiket ("Esmaü'l Hüsna", "Günün Ayeti", "Hadis-i Şerif", "Dua")
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
@@ -223,7 +320,7 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
                                   ),
                                 ),
 
-                                // Orta: Arapça Hat, Türkçe Meal ve Kaynak
+                                // Orta: Arapça Hat, Meal ve Kaynak
                                 Expanded(
                                   child: Center(
                                     child: SingleChildScrollView(
@@ -319,7 +416,7 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
 
             const SizedBox(height: 18),
 
-            // 4 PAYLAŞIM BUTONU (Instagram Story, WhatsApp, Görseli İndir, Metni Kopyala)
+            // 4 PAYLAŞIM BUTONU (Instagram Story, WhatsApp ile Gönder, Görseli İndir, Metni Kopyala)
             Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -329,24 +426,42 @@ class _PaylasimStoryBottomSheetState extends State<PaylasimStoryBottomSheet> {
                   ikon: Icons.camera_alt_outlined,
                   baslik: 'Instagram Story',
                   arkaPlan: const Color(0xFFC13584),
-                  onTap: () => _gorseliIndir(instagramIcin: true),
+                  onTap: () => _storyPaylas(hedef: 'instagram'),
                 ),
                 _PaylasimAksiyonButon(
                   ikon: Icons.chat_bubble_outline_rounded,
-                  baslik: 'WhatsApp ile Gönder',
+                  baslik: Ceviri.sec(
+                    dil,
+                    tr: 'WhatsApp ile Gönder',
+                    en: 'Send via WhatsApp',
+                    de: 'Über WhatsApp senden',
+                    fr: 'Envoyer via WhatsApp',
+                  ),
                   arkaPlan: const Color(0xFF25D366),
-                  onTap: _whatsAppIleGonder,
+                  onTap: () => _storyPaylas(hedef: 'whatsapp'),
                 ),
                 _PaylasimAksiyonButon(
                   ikon: Icons.download_rounded,
-                  baslik: 'Görseli İndir',
+                  baslik: Ceviri.sec(
+                    dil,
+                    tr: 'Görseli İndir',
+                    en: 'Save Image',
+                    de: 'Bild speichern',
+                    fr: 'Enregistrer l’image',
+                  ),
                   arkaPlan: const Color(0xFF164E3B),
                   altinKenar: true,
-                  onTap: () => _gorseliIndir(instagramIcin: false),
+                  onTap: _gorseliGaleriyeIndir,
                 ),
                 _PaylasimAksiyonButon(
                   ikon: Icons.copy_rounded,
-                  baslik: 'Metni Kopyala',
+                  baslik: Ceviri.sec(
+                    dil,
+                    tr: 'Metni Kopyala',
+                    en: 'Copy Text',
+                    de: 'Text kopieren',
+                    fr: 'Copier le texte',
+                  ),
                   arkaPlan: const Color(0xFF164E3B),
                   altinKenar: true,
                   onTap: _metniKopyala,
@@ -377,32 +492,37 @@ class _PaylasimAksiyonButon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: arkaPlan,
       borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: arkaPlan,
-          borderRadius: BorderRadius.circular(14),
-          border: altinKenar
-              ? Border.all(color: const Color(0xFFD4AF37).withValues(alpha: 0.6))
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(ikon, color: Colors.white, size: 17),
-            const SizedBox(width: 7),
-            Text(
-              baslik,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: altinKenar
+                ? Border.all(
+                    color: const Color(0xFFD4AF37).withValues(alpha: 0.6),
+                  )
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(ikon, color: Colors.white, size: 17),
+              const SizedBox(width: 7),
+              Text(
+                baslik,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

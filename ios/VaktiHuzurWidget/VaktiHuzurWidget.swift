@@ -1,62 +1,521 @@
 import WidgetKit
 import SwiftUI
 
-private func istanbulVarsayilanVakitler() -> (imsak: String, gunes: String, ogle: String, ikindi: String, aksam: String, yatsi: String, siradaki: String, kalan: String) {
-    let now = Date()
-    let cal = Calendar.current
-    let h = cal.component(.hour, from: now)
-    let m = cal.component(.minute, from: now)
-    let simdiDk = h * 60 + m
-    // İstanbul güncel Diyanet vakitleri referansı
-    let vakitler: [(ad: String, saat: String, dk: Int)] = [
-        ("İmsak", "06:14", 6 * 60 + 14),
-        ("Güneş", "07:40", 7 * 60 + 40),
-        ("Öğle", "12:59", 12 * 60 + 59),
-        ("İkindi", "15:39", 15 * 60 + 39),
-        ("Akşam", "18:01", 18 * 60 + 1),
-        ("Yatsı", "19:22", 19 * 60 + 22)
-    ]
-    var siradakiAd = "İmsak"
-    var farkDk = (24 * 60 - simdiDk) + vakitler[0].dk
-    for v in vakitler {
-        if v.dk > simdiDk {
-            siradakiAd = v.ad
-            farkDk = v.dk - simdiDk
-            break
+// ============================================================================
+// VAKT-İ BERAAT — iOS 14+ ANA EKRAN & iOS 16+ KİLİT EKRANI WIDGET PAKETİ
+// 5 AYRI WİDGET:
+// 1. Günlük Namaz Vakitleri & Canlı Sayaç
+// 2. Günün Ayeti (Her gece 00:00'da dayOfYear % listeUzunlugu ile otomatik yenilenir)
+// 3. Günün Hadisi (Her gece 00:00'da dayOfYear % listeUzunlugu ile otomatik yenilenir)
+// 4. Kilit Ekranı & Sıradaki Vakit Canlı Geri Sayım (Text(timerInterval:))
+// 5. Günlük Zikir & Tesbih Sayacı
+// ============================================================================
+
+struct GunlukWidgetMetin {
+    let arapca: String
+    let tr: String
+    let en: String
+    let de: String
+    let fr: String
+    let kaynakTr: String
+    let kaynakEn: String
+    let kaynakDe: String
+    let kaynakFr: String
+
+    func meal(_ dil: String) -> String {
+        switch dil.uppercased() {
+        case "EN": return en
+        case "DE": return de
+        case "FR": return fr
+        case "AR": return arapca
+        default: return tr
         }
     }
-    let ks = farkDk / 60
-    let kd = farkDk % 60
-    let kalanStr = String(format: "%02ds %02ddk", ks, kd)
-    return ("06:14", "07:40", "12:59", "15:39", "18:01", "19:22", "Sıradaki: \(siradakiAd)", kalanStr)
+
+    func kaynak(_ dil: String) -> String {
+        switch dil.uppercased() {
+        case "EN": return kaynakEn
+        case "DE": return kaynakDe
+        case "FR": return kaynakFr
+        default: return kaynakTr
+        }
+    }
 }
 
-// Zümrüt Yeşili & Altın Sarısı Tema Renkleri
-private let zumrutKoyu = Color(red: 0.043, green: 0.133, blue: 0.098)   // #0B2219
-private let zumrutKart = Color(red: 0.082, green: 0.227, blue: 0.169)   // #153A2B
-private let vurguAltin = Color(red: 0.851, green: 0.714, blue: 0.314)   // #D9B650
-private let yumusakAltin = Color(red: 0.949, green: 0.886, blue: 0.714) // #F2E2B6
-private let naneBeyaz = Color(red: 0.718, green: 0.831, blue: 0.773)    // #B7D4C5
+private let kGunlukAyetHavuzu: [GunlukWidgetMetin] = [
+    GunlukWidgetMetin(
+        arapca: "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ",
+        tr: "“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.”",
+        en: "“Unquestionably, by the remembrance of Allah do hearts find rest.”",
+        de: "„Wahrlich, im Gedenken Allahs finden die Herzen Ruhe.“",
+        fr: "« N’est-ce point par l’évocation d’Allah que se tranquillisent les cœurs ? »",
+        kaynakTr: "Ra’d Suresi, 28. Ayet",
+        kaynakEn: "Surah Ar-Ra’d, 28",
+        kaynakDe: "Sure Ar-Ra’d, Vers 28",
+        kaynakFr: "Sourate Ar-Ra’d, 28"
+    ),
+    GunlukWidgetMetin(
+        arapca: "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا ۝ إِنَّ مَعَ الْعُسْرِ يُسْرًا",
+        tr: "“Şüphesiz güçlükle beraber bir kolaylık vardır. Gerçekten, güçlükle beraber bir kolaylık vardır.”",
+        en: "“For indeed, with hardship comes ease. Indeed, with hardship comes ease.”",
+        de: "„Wahrlich, mit der Erschwernis ist Erleichterung. Wahrlich, mit der Erschwernis ist Erleichterung.“",
+        fr: "« Car vraiment, avec la difficulté il y a une facilité. Oui, avec la difficulté il y a une facilité. »",
+        kaynakTr: "İnşirah Suresi, 5-6. Ayetler",
+        kaynakEn: "Surah Ash-Sharh, 5-6",
+        kaynakDe: "Sure Asch-Scharh, 5-6",
+        kaynakFr: "Sourate Ach-Charh, 5-6"
+    ),
+    GunlukWidgetMetin(
+        arapca: "يَا أَيُّهَا الَّذِينَ آمَنُوا اسْتَعِينُوا بِالصَّبْرِ وَالصَّلَاةِ إِنَّ اللَّهَ مَعَ الصَّابِرِينَ",
+        tr: "“Ey iman edenler! Sabır ve namaz ile Allah’tan yardım dileyin. Şüphesiz Allah sabredenlerle beraberdir.”",
+        en: "“O you who have believed, seek help through patience and prayer. Indeed, Allah is with the patient.”",
+        de: "„O die ihr glaubt, sucht Hilfe in der Geduld und im Gebet! Gewiss, Allah ist mit den Standhaften.“",
+        fr: "« Ô les croyants ! Cherchez secours dans l’endurance et la Salât. Car Allah est avec les endurants. »",
+        kaynakTr: "Bakara Suresi, 153. Ayet",
+        kaynakEn: "Surah Al-Baqarah, 153",
+        kaynakDe: "Sure Al-Baqara, Vers 153",
+        kaynakFr: "Sourate Al-Baqara, 153"
+    ),
+    GunlukWidgetMetin(
+        arapca: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا",
+        tr: "“Allah hiçbir kimseye gücünün yettiğinden başkasını yüklemez.”",
+        en: "“Allah does not charge a soul except within its capacity.”",
+        de: "„Allah erlegt keiner Seele mehr auf, als sie zu leisten vermag.“",
+        fr: "« Allah n’impose à aucune âme une charge supérieure à sa capacité. »",
+        kaynakTr: "Bakara Suresi, 286. Ayet",
+        kaynakEn: "Surah Al-Baqarah, 286",
+        kaynakDe: "Sure Al-Baqara, Vers 286",
+        kaynakFr: "Sourate Al-Baqara, 286"
+    ),
+    GunlukWidgetMetin(
+        arapca: "وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ أُجِيبُ دَعْوَةَ الدَّاعِ إِذَا دَعَانِ",
+        tr: "“Kullarım beni senden sorarlarsa, bilsinler ki gerçekten ben onlara çok yakınım. Bana dua edince dua edenin duasına icabet ederim.”",
+        en: "“When My servants ask you concerning Me, indeed I am near. I respond to the invocation of the supplicant.”",
+        de: "„Und wenn Meine Diener dich nach Mir fragen, so bin Ich nahe; Ich antworte dem Ruf des Bittenden, wenn er Mich anruft.“",
+        fr: "« Et quand Mes serviteurs t’interrogent sur Moi, alors Je suis tout proche : Je réponds à l’appel de celui qui Me prie. »",
+        kaynakTr: "Bakara Suresi, 186. Ayet",
+        kaynakEn: "Surah Al-Baqarah, 186",
+        kaynakDe: "Sure Al-Baqara, Vers 186",
+        kaynakFr: "Sourate Al-Baqara, 186"
+    ),
+    GunlukWidgetMetin(
+        arapca: "وَمَنْ يَتَّقِ اللَّهَ يَجْعَلْ لَهُ مَخْرَجًا ۝ وَيَرُزْقْهُ مِنْ حَيْثُ لَا يَحْتَسِبُ",
+        tr: "“Kim Allah’tan korkup sakınırsa, Allah ona bir çıkış yolu ihsan eder ve onu ummadığı yerden rızıklandırır.”",
+        en: "“Whoever fears Allah, He will make for him a way out and provide for him from where he does not expect.”",
+        de: "„Und wer Allah fürchtet, dem schafft Er einen Ausweg und versorgt ihn, von wo er nicht damit rechnet.“",
+        fr: "« Et quiconque craint Allah, Il lui donnera une issue favorable, et lui accordera Ses dons par des moyens insoupçonnés. »",
+        kaynakTr: "Talâk Suresi, 2-3. Ayetler",
+        kaynakEn: "Surah At-Talaq, 2-3",
+        kaynakDe: "Sure At-Talaq, 2-3",
+        kaynakFr: "Sourate At-Talaq, 2-3"
+    ),
+    GunlukWidgetMetin(
+        arapca: "رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",
+        tr: "“Rabbimiz! Bize dünyada da iyilik ve güzellik ver, ahirette de iyilik ve güzellik ver; bizi ateş azabından koru.”",
+        en: "“Our Lord! Grant us good in this world and good in the Hereafter, and protect us from the Fire.”",
+        de: "„Unser Herr, gib uns im Diesseits Gutes und im Jenseits Gutes und bewahre uns vor der Strafe des Feuers!“",
+        fr: "« Seigneur ! Accorde-nous belle part ici-bas, et belle part aussi dans l’au-delà ; et protège-nous du châtiment du Feu. »",
+        kaynakTr: "Bakara Suresi, 201. Ayet",
+        kaynakEn: "Surah Al-Baqarah, 201",
+        kaynakDe: "Sure Al-Baqara, Vers 201",
+        kaynakFr: "Sourate Al-Baqara, 201"
+    )
+]
 
+private let kGunlukHadisHavuzu: [GunlukWidgetMetin] = [
+    GunlukWidgetMetin(
+        arapca: "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ",
+        tr: "“Ameller niyetlere göredir; herkes için ancak niyet ettiği şey vardır.”",
+        en: "“Actions are judged by intentions, and every person shall have what they intended.”",
+        de: "„Die Taten sind entsprechend den Absichten, und jedem Menschen gebührt das, was er beabsichtigt hat.“",
+        fr: "« Les actes ne valent que par les intentions, et chacun n’a pour lui que ce qu’il a eu réellement l’intention de faire. »",
+        kaynakTr: "Sahih-i Buhârî, İman, 1",
+        kaynakEn: "Sahih al-Bukhari, 1",
+        kaynakDe: "Sahih al-Buchari, 1",
+        kaynakFr: "Sahih al-Boukhari, 1"
+    ),
+    GunlukWidgetMetin(
+        arapca: "خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ",
+        tr: "“Sizin en hayırlınız, Kur’an’ı öğrenen ve onu başkalarına öğretendir.”",
+        en: "“The best among you are those who learn the Qur’an and teach it.”",
+        de: "„Der Beste unter euch ist derjenige, der den Koran lernt und ihn lehrt.“",
+        fr: "« Le meilleur d’entre vous est celui qui apprend le Coran et l’enseigne. »",
+        kaynakTr: "Sahih-i Buhârî, Fedâilü’l-Kur’ân, 21",
+        kaynakEn: "Sahih al-Bukhari, 5027",
+        kaynakDe: "Sahih al-Buchari, 5027",
+        kaynakFr: "Sahih al-Boukhari, 5027"
+    ),
+    GunlukWidgetMetin(
+        arapca: "يَسِّرُوا وَلَا تُعَسِّرُوا وَبَشِّرُوا وَلَا تُنَفِّرُوا",
+        tr: "“Kolaylaştırınız, zorlaştırmayınız; müjdeleyiniz, nefret ettirmeyiniz.”",
+        en: "“Make things easy and do not make them difficult; give glad tidings and do not repel people.”",
+        de: "„Erleichtert und erschwert nicht; verkündet frohe Botschaft und schreckt nicht ab.“",
+        fr: "« Facilitez les choses et ne les rendez pas difficiles ; annoncez la bonne nouvelle et ne faites pas fuir. »",
+        kaynakTr: "Sahih-i Buhârî, İlim, 11",
+        kaynakEn: "Sahih al-Bukhari, 69",
+        kaynakDe: "Sahih al-Buchari, 69",
+        kaynakFr: "Sahih al-Boukhari, 69"
+    ),
+    GunlukWidgetMetin(
+        arapca: "الطُّهُورُ شَطْرُ الْإِيمَانِ",
+        tr: "“Temizlik imanın yarısıdır; Elhamdülillah mizanı doldurur.”",
+        en: "“Cleanliness is half of faith, and Alhamdulillah fills the scale.”",
+        de: "„Die Reinheit ist die Hälfte des Glaubens, und Alhamdulillah füllt die Waagschale.“",
+        fr: "« La pureté est la moitié de la foi, et Alhamdoulillah remplit la balance. »",
+        kaynakTr: "Sahih-i Müslim, Tahâret, 1",
+        kaynakEn: "Sahih Muslim, 223",
+        kaynakDe: "Sahih Muslim, 223",
+        kaynakFr: "Sahih Mouslim, 223"
+    ),
+    GunlukWidgetMetin(
+        arapca: "تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ",
+        tr: "“Kardeşinin yüzüne tebessüm etmen senin için bir sadakadır.”",
+        en: "“Your smiling in the face of your brother is charity for you.”",
+        de: "„Dein Lächeln in das Gesicht deines Bruders ist eine Sadaqa (Almosen) für dich.“",
+        fr: "« Ton sourire à ton frère est une aumône (Sadaqa) pour toi. »",
+        kaynakTr: "Sünen-i Tirmizî, Birr, 36",
+        kaynakEn: "Jami at-Tirmidhi, 1956",
+        kaynakDe: "Dschami at-Tirmidhi, 1956",
+        kaynakFr: "Jami at-Tirmidhi, 1956"
+    ),
+    GunlukWidgetMetin(
+        arapca: "مَنْ لَا يَرْحَمْ لَا يُرْحَمْ",
+        tr: "“Merhamet etmeyene merhamet olunmaz.”",
+        en: "“Whoever does not show mercy will not be shown mercy.”",
+        de: "„Wer keine Barmherzigkeit zeigt, dem wird keine Barmherzigkeit erwiesen.“",
+        fr: "« Celui qui ne fait pas miséricorde, on ne lui fera pas miséricorde. »",
+        kaynakTr: "Sahih-i Buhârî, Edeb, 18",
+        kaynakEn: "Sahih al-Bukhari, 5997",
+        kaynakDe: "Sahih al-Buchari, 5997",
+        kaynakFr: "Sahih al-Boukhari, 5997"
+    ),
+    GunlukWidgetMetin(
+        arapca: "الدُّعَاءُ هُوَ الْعِبَادَةُ",
+        tr: "“Dua ibadetin ta kendisidir.”",
+        en: "“Supplication (Dua) is the essence of worship.”",
+        de: "„Das Bittgebet (Dua) ist der Kern des Gottesdienstes.“",
+        fr: "« L’invocation (Doua) est l’essence même de l’adoration. »",
+        kaynakTr: "Sünen-i Tirmizî, Daavât, 1",
+        kaynakEn: "Jami at-Tirmidhi, 3372",
+        kaynakDe: "Dschami at-Tirmidhi, 3372",
+        kaynakFr: "Jami at-Tirmidhi, 3372"
+    )
+]
+
+private func temizMetin(_ metin: String) -> String {
+    let emojiler = ["✨", "☪️", "☪", "⏳", "📿", "🕌", "🔊"]
+    var sonuc = metin
+    for e in emojiler {
+        sonuc = sonuc.replacingOccurrences(of: e, with: "")
+    }
+    return sonuc.trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+struct VaktiHuzurEntry: TimelineEntry {
+    let date: Date
+    let hedefTarih: Date
+    let konum: String
+    let hicriTarih: String
+    let siradakiVakit: String
+    let siradakiVakitKisa: String
+    let kalanSure: String
+    let imsak: String
+    let gunes: String
+    let ogle: String
+    let ikindi: String
+    let aksam: String
+    let yatsi: String
+    let etImsak: String
+    let etGunes: String
+    let etOgle: String
+    let etIkindi: String
+    let etAksam: String
+    let etYatsi: String
+
+    // Ayet Widget Verileri
+    let ayetBaslik: String
+    let ayetArapca: String
+    let ayetMeal: String
+    let ayetKaynak: String
+
+    // Hadis Widget Verileri
+    let hadisBaslik: String
+    let hadisArapca: String
+    let hadisMeal: String
+    let hadisKaynak: String
+
+    // Zikir Widget Verileri
+    let zikirArapca: String
+    let zikirOkunus: String
+    let zikirAnlam: String
+    let zikirSayac: String
+}
+
+struct VaktiHuzurProvider: TimelineProvider {
+    let appGroupId = "group.com.berat.vaktiberaat"
+    let legacyGroupId1 = "group.com.vaktiberaat.app"
+    let legacyGroupId2 = "group.com.vaktihuzur.app"
+
+    func placeholder(in context: Context) -> VaktiHuzurEntry {
+        ornekEntry(for: Date())
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (VaktiHuzurEntry) -> Void) {
+        completion(kayitliVeridenEntry(for: Date()))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<VaktiHuzurEntry>) -> Void) {
+        let simdi = Date()
+        let ilkEntry = kayitliVeridenEntry(for: simdi)
+        var entries: [VaktiHuzurEntry] = [ilkEntry]
+
+        // Sıradaki vakit geçiş anında ve gece 00:00'da (günlük Ayet & Hadis değişimi için) otomatik yenile
+        let takvim = Calendar.current
+        let geceYarisi = takvim.startOfDay(for: simdi.addingTimeInterval(86400))
+
+        if ilkEntry.hedefTarih > simdi && ilkEntry.hedefTarih < geceYarisi {
+            let gecisTarihi = ilkEntry.hedefTarih.addingTimeInterval(1)
+            entries.append(kayitliVeridenEntry(for: gecisTarihi))
+        }
+        entries.append(kayitliVeridenEntry(for: geceYarisi))
+
+        let sonrakiYenileme = min(ilkEntry.hedefTarih.addingTimeInterval(1), geceYarisi)
+        let timeline = Timeline(entries: entries, policy: .after(sonrakiYenileme))
+        completion(timeline)
+    }
+
+    private func saatDakikaParcala(_ saatStr: String) -> (Int, Int)? {
+        let temiz = saatStr.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parcalar = temiz.split(separator: ":")
+        guard parcalar.count >= 2,
+              let h = Int(parcalar[0].prefix(2)),
+              let m = Int(parcalar[1].prefix(2)) else {
+            return nil
+        }
+        return (max(0, min(23, h)), max(0, min(59, m)))
+    }
+
+    private func hesaplaSiradakiVakit(
+        refDate: Date,
+        dil: String,
+        vakitler: [(ad: String, saat: String)]
+    ) -> (baslik: String, kisaAd: String, hedefTarih: Date, kalanMetin: String) {
+        let takvim = Calendar.current
+        let onEk: String
+        switch dil.uppercased() {
+        case "EN": onEk = "Next:"
+        case "DE": onEk = "Nächstes:"
+        case "FR": onEk = "Suivante :"
+        default: onEk = "Sıradaki:"
+        }
+
+        for v in vakitler {
+            if let (h, m) = saatDakikaParcala(v.saat),
+               let aday = takvim.date(bySettingHour: h, minute: m, second: 0, of: refDate),
+               aday > refDate {
+                let farkSn = max(60, Int(aday.timeIntervalSince(refDate)))
+                let saatFark = farkSn / 3600
+                let dkFark = (farkSn % 3600) / 60
+                let kalanStr = String(format: "%02ds %02ddk", saatFark, dkFark)
+                return ("\(onEk) \(v.ad)", v.ad, aday, kalanStr)
+            }
+        }
+
+        // Tüm vakitler geçtiyse yarının İmsak vakti
+        let ilk = vakitler.first ?? ("İmsak", "05:48")
+        let yarin = takvim.date(byAdding: .day, value: 1, to: refDate) ?? refDate.addingTimeInterval(86400)
+        let (ih, im) = saatDakikaParcala(ilk.saat) ?? (5, 48)
+        let hedef = takvim.date(bySettingHour: ih, minute: im, second: 0, of: yarin)
+            ?? refDate.addingTimeInterval(3600)
+        let farkSn = max(60, Int(hedef.timeIntervalSince(refDate)))
+        let saatFark = farkSn / 3600
+        let dkFark = (farkSn % 3600) / 60
+        let kalanStr = String(format: "%02ds %02ddk", saatFark, dkFark)
+        return ("\(onEk) \(ilk.ad)", ilk.ad, hedef, kalanStr)
+    }
+
+    private func kayitliVeridenEntry(for entryDate: Date) -> VaktiHuzurEntry {
+        let groupDefaults = UserDefaults(suiteName: appGroupId)
+            ?? UserDefaults(suiteName: legacyGroupId1)
+            ?? UserDefaults(suiteName: legacyGroupId2)
+        let stdDefaults = UserDefaults.standard
+
+        func oku(_ anahtar: String, varsayilan: String) -> String {
+            if let v = groupDefaults?.string(forKey: anahtar), !v.isEmpty {
+                return temizMetin(v)
+            }
+            if let v = stdDefaults.string(forKey: "flutter.\(anahtar)"), !v.isEmpty {
+                return temizMetin(v)
+            }
+            if let v = stdDefaults.string(forKey: anahtar), !v.isEmpty {
+                return temizMetin(v)
+            }
+            return temizMetin(varsayilan)
+        }
+
+        let dil = oku("widget_dil", varsayilan: "TR")
+        let offset = Int(oku("widget_offset", varsayilan: "0")) ?? 0
+        let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: entryDate) ?? 1
+
+        let imsak = oku("widget_imsak", varsayilan: "05:48")
+        let gunes = oku("widget_gunes", varsayilan: "07:14")
+        let ogle = oku("widget_ogle", varsayilan: "12:56")
+        let ikindi = oku("widget_ikindi", varsayilan: "15:52")
+        let aksam = oku("widget_aksam", varsayilan: "18:24")
+        let yatsi = oku("widget_yatsi", varsayilan: "19:44")
+
+        let etImsak = oku("widget_etiket_imsak", varsayilan: "İmsak")
+        let etGunes = oku("widget_etiket_gunes", varsayilan: "Güneş")
+        let etOgle = oku("widget_etiket_ogle", varsayilan: "Öğle")
+        let etIkindi = oku("widget_etiket_ikindi", varsayilan: "İkindi")
+        let etAksam = oku("widget_etiket_aksam", varsayilan: "Akşam")
+        let etYatsi = oku("widget_etiket_yatsi", varsayilan: "Yatsı")
+
+        let vakitListesi: [(ad: String, saat: String)] = [
+            (etImsak, imsak),
+            (etGunes, gunes),
+            (etOgle, ogle),
+            (etIkindi, ikindi),
+            (etAksam, aksam),
+            (etYatsi, yatsi)
+        ]
+
+        let canliSiradaki = hesaplaSiradakiVakit(refDate: entryDate, dil: dil, vakitler: vakitListesi)
+
+        // Yılın gününe göre (dayOfYear % listeUzunlugu) her gece 00:00'da otomatik değişen Ayet ve Hadis
+        let ayetIdx = abs(dayOfYear + offset) % kGunlukAyetHavuzu.count
+        let hadisIdx = abs(dayOfYear + offset) % kGunlukHadisHavuzu.count
+        let gunlukAyet = kGunlukAyetHavuzu[ayetIdx]
+        let gunlukHadis = kGunlukHadisHavuzu[hadisIdx]
+
+        let varsayilanAyetBaslik: String
+        let varsayilanHadisBaslik: String
+        switch dil.uppercased() {
+        case "EN":
+            varsayilanAyetBaslik = "Vakt-i Beraat • Verse of the Day"
+            varsayilanHadisBaslik = "Vakt-i Beraat • Hadith of the Day"
+        case "DE":
+            varsayilanAyetBaslik = "Vakt-i Beraat • Vers des Tages"
+            varsayilanHadisBaslik = "Vakt-i Beraat • Hadith des Tages"
+        case "FR":
+            varsayilanAyetBaslik = "Vakt-i Beraat • Verset du Jour"
+            varsayilanHadisBaslik = "Vakt-i Beraat • Hadith du Jour"
+        default:
+            varsayilanAyetBaslik = "Vakt-i Beraat • Günün Ayeti"
+            varsayilanHadisBaslik = "Vakt-i Beraat • Günün Hadisi"
+        }
+
+        // Eğer bugün uygulama içinden senkronize edilmişse onu, gün değişmişse (00:00 sonrası) dayOfYear içeriğini göster
+        let sonSenkronGun = Int(oku("widget_son_gun", varsayilan: "0")) ?? 0
+        let ayniGunMu = (sonSenkronGun == dayOfYear)
+
+        let ayetBaslik = ayniGunMu ? oku("widget_ayet_baslik", varsayilan: varsayilanAyetBaslik) : varsayilanAyetBaslik
+        let ayetArapca = ayniGunMu ? oku("widget_ayet_arapca", varsayilan: gunlukAyet.arapca) : gunlukAyet.arapca
+        let ayetMeal = ayniGunMu ? oku("widget_ayet_meal", varsayilan: gunlukAyet.meal(dil)) : gunlukAyet.meal(dil)
+        let ayetKaynak = ayniGunMu ? oku("widget_ayet_kaynak", varsayilan: gunlukAyet.kaynak(dil)) : gunlukAyet.kaynak(dil)
+
+        let hadisBaslik = ayniGunMu ? oku("widget_hadis_baslik", varsayilan: varsayilanHadisBaslik) : varsayilanHadisBaslik
+        let hadisArapca = ayniGunMu ? oku("widget_hadis_arapca", varsayilan: gunlukHadis.arapca) : gunlukHadis.arapca
+        let hadisMeal = ayniGunMu ? oku("widget_hadis_meal", varsayilan: gunlukHadis.meal(dil)) : gunlukHadis.meal(dil)
+        let hadisKaynak = ayniGunMu ? oku("widget_hadis_kaynak", varsayilan: gunlukHadis.kaynak(dil)) : gunlukHadis.kaynak(dil)
+
+        return VaktiHuzurEntry(
+            date: entryDate,
+            hedefTarih: canliSiradaki.hedefTarih,
+            konum: oku("widget_konum", varsayilan: "İstanbul"),
+            hicriTarih: oku("widget_hicri_tarih", varsayilan: "Diyanet Namaz Vakitleri"),
+            siradakiVakit: canliSiradaki.baslik,
+            siradakiVakitKisa: canliSiradaki.kisaAd,
+            kalanSure: canliSiradaki.kalanMetin,
+            imsak: imsak,
+            gunes: gunes,
+            ogle: ogle,
+            ikindi: ikindi,
+            aksam: aksam,
+            yatsi: yatsi,
+            etImsak: etImsak,
+            etGunes: etGunes,
+            etOgle: etOgle,
+            etIkindi: etIkindi,
+            etAksam: etAksam,
+            etYatsi: etYatsi,
+            ayetBaslik: ayetBaslik,
+            ayetArapca: ayetArapca,
+            ayetMeal: ayetMeal,
+            ayetKaynak: ayetKaynak,
+            hadisBaslik: hadisBaslik,
+            hadisArapca: hadisArapca,
+            hadisMeal: hadisMeal,
+            hadisKaynak: hadisKaynak,
+            zikirArapca: oku("widget_zikir_arapca", varsayilan: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ"),
+            zikirOkunus: oku("widget_zikir_okunus", varsayilan: "Sübhânallâhi ve bi-hamdihî"),
+            zikirAnlam: oku("widget_zikir_anlam", varsayilan: "“Allah’ı hamd ile noksan sıfatlardan tenzih ederim.”"),
+            zikirSayac: oku("widget_zikir_sayac", varsayilan: "33 / 100")
+        )
+    }
+
+    private func ornekEntry(for refDate: Date) -> VaktiHuzurEntry {
+        let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: refDate) ?? 1
+        let ayet = kGunlukAyetHavuzu[dayOfYear % kGunlukAyetHavuzu.count]
+        let hadis = kGunlukHadisHavuzu[dayOfYear % kGunlukHadisHavuzu.count]
+        return VaktiHuzurEntry(
+            date: refDate,
+            hedefTarih: refDate.addingTimeInterval(5040),
+            konum: "İstanbul",
+            hicriTarih: "14 Cemâziyelevvel 1448",
+            siradakiVakit: "Sıradaki: Akşam",
+            siradakiVakitKisa: "Akşam",
+            kalanSure: "01s 24dk",
+            imsak: "05:48",
+            gunes: "07:14",
+            ogle: "12:56",
+            ikindi: "15:52",
+            aksam: "18:24",
+            yatsi: "19:44",
+            etImsak: "İmsak",
+            etGunes: "Güneş",
+            etOgle: "Öğle",
+            etIkindi: "İkindi",
+            etAksam: "Akşam",
+            etYatsi: "Yatsı",
+            ayetBaslik: "Vakt-i Beraat • Günün Ayeti",
+            ayetArapca: ayet.arapca,
+            ayetMeal: ayet.tr,
+            ayetKaynak: ayet.kaynakTr,
+            hadisBaslik: "Vakt-i Beraat • Günün Hadisi",
+            hadisArapca: hadis.arapca,
+            hadisMeal: hadis.tr,
+            hadisKaynak: hadis.kaynakTr,
+            zikirArapca: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",
+            zikirOkunus: "Sübhânallâhi ve bi-hamdihî",
+            zikirAnlam: "“Allah’ı hamd ile noksan sıfatlardan tenzih ederim.”",
+            zikirSayac: "33 / 100"
+        )
+    }
+}
+
+// MARK: - Ortak Zümrüt & Altın Tema Renkleri
+private let zumrutKoyu = Color(red: 0.04, green: 0.13, blue: 0.09)
+private let zumrutOrta = Color(red: 0.07, green: 0.21, blue: 0.15)
+private let vurguAltin = Color(red: 0.85, green: 0.71, blue: 0.31)
+private let yumusakAltin = Color(red: 0.95, green: 0.89, blue: 0.71)
+private let naneBeyaz = Color(red: 0.72, green: 0.83, blue: 0.77)
+
+// MARK: - iOS 17+ containerBackground Uyumluluk Eklentisi
 extension View {
     @ViewBuilder
     func vaktiHuzurWidgetArkaPlan() -> some View {
+        let grad = LinearGradient(
+            gradient: Gradient(colors: [zumrutOrta, zumrutKoyu]),
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
         if #available(iOSApplicationExtension 17.0, *) {
             self.containerBackground(for: .widget) {
-                LinearGradient(
-                    colors: [zumrutKoyu, zumrutKart],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                grad
             }
         } else {
-            self.background(
-                LinearGradient(
-                    colors: [zumrutKoyu, zumrutKart],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
+            self.background(grad)
         }
     }
 
@@ -82,101 +541,8 @@ extension WidgetConfiguration {
     }
 }
 
-struct VaktiHuzurEntry: TimelineEntry {
-    let date: Date
-    let konum: String
-    let hicriTarih: String
-    let siradakiVakit: String
-    let kalanSure: String
-    let imsak: String
-    let gunes: String
-    let ogle: String
-    let ikindi: String
-    let aksam: String
-    let yatsi: String
-    let etImsak: String
-    let etGunes: String
-    let etOgle: String
-    let etIkindi: String
-    let etAksam: String
-    let etYatsi: String
-    let ayetBaslik: String
-    let ayetArapca: String
-    let ayetMeal: String
-    let ayetKaynak: String
-    let hadisBaslik: String
-    let hadisArapca: String
-    let hadisMeal: String
-    let hadisKaynak: String
-    let zikirArapca: String
-    let zikirOkunus: String
-    let zikirAnlam: String
-    let zikirSayac: String
-}
-
-struct VaktiHuzurProvider: TimelineProvider {
-    func placeholder(in context: Context) -> VaktiHuzurEntry {
-        okuEntry()
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (VaktiHuzurEntry) -> Void) {
-        completion(okuEntry())
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<VaktiHuzurEntry>) -> Void) {
-        let entry = okuEntry()
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date()) ?? Date()
-        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
-    }
-
-    private func okuEntry() -> VaktiHuzurEntry {
-        // Sideloadly (ücretsiz Apple ID) ve App Store uyumluluğu:
-        // Standart UserDefaults.standard ve varsa App Group UserDefaults birlikte okunur.
-        let std = UserDefaults.standard
-        let grp = UserDefaults(suiteName: "group.com.berat.vaktiberaat")
-        let oto = istanbulVarsayilanVakitler()
-        func str(_ key: String, _ varsayilan: String) -> String {
-            if let v = std.string(forKey: "flutter.\(key)"), !v.isEmpty { return v }
-            if let v = std.string(forKey: key), !v.isEmpty { return v }
-            if let v = grp?.string(forKey: key), !v.isEmpty { return v }
-            return varsayilan
-        }
-        return VaktiHuzurEntry(
-            date: Date(),
-            konum: str("widget_konum", "İstanbul"),
-            hicriTarih: str("widget_hicri_tarih", "Diyanet Namaz Vakitleri"),
-            siradakiVakit: str("widget_siradaki_vakit", oto.siradaki),
-            kalanSure: str("widget_kalan_sure", oto.kalan),
-            imsak: str("widget_imsak", oto.imsak),
-            gunes: str("widget_gunes", oto.gunes),
-            ogle: str("widget_ogle", oto.ogle),
-            ikindi: str("widget_ikindi", oto.ikindi),
-            aksam: str("widget_aksam", oto.aksam),
-            yatsi: str("widget_yatsi", oto.yatsi),
-            etImsak: str("widget_etiket_imsak", "İmsak"),
-            etGunes: str("widget_etiket_gunes", "Güneş"),
-            etOgle: str("widget_etiket_ogle", "Öğle"),
-            etIkindi: str("widget_etiket_ikindi", "İkindi"),
-            etAksam: str("widget_etiket_aksam", "Akşam"),
-            etYatsi: str("widget_etiket_yatsi", "Yatsı"),
-            ayetBaslik: str("widget_ayet_baslik", "✨ Günün Ayeti"),
-            ayetArapca: str("widget_ayet_arapca", "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ"),
-            ayetMeal: str("widget_ayet_meal", "“Biliniz ki, kalpler ancak Allah’ı anmakla huzur bulur.”"),
-            ayetKaynak: str("widget_ayet_kaynak", "Ra’d Suresi, 28"),
-            hadisBaslik: str("widget_hadis_baslik", "☪ Günün Hadisi"),
-            hadisArapca: str("widget_hadis_arapca", "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ"),
-            hadisMeal: str("widget_hadis_meal", "“Ameller niyetlere göredir.”"),
-            hadisKaynak: str("widget_hadis_kaynak", "Sahih-i Buhârî"),
-            zikirArapca: str("widget_zikir_arapca", "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ"),
-            zikirOkunus: str("widget_zikir_okunus", "Sübhânallâhi ve bi-hamdihî"),
-            zikirAnlam: str("widget_zikir_anlam", "Allah’ı hamd ile tesbih ederim."),
-            zikirSayac: str("widget_zikir_sayac", "33 / 100")
-        )
-    }
-}
-
 // ============================================================================
-// 1. GÜNLÜK TÜM NAMAZ VAKİTLERİ + GERİ SAYIM WİDGETI (ANA EKRAN 2 BOYUT & KİLİT EKRANI)
+// 1. GÜNLÜK NAMAZ VAKİTLERİ WİDGETI (ANA EKRAN + KİLİT EKRANI CANLI SAYAÇ)
 // ============================================================================
 struct VaktiHuzurNamazWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
@@ -186,193 +552,154 @@ struct VaktiHuzurNamazWidgetView: View {
         if #available(iOSApplicationExtension 16.0, *) {
             switch family {
             case .accessoryRectangular:
-                // Kilit Ekranı (Lock Screen): Sade, şık yazılı sıradaki vakit ve kalan süre
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 4) {
-                        Text("☪ \(entry.konum)")
-                            .font(.system(size: 11, weight: .semibold))
-                            .lineLimit(1)
-                    }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Vakt-i Beraat • \(entry.konum)")
+                        .font(.system(size: 11, weight: .bold))
+                        .lineLimit(1)
                     Text(entry.siradakiVakit)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 12, weight: .semibold))
                         .lineLimit(1)
                     HStack(spacing: 4) {
-                        Text("⏳ Kalan: \(entry.kalanSure)")
-                            .font(.system(size: 12, weight: .bold))
+                        Text("Kalan:")
+                            .font(.system(size: 11, weight: .medium))
+                        Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+                            .font(.system(size: 11.5, weight: .bold))
+                            .monospacedDigit()
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .vaktiHuzurKilitEkraniArkaPlan()
 
             case .accessoryInline:
-                Text("☪ \(entry.siradakiVakit) • \(entry.kalanSure)")
+                Text("\(entry.siradakiVakit) • \(entry.kalanSure)")
                     .vaktiHuzurKilitEkraniArkaPlan()
 
             case .accessoryCircular:
                 VStack(spacing: 1) {
-                    Text("☪")
-                        .font(.system(size: 11))
-                    Text(entry.kalanSure)
+                    Text(entry.siradakiVakitKisa)
+                        .font(.system(size: 9, weight: .semibold))
+                        .lineLimit(1)
+                    Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
                         .font(.system(size: 10, weight: .bold))
-                        .minimumScaleFactor(0.7)
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.65)
+                        .multilineTextAlignment(.center)
                 }
                 .vaktiHuzurKilitEkraniArkaPlan()
 
             case .systemSmall:
-                kucukAnaEkranGorunumu
+                kucukNamazGorunumu
+
             default:
-                ortaAnaEkranGorunumu
+                ortaNamazGorunumu
             }
         } else {
             switch family {
             case .systemSmall:
-                kucukAnaEkranGorunumu
+                kucukNamazGorunumu
             default:
-                ortaAnaEkranGorunumu
+                ortaNamazGorunumu
             }
         }
     }
 
-    // Boyut 1 (Small): Sıradaki Vakit + Geri Sayım + Kompakt 6 Vakit Özeti
-    private var kucukAnaEkranGorunumu: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("☪ \(entry.konum)")
-                    .font(.system(size: 10.5, weight: .bold))
-                    .foregroundColor(yumusakAltin)
-                    .lineLimit(1)
-                Spacer()
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.siradakiVakit)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor( vurguAltin)
-                    .lineLimit(1)
-                Text(entry.kalanSure)
-                    .font(.system(size: 18, weight: .heavy))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-            }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(zumrutKoyu.opacity(0.65))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(vurguAltin.opacity(0.45), lineWidth: 1)
-                    )
-            )
+    private var kucukNamazGorunumu: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(entry.konum)
+                .font(.system(size: 11.5, weight: .bold))
+                .foregroundColor(vurguAltin)
+                .lineLimit(1)
 
             Spacer(minLength: 0)
 
-            // 2 Satır x 3 Sütun 6 Vakit
-            VStack(spacing: 4) {
-                HStack(spacing: 4) {
-                    kucukVakitHucre(String(entry.etImsak.prefix(4)), entry.imsak)
-                    kucukVakitHucre(String(entry.etGunes.prefix(4)), entry.gunes)
-                    kucukVakitHucre(String(entry.etOgle.prefix(4)), entry.ogle)
-                }
-                HStack(spacing: 4) {
-                    kucukVakitHucre(String(entry.etIkindi.prefix(4)), entry.ikindi)
-                    kucukVakitHucre(String(entry.etAksam.prefix(4)), entry.aksam)
-                    kucukVakitHucre(String(entry.etYatsi.prefix(4)), entry.yatsi)
-                }
-            }
+            Text(entry.siradakiVakit)
+                .font(.system(size: 13.5, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+
+            Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+                .font(.system(size: 20, weight: .heavy))
+                .foregroundColor(yumusakAltin)
+                .monospacedDigit()
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            Text(entry.hicriTarih)
+                .font(.system(size: 9.5))
+                .foregroundColor(naneBeyaz)
+                .lineLimit(1)
         }
-        .padding(11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
         .vaktiHuzurWidgetArkaPlan()
     }
 
-    // Boyut 2 (Medium): Zümrüt Yeşili & Altın Sarısı Günlük Tüm Namaz Vakitleri + Geri Sayım
-    private var ortaAnaEkranGorunumu: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center) {
+    private var ortaNamazGorunumu: some View {
+        VStack(spacing: 8) {
+            HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("☪ Vakt-i Beraat • \(entry.konum)")
-                        .font(.system(size: 12, weight: .bold))
+                    Text("Vakt-i Beraat • \(entry.konum)")
+                        .font(.system(size: 12.5, weight: .bold))
                         .foregroundColor(yumusakAltin)
                         .lineLimit(1)
                     Text(entry.hicriTarih)
-                        .font(.system(size: 9.5, weight: .medium))
+                        .font(.system(size: 10))
                         .foregroundColor(naneBeyaz)
                         .lineLimit(1)
                 }
                 Spacer()
-                VStack(alignment: .trailing, spacing: 1) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(entry.siradakiVakit)
                         .font(.system(size: 10.5, weight: .bold))
                         .foregroundColor(vurguAltin)
-                    Text("⏳ \(entry.kalanSure)")
-                        .font(.system(size: 12, weight: .heavy))
+                        .lineLimit(1)
+                    Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+                        .font(.system(size: 11.5, weight: .bold))
                         .foregroundColor(.white)
+                        .monospacedDigit()
+                        .lineLimit(1)
                 }
-                .padding(.horizontal, 9)
-                .padding(.vertical, 5)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(zumrutKoyu.opacity(0.75))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(vurguAltin.opacity(0.6), lineWidth: 1)
-                        )
-                )
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(vurguAltin.opacity(0.18))
+                .cornerRadius(8)
             }
 
-            Spacer(minLength: 0)
-
-            HStack(spacing: 5) {
-                vakitKutusu(entry.etImsak, entry.imsak)
-                vakitKutusu(entry.etGunes, entry.gunes)
-                vakitKutusu(entry.etOgle, entry.ogle)
-                vakitKutusu(entry.etIkindi, entry.ikindi)
-                vakitKutusu(entry.etAksam, entry.aksam)
-                vakitKutusu(entry.etYatsi, entry.yatsi)
+            HStack(spacing: 4) {
+                vakitKutusu(ad: entry.etImsak, saat: entry.imsak)
+                vakitKutusu(ad: entry.etGunes, saat: entry.gunes)
+                vakitKutusu(ad: entry.etOgle, saat: entry.ogle)
+                vakitKutusu(ad: entry.etIkindi, saat: entry.ikindi)
+                vakitKutusu(ad: entry.etAksam, saat: entry.aksam)
+                vakitKutusu(ad: entry.etYatsi, saat: entry.yatsi)
             }
         }
-        .padding(13)
+        .padding(12)
         .vaktiHuzurWidgetArkaPlan()
     }
 
-    private func kucukVakitHucre(_ ad: String, _ saat: String) -> some View {
-        VStack(spacing: 1) {
-            Text(ad)
-                .font(.system(size: 8.5, weight: .medium))
-                .foregroundColor(naneBeyaz)
-            Text(saat)
-                .font(.system(size: 9.5, weight: .bold))
-                .foregroundColor(yumusakAltin)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func vakitKutusu(_ ad: String, _ saat: String) -> some View {
+    private func vakitKutusu(ad: String, saat: String) -> some View {
         let aktifMi = entry.siradakiVakit.localizedCaseInsensitiveContains(ad)
-        return VStack(spacing: 3) {
+        return VStack(spacing: 2) {
             Text(ad)
-                .font(.system(size: 9.5, weight: aktifMi ? .bold : .medium))
+                .font(.system(size: 9.5, weight: aktifMi ? .bold : .regular))
                 .foregroundColor(aktifMi ? vurguAltin : naneBeyaz)
+                .lineLimit(1)
             Text(saat)
-                .font(.system(size: 11.5, weight: .bold))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundColor(aktifMi ? .white : yumusakAltin)
+                .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 7)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(aktifMi ? vurguAltin.opacity(0.22) : zumrutKoyu.opacity(0.55))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(aktifMi ? vurguAltin : vurguAltin.opacity(0.22), lineWidth: aktifMi ? 1.3 : 0.7)
-                )
-        )
+        .padding(.vertical, 4)
+        .background(aktifMi ? vurguAltin.opacity(0.22) : Color.clear)
+        .cornerRadius(6)
     }
 }
 
 // ============================================================================
-// 2. GÜNÜN AYETİ / HADİSİ WİDGETI (2 FARKLI BOYUT: SMALL & MEDIUM/LARGE)
+// 2. GÜNÜN AYETİ WİDGETI (HER GECE 00:00'DA OTOMATİK YENİLENİR)
 // ============================================================================
 struct VaktiHuzurAyetWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
@@ -383,7 +710,7 @@ struct VaktiHuzurAyetWidgetView: View {
             switch family {
             case .accessoryRectangular:
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("✨ Günün Ayeti • \(entry.ayetKaynak)")
+                    Text(entry.ayetBaslik)
                         .font(.system(size: 10.5, weight: .bold))
                         .lineLimit(1)
                     Text(entry.ayetMeal)
@@ -392,61 +719,26 @@ struct VaktiHuzurAyetWidgetView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .vaktiHuzurKilitEkraniArkaPlan()
-            case .systemSmall:
-                kucukAyetGorunumu
             default:
-                genisAyetHadisGorunumu
+                ayetAnaGorunum
             }
         } else {
-            switch family {
-            case .systemSmall:
-                kucukAyetGorunumu
-            default:
-                genisAyetHadisGorunumu
-            }
+            ayetAnaGorunum
         }
     }
 
-    private var kucukAyetGorunumu: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack {
-                Text("✨ Günün Ayeti")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(vurguAltin)
-                Spacer()
-            }
-            Spacer(minLength: 0)
-            Text(entry.ayetMeal)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white)
-                .lineLimit(4)
-            Spacer(minLength: 0)
-            Text(entry.ayetKaynak)
-                .font(.system(size: 9.5, weight: .bold))
-                .foregroundColor(yumusakAltin)
-                .lineLimit(1)
-        }
-        .padding(12)
-        .vaktiHuzurWidgetArkaPlan()
-    }
-
-    private var genisAyetHadisGorunumu: some View {
+    private var ayetAnaGorunum: some View {
         VStack(alignment: .center, spacing: 6) {
             HStack {
                 Text(entry.ayetBaslik)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(vurguAltin)
+                    .lineLimit(1)
                 Spacer()
                 Text(entry.ayetKaynak)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 9.5, weight: .semibold))
                     .foregroundColor(yumusakAltin)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(zumrutKoyu.opacity(0.7))
-                            .overlay(Capsule().stroke(vurguAltin.opacity(0.45), lineWidth: 0.8))
-                    )
+                    .lineLimit(1)
             }
             Spacer(minLength: 0)
             Text(entry.ayetArapca)
@@ -467,7 +759,7 @@ struct VaktiHuzurAyetWidgetView: View {
 }
 
 // ============================================================================
-// 3. GÜNÜN HADİSİ WİDGETI (SMALL & MEDIUM)
+// 3. GÜNÜN HADİSİ WİDGETI (HER GECE 00:00'DA OTOMATİK YENİLENİR)
 // ============================================================================
 struct VaktiHuzurHadisWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
@@ -480,6 +772,7 @@ struct VaktiHuzurHadisWidgetView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.hadisBaslik)
                         .font(.system(size: 10.5, weight: .bold))
+                        .lineLimit(1)
                     Text(entry.hadisMeal)
                         .font(.system(size: 11))
                         .lineLimit(2)
@@ -500,6 +793,7 @@ struct VaktiHuzurHadisWidgetView: View {
                 Text(entry.hadisBaslik)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(vurguAltin)
+                    .lineLimit(1)
                 Spacer()
                 Text(entry.hadisKaynak)
                     .font(.system(size: 9.5, weight: .semibold))
@@ -524,7 +818,7 @@ struct VaktiHuzurHadisWidgetView: View {
 }
 
 // ============================================================================
-// 4. KİLİT EKRANI & SIRADAKİ VAKİT GERİ SAYIM WİDGETI
+// 4. KİLİT EKRANI & SIRADAKİ VAKİT CANLI GERİ SAYIM WİDGETI
 // ============================================================================
 struct VaktiHuzurSiradakiWidgetView: View {
     var entry: VaktiHuzurProvider.Entry
@@ -535,29 +829,37 @@ struct VaktiHuzurSiradakiWidgetView: View {
             switch family {
             case .accessoryRectangular:
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("☪ Vakt-i Beraat • \(entry.konum)")
+                    Text("Vakt-i Beraat • \(entry.konum)")
                         .font(.system(size: 10.5, weight: .semibold))
                         .lineLimit(1)
                     Text(entry.siradakiVakit)
                         .font(.system(size: 13, weight: .bold))
                         .lineLimit(1)
-                    Text("⏳ Kalan Süre: \(entry.kalanSure)")
-                        .font(.system(size: 12, weight: .bold))
+                    HStack(spacing: 4) {
+                        Text("Kalan:")
+                            .font(.system(size: 11.5, weight: .semibold))
+                        Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+                            .font(.system(size: 12, weight: .bold))
+                            .monospacedDigit()
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .vaktiHuzurKilitEkraniArkaPlan()
 
             case .accessoryInline:
-                Text("☪ \(entry.siradakiVakit) • \(entry.kalanSure)")
+                Text("\(entry.siradakiVakit) • \(entry.kalanSure)")
                     .vaktiHuzurKilitEkraniArkaPlan()
 
             case .accessoryCircular:
                 VStack(spacing: 1) {
-                    Text("☪")
-                        .font(.system(size: 11))
-                    Text(entry.kalanSure)
+                    Text(entry.siradakiVakitKisa)
+                        .font(.system(size: 9, weight: .semibold))
+                        .lineLimit(1)
+                    Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
                         .font(.system(size: 10, weight: .bold))
-                        .minimumScaleFactor(0.7)
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.65)
+                        .multilineTextAlignment(.center)
                 }
                 .vaktiHuzurKilitEkraniArkaPlan()
 
@@ -571,7 +873,7 @@ struct VaktiHuzurSiradakiWidgetView: View {
 
     private var siradakiAnaEkranGorunumu: some View {
         VStack(spacing: 6) {
-            Text("☪ \(entry.konum)")
+            Text(entry.konum)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(vurguAltin)
                 .lineLimit(1)
@@ -580,9 +882,10 @@ struct VaktiHuzurSiradakiWidgetView: View {
                 .font(.system(size: 13.5, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-            Text(entry.kalanSure)
-                .font(.system(size: 24, weight: .heavy))
+            Text(timerInterval: entry.date...entry.hedefTarih, countsDown: true)
+                .font(.system(size: 22, weight: .heavy))
                 .foregroundColor(yumusakAltin)
+                .monospacedDigit()
                 .lineLimit(1)
             Spacer(minLength: 0)
             Text("Vaktine Kalan Süre • Diyanet")
@@ -603,7 +906,7 @@ struct VaktiHuzurZikirWidgetView: View {
     var body: some View {
         VStack(spacing: 5) {
             HStack {
-                Text("📿 Günlük Zikir")
+                Text("Günlük Zikir")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(vurguAltin)
                 Spacer()
@@ -650,7 +953,7 @@ struct VaktiHuzurNamazWidget: Widget {
             VaktiHuzurNamazWidgetView(entry: entry)
         }
         .configurationDisplayName("Vakt-i Beraat: Günlük Vakitler & Sayaç")
-        .description("Zümrüt yeşili ve altın sarısı temada tüm namaz vakitlerini ve geri sayımı gösterir.")
+        .description("Zümrüt yeşili ve altın sarısı temada tüm namaz vakitlerini ve canlı geri sayımı gösterir.")
         .supportedFamilies(desteklenenAilelerNamaz())
         .vaktiHuzurKenarBosluksuz()
     }
@@ -671,7 +974,7 @@ struct VaktiHuzurAyetWidget: Widget {
             VaktiHuzurAyetWidgetView(entry: entry)
         }
         .configurationDisplayName("Vakt-i Beraat: Günün Ayeti")
-        .description("2 farklı boyutta seçkin Kur’an ayetini Arapça ve mealiyle gösterir.")
+        .description("Her gece 00:00'da otomatik değişen seçkin Kur’an ayetini Arapça ve mealiyle gösterir.")
         .supportedFamilies(desteklenenAilelerAyet())
         .vaktiHuzurKenarBosluksuz()
     }
@@ -692,7 +995,7 @@ struct VaktiHuzurHadisWidget: Widget {
             VaktiHuzurHadisWidgetView(entry: entry)
         }
         .configurationDisplayName("Vakt-i Beraat: Günün Hadisi")
-        .description("2 farklı boyutta sahih hadis-i şerifi Arapça ve tercümesiyle gösterir.")
+        .description("Her gece 00:00'da otomatik değişen sahih hadis-i şerifi Arapça ve tercümesiyle gösterir.")
         .supportedFamilies(desteklenenAilelerHadis())
         .vaktiHuzurKenarBosluksuz()
     }
@@ -713,7 +1016,7 @@ struct VaktiHuzurSiradakiWidget: Widget {
             VaktiHuzurSiradakiWidgetView(entry: entry)
         }
         .configurationDisplayName("Vakt-i Beraat: Kilit Ekranı & Sıradaki Vakit")
-        .description("Kilit ekranında ve ana ekranda sıradaki vakti ve kalan süreyi gösterir.")
+        .description("Kilit ekranında ve ana ekranda sıradaki vakti ve canlı geri sayımı gösterir.")
         .supportedFamilies(desteklenenAilelerSiradaki())
         .vaktiHuzurKenarBosluksuz()
     }

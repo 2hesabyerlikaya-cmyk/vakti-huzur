@@ -201,23 +201,23 @@ class VaktiHuzurWidgetServisi {
     } catch (_) {}
   }
 
-  /// Günün Ayeti bilgisini döndürür
+  /// Günün Ayeti bilgisini döndürür (Yılın gününe göre her gece 00:00'da otomatik değişir)
   static ({String baslik, String arapca, String meal, String kaynak}) gununAyetiniGetir({
     required String dil,
     int offset = 0,
   }) {
     final simdi = DateTime.now();
-    final idx = (simdi.year * 366 + simdi.month * 31 + simdi.day + offset).abs() %
-        kSecmeWidgetAyetleri.length;
+    final dayOfYear = simdi.difference(DateTime(simdi.year, 1, 1)).inDays + 1;
+    final idx = (dayOfYear + offset).abs() % kSecmeWidgetAyetleri.length;
     final a = kSecmeWidgetAyetleri[idx];
     return (
       baslik: Ceviri.sec(
         dil,
-        tr: '✨ Vakt-i Beraat • Günün Ayeti',
-        en: '✨ Vakt-i Beraat • Verse of the Day',
-        de: '✨ Vakt-i Beraat • Vers des Tages',
-        fr: '✨ Vakt-i Beraat • Verset du Jour',
-        ar: '✨ Vakt-i Beraat • آية اليوم',
+        tr: 'Vakt-i Beraat • Günün Ayeti',
+        en: 'Vakt-i Beraat • Verse of the Day',
+        de: 'Vakt-i Beraat • Vers des Tages',
+        fr: 'Vakt-i Beraat • Verset du Jour',
+        ar: 'Vakt-i Beraat • آية اليوم',
       ),
       arapca: a.arapca,
       meal: a.meal(dil),
@@ -225,29 +225,29 @@ class VaktiHuzurWidgetServisi {
     );
   }
 
-  /// Günün Hadisi bilgisini döndürür
+  /// Günün Hadisi bilgisini döndürür (Yılın gününe göre her gece 00:00'da otomatik değişir)
   static ({String baslik, String arapca, String meal, String kaynak}) gununHadisiniGetir({
     required String dil,
     int offset = 0,
   }) {
     final simdi = DateTime.now();
-    final idx = (simdi.year * 366 + simdi.month * 31 + simdi.day + offset).abs() %
-        kSahihHadisHavuzu.length;
+    final dayOfYear = simdi.difference(DateTime(simdi.year, 1, 1)).inDays + 1;
+    final idx = (dayOfYear + offset).abs() % kSahihHadisHavuzu.length;
     final h = kSahihHadisHavuzu[idx];
     return (
       baslik: Ceviri.sec(
         dil,
-        tr: '☪ Vakt-i Beraat • Günün Hadisi',
-        en: '☪ Vakt-i Beraat • Hadith of the Day',
-        de: '☪ Vakt-i Beraat • Hadith des Tages',
-        fr: '☪ Vakt-i Beraat • Hadith du Jour',
-        ar: '☪ Vakt-i Beraat • حديث اليوم',
+        tr: 'Vakt-i Beraat • Günün Hadisi',
+        en: 'Vakt-i Beraat • Hadith of the Day',
+        de: 'Vakt-i Beraat • Hadith des Tages',
+        fr: 'Vakt-i Beraat • Hadith du Jour',
+        ar: 'Vakt-i Beraat • حديث اليوم',
       ),
       arapca: h['arapca'] ?? '',
       meal: hadisMealGetir(idx, dil),
       kaynak: dil == 'TR'
-          ? (h['kaynakKisaTr'] ?? '')
-          : (h['kaynakKisaEn'] ?? h['kaynakKisaTr'] ?? ''),
+          ? (h['kaynakKisaTr'] ?? h['kaynakKisa'] ?? '')
+          : (h['kaynakKisaEn'] ?? h['kaynakKisa'] ?? ''),
     );
   }
 
@@ -347,11 +347,19 @@ class VaktiHuzurWidgetServisi {
       if (!_groupConfigured) {
         _groupConfigured = true;
         try {
-          await HomeWidget.setAppGroupId('group.com.vaktihuzur.app');
+          await HomeWidget.setAppGroupId('group.com.berat.vaktiberaat');
         } catch (_) {}
       }
 
+      final simdi = DateTime.now();
+      final dayOfYear = simdi.difference(DateTime(simdi.year, 1, 1)).inDays + 1;
+
       await Future.wait([
+        // Dil ve Günlük Rotasyon Bilgileri
+        HomeWidget.saveWidgetData<String>('widget_dil', dil),
+        HomeWidget.saveWidgetData<String>('widget_offset', ayar.seciliIndeksOffset.toString()),
+        HomeWidget.saveWidgetData<String>('widget_son_gun', dayOfYear.toString()),
+
         // Temel Namaz Vakitleri & Sıradaki Vakit
         HomeWidget.saveWidgetData<String>('widget_konum', vakitModel.konumAdi),
         HomeWidget.saveWidgetData<String>(
@@ -1378,7 +1386,7 @@ class _KilitEkraniVeWidgetAyarlariSheetState
             return Column(
               children: [
                 Text(
-                  '☪ Vakt-i Beraat • ${v.konumAdi}',
+                  'Vakt-i Beraat • ${v.konumAdi}',
                   style: const TextStyle(
                     color: Color(0xFFD9B650),
                     fontSize: 12,
@@ -1434,7 +1442,7 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '☪ Vakt-i Beraat • ${v.konumAdi}',
+                            'Vakt-i Beraat • ${v.konumAdi}',
                             style: const TextStyle(
                               color: Color(0xFFF2E2B6),
                               fontWeight: FontWeight.bold,
@@ -1531,10 +1539,10 @@ class _KilitEkraniVeWidgetAyarlariSheetState
                       child: Text(
                         Ceviri.sec(
                           dil,
-                          tr: '📿 Vakt-i Beraat • Günlük Zikir',
-                          en: '📿 Vakt-i Beraat • Daily Dhikr',
-                          de: '📿 Vakt-i Beraat • Tägliches Dhikr',
-                          fr: '📿 Vakt-i Beraat • Dhikr Quotidien',
+                          tr: 'Vakt-i Beraat • Günlük Zikir',
+                          en: 'Vakt-i Beraat • Daily Dhikr',
+                          de: 'Vakt-i Beraat • Tägliches Dhikr',
+                          fr: 'Vakt-i Beraat • Dhikr Quotidien',
                         ),
                         style: const TextStyle(
                           color: Color(0xFFD9B650),

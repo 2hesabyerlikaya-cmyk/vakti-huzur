@@ -15,30 +15,21 @@ class VaktiHuzurHadisWidgetProvider : HomeWidgetProvider() {
         appWidgetIds: IntArray,
         widgetData: SharedPreferences
     ) {
+        val hadis = VaktiBeraatWidgetHelper.gunlukHadisGetir(widgetData)
+        VaktiBeraatWidgetHelper.zamanlayiciKur(
+            context,
+            VaktiHuzurHadisWidgetProvider::class.java,
+            VaktiBeraatWidgetHelper.geceYarisiMs(),
+            704
+        )
+
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.vakti_huzur_hadis_widget)
 
-            val baslik = widgetData.getString(
-                "widget_hadis_baslik",
-                "☪ Vakt-i Beraat • Günün Hadisi"
-            ) ?: "☪ Vakt-i Beraat • Günün Hadisi"
-            val arapca = widgetData.getString(
-                "widget_hadis_arapca",
-                "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ"
-            ) ?: "إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ"
-            val meal = widgetData.getString(
-                "widget_hadis_meal",
-                "“Ameller niyetlere göredir; herkes için ancak niyet ettiği şey vardır.”"
-            ) ?: "“Ameller niyetlere göredir; herkes için ancak niyet ettiği şey vardır.”"
-            val kaynak = widgetData.getString(
-                "widget_hadis_kaynak",
-                "Sahih-i Buhârî, İman, 1"
-            ) ?: "Sahih-i Buhârî, İman, 1"
-
-            views.setTextViewText(R.id.tv_hadis_widget_baslik, baslik)
-            views.setTextViewText(R.id.tv_hadis_widget_arapca, arapca)
-            views.setTextViewText(R.id.tv_hadis_widget_meal, meal)
-            views.setTextViewText(R.id.tv_hadis_widget_kaynak, kaynak)
+            views.setTextViewText(R.id.tv_hadis_widget_baslik, hadis[0])
+            views.setTextViewText(R.id.tv_hadis_widget_arapca, hadis[1])
+            views.setTextViewText(R.id.tv_hadis_widget_meal, hadis[2])
+            views.setTextViewText(R.id.tv_hadis_widget_kaynak, hadis[3])
 
             val intent = Intent(context, MainActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(

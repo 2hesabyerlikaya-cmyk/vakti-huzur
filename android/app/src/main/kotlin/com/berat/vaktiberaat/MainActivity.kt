@@ -1,15 +1,29 @@
 package com.berat.vaktiberaat
 
+import android.Manifest
+import android.content.ClipData
+import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.view.Surface
 import android.view.WindowManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.sqrt
 
 class MainActivity : FlutterActivity(), SensorEventListener {
@@ -27,6 +41,10 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     private val geomagnetic = FloatArray(3)
     private var hasGravity = false
     private var hasGeomagnetic = false
+
+    private var pendingSaveBytes: ByteArray? = null
+    private var pendingSaveName: String? = null
+    private var pendingSaveResult: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -50,11 +68,144 @@ class MainActivity : FlutterActivity(), SensorEventListener {
                 eventSink = null
             }
         })
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.berat.vaktiberaat/native_media"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveImageToGallery" -> {
+                    val bytes = call.argument<ByteArray>("bytes")
+                    val fileName = call.argument<String>("fileName") ?: "vakti_beraat_story_${System.currentTimeMillis()}.png"
+                    if (bytes == null || bytes.isEmpty()) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+                        val granted = ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (!granted) {
+                            pendingSaveBytes = bytes
+                            pendingSaveName = fileName
+                            pendingSaveResult = result
+                            ActivityCompat.requestPermissions(
+                                this,
+                                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                                9011
+                            )
+                            return@setMethodCallHandler
+                        }
+                    }
+                    val ok = galeriyeKaydet(bytes, fileName)
+                    result.success(ok)
+                }
+
+                "shareImage" -> {
+                    val bytes = call.argument<ByteArray>("bytes")
+                    val fileName = call.argument<String>("fileName") ?: "vakti_beraat_story.png"
+                    val text = call.argument<String>("text") ?: ""
+                    if (bytes == null || bytes.isEmpty()) {
+                        result.success(false)
+                        return@setMethodCallHandler
+                    }
+                    val ok = gorselPaylas(bytes, fileName, text)
+                    result.success(ok)
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 9011) {
+            val res = pendingSaveResult
+            val bytes = pendingSaveBytes
+            val name = pendingSaveName ?: "vakti_beraat_story.png"
+            pendingSaveResult = null
+            pendingSaveBytes = null
+            pendingSaveName = null
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED && bytes != null) {
+                res?.success(galeriyeKaydet(bytes, name))
+            } else {
+                res?.success(false)
+            }
+        }
+    }
+
+    private fun galeriyeKaydet(bytes: ByteArray, fileName: String): Boolean {
+        return try {
+            val resolver = applicationContext.contentResolver
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/VaktiBeraat")
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+            }
+            val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                ?: return false
+            resolver.openOutputStream(uri)?.use { out ->
+                out.write(bytes)
+                out.flush()
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.clear()
+                contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                resolver.update(uri, contentValues, null, null)
+            }
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun gorselPaylas(bytes: ByteArray, fileName: String, text: String): Boolean {
+        return try {
+            val dir = File(cacheDir, "shared_stories")
+            if (!dir.exists()) dir.mkdirs()
+            val file = File(dir, fileName)
+            FileOutputStream(file).use { out ->
+                out.write(bytes)
+                out.flush()
+            }
+
+            val uri = FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.fileprovider",
+                file
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                if (text.isNotEmpty()) {
+                    putExtra(Intent.EXTRA_TEXT, text)
+                }
+                clipData = ClipData.newRawUri("Vakt-i Beraat", uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+
+            val chooser = Intent.createChooser(shareIntent, "Vakt-i Beraat").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(chooser)
+            true
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun startCompassListeners() {
         val sm = sensorManager ?: return
-        // Her zaman manyetik alan şiddeti (µT) ve kalibrasyon durumu için TYPE_MAGNETIC_FIELD dinle
         magSensor?.let { sm.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
 
         if (rotationVectorSensor != null) {
@@ -138,7 +289,6 @@ class MainActivity : FlutterActivity(), SensorEventListener {
         val displayRotation = (getSystemService(Context.WINDOW_SERVICE) as? WindowManager)?.defaultDisplay?.rotation
             ?: Surface.ROTATION_0
 
-        // Ekran yatay (masada düz) veya eğimli tutulsa bile ahize (cihazın üst kısmı +Y) yönünü baz al
         when (displayRotation) {
             Surface.ROTATION_90 -> SensorManager.remapCoordinateSystem(
                 rotationMatrix,

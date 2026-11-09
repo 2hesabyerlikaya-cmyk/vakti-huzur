@@ -12,7 +12,7 @@
         android:id="@+id/tv_siradaki_konum_hicri"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="☪ Vakt-i Beraat • İstanbul"
+        android:text="Vakt-i Beraat • İstanbul"
         android:textColor="#D9B650"
         android:textSize="12sp"
         android:textStyle="bold" />
@@ -27,12 +27,12 @@
         android:textSize="15sp"
         android:textStyle="bold" />
 
-    <TextView
+    <Chronometer
         android:id="@+id/tv_siradaki_kalan"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
-        android:text="01s 24dk"
+        android:countDown="true"
         android:textColor="#D4AF37"
         android:textSize="26sp"
         android:textStyle="bold" />

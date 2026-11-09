@@ -70,6 +70,7 @@ class CanliAyetModel {
 class DinamikReelsKart {
   final String id;
   final bool ayetMi;
+  final String? icerikTuru; // 'ayet', 'hadis', 'esma', 'dua'
   final int? globalAyetNo;
   final String arapcaMetin;
   final String konuTr;
@@ -101,6 +102,7 @@ class DinamikReelsKart {
   DinamikReelsKart({
     required this.id,
     required this.ayetMi,
+    this.icerikTuru,
     this.globalAyetNo,
     required this.arapcaMetin,
     required this.konuTr,
@@ -131,11 +133,39 @@ class DinamikReelsKart {
   });
 
   String turBasligi(String dil) {
-    if (dil == 'DE') return ayetMi ? 'Edler Koranvers' : 'Prophetischer Hadith';
-    if (dil == 'FR') return ayetMi ? 'Noble Verset du Coran' : 'Hadith Prophétique';
-    if (dil == 'EN') return ayetMi ? 'Holy Qur’an Verse' : 'Prophetic Hadith';
-    if (dil == 'AR') return ayetMi ? 'آية كريمة' : 'حديث شريف';
-    return ayetMi ? 'Ayet-i Kerime' : 'Hadis-i Şerif';
+    final tur = icerikTuru ??
+        (id.startsWith('esma_')
+            ? 'esma'
+            : id.startsWith('dua_')
+                ? 'dua'
+                : (ayetMi ? 'ayet' : 'hadis'));
+
+    if (tur == 'esma') {
+      if (dil == 'DE') return 'Asma-ul Husna';
+      if (dil == 'FR') return 'Asma-oul Housna';
+      if (dil == 'EN') return 'Asma-ul Husna';
+      if (dil == 'AR') return 'أسماء الله الحسنى';
+      return 'Esmaü’l Hüsna';
+    }
+    if (tur == 'dua') {
+      if (dil == 'DE') return 'Bittgebet (Dua)';
+      if (dil == 'FR') return 'Invocation (Doua)';
+      if (dil == 'EN') return 'Dua';
+      if (dil == 'AR') return 'دعاء';
+      return 'Dua';
+    }
+    if (tur == 'ayet') {
+      if (dil == 'DE') return 'Vers des Tages';
+      if (dil == 'FR') return 'Verset du Jour';
+      if (dil == 'EN') return 'Verse of the Day';
+      if (dil == 'AR') return 'آية اليوم';
+      return 'Günün Ayeti';
+    }
+    if (dil == 'DE') return 'Prophetischer Hadith';
+    if (dil == 'FR') return 'Hadith Prophétique';
+    if (dil == 'EN') return 'Prophetic Hadith';
+    if (dil == 'AR') return 'حديث شريف';
+    return 'Hadis-i Şerif';
   }
 
   String konu(String dil) {

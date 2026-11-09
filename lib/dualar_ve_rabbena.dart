@@ -953,6 +953,7 @@ class _DualarVeRabbenaListeWidgetState extends State<DualarVeRabbenaListeWidget>
     final kart = DinamikReelsKart(
       id: 'dua_story_${dua.id}',
       ayetMi: dua.globalAyetNo != null,
+      icerikTuru: 'dua',
       globalAyetNo: dua.globalAyetNo,
       arapcaMetin: dua.arapca,
       konuTr: '${dua.kategoriTr} • ${dua.baslikTr}',

@@ -24,7 +24,7 @@
                 android:id="@+id/tv_widget_baslik"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="☪ Vakt-i Beraat • İstanbul"
+                android:text="Vakt-i Beraat • İstanbul"
                 android:textColor="#F2E2B6"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -58,13 +58,13 @@
                 android:textSize="11sp"
                 android:textStyle="bold" />
 
-            <TextView
+            <Chronometer
                 android:id="@+id/tv_kalan_sure"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="18:24"
+                android:countDown="true"
                 android:textColor="#FFFFFF"
-                android:textSize="11sp"
+                android:textSize="11.5sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

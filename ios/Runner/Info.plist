@@ -36,6 +36,10 @@
 	<string>Vakt-i Beraat, ezan vakti bildirimlerini bulunduğunuz konuma göre zamanlamak için konum bilginizi kullanır.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Vakt-i Beraat, canlı Kıble pusulasını telefonunuzun yönüne göre döndürmek ve titreşim geri bildirimi sunmak için hareket sensörünü kullanır.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Vakt-i Beraat, hazırladığınız 9:16 Ayet, Hadis, Dua ve Esmaü’l Hüsna hikaye (Story) görsellerini fotoğraf galerinize kaydetmek için izin ister.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Vakt-i Beraat, hazırladığınız İslami paylaşım kartlarını galerinize kaydetmek için fotoğraf arşivi iznine ihtiyaç duyar.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

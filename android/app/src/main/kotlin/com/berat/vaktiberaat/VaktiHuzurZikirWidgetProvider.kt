@@ -18,15 +18,12 @@ class VaktiHuzurZikirWidgetProvider : HomeWidgetProvider() {
         for (widgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.vakti_huzur_zikir_widget)
 
-            val arapca = widgetData.getString("widget_zikir_arapca", "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ")
-                ?: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ"
-            val okunus = widgetData.getString("widget_zikir_okunus", "Sübhânallâhi ve bi-hamdihî")
-                ?: "Sübhânallâhi ve bi-hamdihî"
-            val anlam = widgetData.getString("widget_zikir_anlam", "“Allah’ı hamd ile noksan sıfatlardan tenzih ederim.”")
-                ?: "“Allah’ı hamd ile noksan sıfatlardan tenzih ederim.”"
-            val sayac = widgetData.getString("widget_zikir_sayac", "33 / 100")
-                ?: "33 / 100"
+            val arapca = VaktiBeraatWidgetHelper.oku(widgetData, "widget_zikir_arapca", "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ")
+            val okunus = VaktiBeraatWidgetHelper.oku(widgetData, "widget_zikir_okunus", "Sübhânallâhi ve bi-hamdihî")
+            val anlam = VaktiBeraatWidgetHelper.oku(widgetData, "widget_zikir_anlam", "“Allah’ı hamd ile noksan sıfatlardan tenzih ederim.”")
+            val sayac = VaktiBeraatWidgetHelper.oku(widgetData, "widget_zikir_sayac", "33 / 100")
 
+            views.setTextViewText(R.id.tv_zikir_widget_baslik, "Vakt-i Beraat • Günlük Zikir")
             views.setTextViewText(R.id.tv_zikir_widget_arapca, arapca)
             views.setTextViewText(R.id.tv_zikir_widget_okunus, okunus)
             views.setTextViewText(R.id.tv_zikir_widget_anlam, anlam)

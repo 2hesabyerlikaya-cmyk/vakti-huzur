@@ -1,7 +1,7 @@
 name: islami_uygulama
 description: "Vakt-i Beraat — Kur'an-ı Kerim, Namaz Vakitleri, Sahih Hadis ve İslami Rehber"
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.1.0+3
 
 environment:
   sdk: ^3.13.7

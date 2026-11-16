@@ -1,16 +1,19 @@
 package com.berat.vaktiberaat
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.view.Surface
@@ -45,6 +48,50 @@ class MainActivity : FlutterActivity(), SensorEventListener {
     private var pendingSaveBytes: ByteArray? = null
     private var pendingSaveName: String? = null
     private var pendingSaveResult: MethodChannel.Result? = null
+
+    private val ekranVeSaatAlicisi = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val ctx = context ?: applicationContext ?: return
+            VaktiBeraatWidgetHelper.tumSayacWidgetlariniSimdiYenile(ctx)
+        }
+    }
+    private var aliciKayitli = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        try {
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_USER_PRESENT)
+                addAction(Intent.ACTION_TIME_TICK)
+                addAction(Intent.ACTION_TIME_CHANGED)
+                addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(ekranVeSaatAlicisi, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                registerReceiver(ekranVeSaatAlicisi, filter)
+            }
+            aliciKayitli = true
+        } catch (_: Exception) {
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        VaktiBeraatWidgetHelper.tumSayacWidgetlariniSimdiYenile(applicationContext)
+    }
+
+    override fun onDestroy() {
+        if (aliciKayitli) {
+            try {
+                unregisterReceiver(ekranVeSaatAlicisi)
+            } catch (_: Exception) {
+            }
+            aliciKayitli = false
+        }
+        super.onDestroy()
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

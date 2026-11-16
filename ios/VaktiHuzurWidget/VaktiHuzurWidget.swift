@@ -269,9 +269,17 @@ struct VaktiHuzurProvider: TimelineProvider {
         let ilkEntry = kayitliVeridenEntry(for: simdi)
         var entries: [VaktiHuzurEntry] = [ilkEntry]
 
-        // Sıradaki vakit geçiş anında ve gece 00:00'da (günlük Ayet & Hadis değişimi için) otomatik yenile
+        // Hedef namaz vaktinin timestamp'ine (hedefTarih) kadar her 5 dakikada bir ve
+        // vakit geçiş anında sistem saatinden farkı hesaplayan timeline kayıtları oluştur
         let takvim = Calendar.current
         let geceYarisi = takvim.startOfDay(for: simdi.addingTimeInterval(86400))
+        let sinirTarih = min(ilkEntry.hedefTarih, geceYarisi)
+
+        var adim = simdi.addingTimeInterval(300)
+        while adim < sinirTarih {
+            entries.append(kayitliVeridenEntry(for: adim))
+            adim = adim.addingTimeInterval(300)
+        }
 
         if ilkEntry.hedefTarih > simdi && ilkEntry.hedefTarih < geceYarisi {
             let gecisTarihi = ilkEntry.hedefTarih.addingTimeInterval(1)

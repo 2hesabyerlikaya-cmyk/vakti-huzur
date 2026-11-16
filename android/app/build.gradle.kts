@@ -1,7 +1,20 @@
+import java.io.FileInputStream
+import java.security.KeyStore
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val releaseKeystoreFile = file("vakti-beraat-upload.jks")
+val releaseKeystorePass = "VaktiBeraat2026!"
+val detectedKeyAlias: String = if (releaseKeystoreFile.exists()) {
+    val ks = KeyStore.getInstance("PKCS12")
+    FileInputStream(releaseKeystoreFile).use { ks.load(it, releaseKeystorePass.toCharArray()) }
+    if (ks.aliases().hasMoreElements()) ks.aliases().nextElement() else "vaktiberaat"
+} else {
+    "vaktiberaat"
 }
 
 android {
@@ -24,10 +37,31 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        create("release") {
+            if (releaseKeystoreFile.exists()) {
+                storeFile = releaseKeystoreFile
+                storePassword = releaseKeystorePass
+                keyAlias = detectedKeyAlias
+                keyPassword = releaseKeystorePass
+                storeType = "PKCS12"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseKeystoreFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

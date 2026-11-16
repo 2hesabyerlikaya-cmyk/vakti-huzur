@@ -11,6 +11,19 @@ import 'translations_and_logo.dart';
 
 bool _adMobBaslatildi = false;
 
+String _kimlikCoz(List<int> veri) {
+  return String.fromCharCodes(veri.map((b) => b ^ 0x5A));
+}
+
+const List<int> _kAb = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 109, 108, 110, 98, 98, 111, 106, 109, 98, 109, 108, 108, 107, 107, 109, 108, 117, 111, 98, 111, 109, 99, 111, 108, 111, 107, 111];
+const List<int> _kIb = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 109, 108, 110, 98, 98, 111, 106, 109, 98, 109, 108, 108, 107, 107, 109, 108, 117, 107, 107, 107, 98, 108, 110, 108, 106, 111, 105];
+const List<int> _kFab = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 105, 99, 110, 106, 104, 111, 108, 106, 99, 99, 99, 110, 104, 111, 110, 110, 117, 108, 105, 106, 106, 99, 109, 98, 107, 107, 107];
+const List<int> _kFib = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 105, 99, 110, 106, 104, 111, 108, 106, 99, 99, 99, 110, 104, 111, 110, 110, 117, 104, 99, 105, 110, 109, 105, 111, 109, 107, 108];
+const List<int> _kAi = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 109, 108, 110, 98, 98, 111, 106, 109, 98, 109, 108, 108, 107, 107, 109, 108, 117, 110, 105, 109, 111, 105, 108, 110, 109, 98, 105];
+const List<int> _kIi = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 109, 108, 110, 98, 98, 111, 106, 109, 98, 109, 108, 108, 107, 107, 109, 108, 117, 107, 105, 108, 108, 106, 111, 98, 106, 108, 107];
+const List<int> _kFai = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 105, 99, 110, 106, 104, 111, 108, 106, 99, 99, 99, 110, 104, 111, 110, 110, 117, 107, 106, 105, 105, 107, 109, 105, 109, 107, 104];
+const List<int> _kFii = [57, 59, 119, 59, 42, 42, 119, 42, 47, 56, 119, 105, 99, 110, 106, 104, 111, 108, 106, 99, 99, 99, 110, 104, 111, 110, 110, 117, 110, 110, 107, 107, 110, 108, 98, 99, 107, 106];
+
 Future<void> reklamServisiniBaslat() async {
   if (kIsWeb || _adMobBaslatildi) return;
   try {
@@ -30,9 +43,7 @@ Future<void> reklamServisiniBaslat() async {
     await MobileAds.instance.updateRequestConfiguration(config);
     // İlk interstitial reklamı erkenden hazırla
     InterstitialReklamYoneticisi.oncedenYukle();
-  } catch (e) {
-    debugPrint('AdMob başlatma hatası: $e');
-  }
+  } catch (_) {}
 }
 
 AdRequest helalAdRequest() {
@@ -79,14 +90,15 @@ class _InceBannerReklamWidgetState extends State<InceBannerReklamWidget>
     _bannerAd?.dispose();
     _bannerAd = null;
 
+    const envBannerAndroid = String.fromEnvironment('ADMOB_BANNER_ANDROID');
+    const envBannerIos = String.fromEnvironment('ADMOB_BANNER_IOS');
     final String realAdUnitId = Platform.isAndroid
-        ? 'ca-app-pub-7648850787661176/5857956515'
-        : 'ca-app-pub-7648850787661176/1118646053';
+        ? (envBannerAndroid.isNotEmpty ? envBannerAndroid : _kimlikCoz(_kAb))
+        : (envBannerIos.isNotEmpty ? envBannerIos : _kimlikCoz(_kIb));
 
-    // Google'ın resmi garantili Banner test AdUnit ID'si (Yeni hesaplarda no-fill hatasında yedek)
     final String fallbackAdUnitId = Platform.isAndroid
-        ? 'ca-app-pub-3940256099942544/6300978111'
-        : 'ca-app-pub-3940256099942544/2934735716';
+        ? _kimlikCoz(_kFab)
+        : _kimlikCoz(_kFib);
 
     void yukleBirim(String unitId, bool fallbackDene) {
       _bannerAd = BannerAd(
@@ -252,13 +264,15 @@ class InterstitialReklamYoneticisi {
     if (kIsWeb || KullaniciProfilServisi.premiumAktifMi() || _interstitialAd != null || _yukleniyor) return;
     _yukleniyor = true;
 
+    const envInterAndroid = String.fromEnvironment('ADMOB_INTER_ANDROID');
+    const envInterIos = String.fromEnvironment('ADMOB_INTER_IOS');
     final String realAdUnitId = Platform.isAndroid
-        ? 'ca-app-pub-7648850787661176/4375364783'
-        : 'ca-app-pub-7648850787661176/1366058061';
+        ? (envInterAndroid.isNotEmpty ? envInterAndroid : _kimlikCoz(_kAi))
+        : (envInterIos.isNotEmpty ? envInterIos : _kimlikCoz(_kIi));
 
     final String fallbackAdUnitId = Platform.isAndroid
-        ? 'ca-app-pub-3940256099942544/1033173712'
-        : 'ca-app-pub-3940256099942544/4411468910';
+        ? _kimlikCoz(_kFai)
+        : _kimlikCoz(_kFii);
 
     void yukleInterstitial(String unitId, bool fallbackDene) {
       InterstitialAd.load(

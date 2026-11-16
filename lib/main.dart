@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -20,6 +21,9 @@ import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as
 
 
 void main() async {
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
   WidgetsFlutterBinding.ensureInitialized();
   try {
     await (web.window.localStorage as dynamic).initPersistentStorage();
@@ -4614,6 +4618,58 @@ class _KibleBulucuEkraniState extends State<KibleBulucuEkrani> {
                         color: kibleyeHizalandi ? Colors.white.withValues(alpha: 0.9) : tema.ikincilYazi,
                         fontSize: 11.5,
                         height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 5. SENSÖR SAPMALARINA KARŞI KLASİK PUSULA TEYİT UYARI NOTU
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: kibleyeHizalandi
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : tema.kartRengi.withValues(alpha: 0.88),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: kibleyeHizalandi
+                        ? Colors.white54
+                        : tema.vurguAltin.withValues(alpha: 0.38),
+                    width: 1.0,
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: kibleyeHizalandi ? Colors.white : tema.vurguAltin,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        Ceviri.sec(
+                          dil,
+                          tr: 'Telefon sensörlerindeki sapmalara karşı, emin olmadığınız durumlarda yukarıda belirtilen açıyı (örn. ${_kibleAcisi.round()}°) klasik bir pusula ile teyit etmeniz önerilir.',
+                          en: 'Against possible deviations in phone sensors, when in doubt, it is recommended to verify the angle indicated above (e.g. ${_kibleAcisi.round()}°) with a classic compass.',
+                          de: 'Bei möglichen Abweichungen der Telefonsensoren wird empfohlen, im Zweifelsfall den oben angegebenen Winkel (z. B. ${_kibleAcisi.round()}°) mit einem klassischen Kompass zu überprüfen.',
+                          fr: 'Face aux éventuelles déviations des capteurs du téléphone, en cas de doute, il est recommandé de vérifier l’angle indiqué ci-dessus (ex. ${_kibleAcisi.round()}°) avec une boussole classique.',
+                        ),
+                        style: TextStyle(
+                          color: kibleyeHizalandi
+                              ? Colors.white.withValues(alpha: 0.95)
+                              : tema.yaziRengi.withValues(alpha: 0.92),
+                          fontSize: 12,
+                          height: 1.45,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],

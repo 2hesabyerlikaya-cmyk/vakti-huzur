@@ -137,6 +137,105 @@ const List<GunlukWidgetAyetModel> kSecmeWidgetAyetleri = [
     kaynakDe: 'Sure Al-Baqara, Vers 201',
     kaynakFr: 'Sourate Al-Baqara, 201',
   ),
+  GunlukWidgetAyetModel(
+    arapca: 'وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ۚ عَلَيْهِ تَوَكَّلْتُ وَإِلَيْهِ أُنِيبُ',
+    mealTr: '“Başarım ancak Allah’ın yardımı iledir. Ben yalnızca O’na tevekkül ettim ve ancak O’na yöneliyorum.”',
+    mealEn: '“And my success is not but through Allah. Upon Him I have relied, and to Him I return.”',
+    mealDe: '„Und mein Erfolg liegt nur bei Allah. Auf Ihn verlasse ich mich, und zu Ihm wende ich mich reumütig.“',
+    mealFr: '« Et ma réussite ne dépend que d’Allah. En Lui je place ma confiance, et c’est vers Lui que je reviens repentant. »',
+    kaynakTr: 'Hûd Suresi, 88. Ayet',
+    kaynakEn: 'Surah Hud, 88',
+    kaynakDe: 'Sure Hud, Vers 88',
+    kaynakFr: 'Sourate Houd, 88',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'إِنَّ اللَّهَ وَمَلَائِكَتَهُ يُصَلُّونَ عَلَى النَّبِيِّ ۚ يَا أَيُّهَا الَّذِينَ آمَنُوا صَلُّوا عَلَيْهِ وَسَلِّمُوا تَسْلِيمًا',
+    mealTr: '“Şüphesiz Allah ve melekleri Peygamber’e salât ediyorlar. Ey iman edenler! Siz de ona salât edin ve tam bir teslimiyetle selam verin.”',
+    mealEn: '“Indeed, Allah and His angels send blessings upon the Prophet. O you who have believed, ask Allah to bless him and grant him peace.”',
+    mealDe: '„Gewiss, Allah und Seine Engel sprechen den Segen über den Propheten. O die ihr glaubt, sprecht den Segen über ihn und grüßt ihn!“',
+    mealFr: '« Certes, Allah et Ses Anges prient sur le Prophète ; ô vous qui croyez, priez sur lui et adressez-lui vos salutations. »',
+    kaynakTr: 'Ahzâb Suresi, 56. Ayet',
+    kaynakEn: 'Surah Al-Ahzab, 56',
+    kaynakDe: 'Sure Al-Ahzab, Vers 56',
+    kaynakFr: 'Sourate Al-Ahzab, 56',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'وَقُلْ رَبِّ زِدْنِي عِلْمًا',
+    mealTr: '“De ki: Rabbim! İlmimi ve hikmetimi artır.”',
+    mealEn: '“And say: My Lord, increase me in knowledge.”',
+    mealDe: '„Und sag: Mein Herr, mehre mein Wissen!“',
+    mealFr: '« Et dis : Ô mon Seigneur, accrois mes connaissances ! »',
+    kaynakTr: 'Tâhâ Suresi, 114. Ayet',
+    kaynakEn: 'Surah Ta-Ha, 114',
+    kaynakDe: 'Sure Ta-Ha, Vers 114',
+    kaynakFr: 'Sourate Ta-Ha, 114',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'فَاذْكُرُونِي أَذْكُرْكُمْ وَاشْكُرُوا لِي وَلَا تَكْفُرُونِ',
+    mealTr: '“Öyleyse siz beni anın ki ben de sizi anayım. Bana şükredin, sakın nankörlük etmeyin.”',
+    mealEn: '“So remember Me; I will remember you. And be grateful to Me and do not deny Me.”',
+    mealDe: '„So gedenkt Meiner, damit Ich eurer gedenke; und seid Mir dankbar und seid nicht undankbar!“',
+    mealFr: '« Souvenez-vous de Moi donc, Je vous récompenserai. Remerciez-Moi et ne soyez pas ingrats envers Moi. »',
+    kaynakTr: 'Bakara Suresi, 152. Ayet',
+    kaynakEn: 'Surah Al-Baqarah, 152',
+    kaynakDe: 'Sure Al-Baqara, Vers 152',
+    kaynakFr: 'Sourate Al-Baqara, 152',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'قُلْ يَا عِبَادِيَ الَّذِينَ أَسْرَفُوا عَلَىٰ أَنْفُسِهِمْ لَا تَقْنَطُوا مِنْ رَحْمَةِ اللَّهِ',
+    mealTr: '“De ki: Ey kendi nefisleri aleyhine haddi aşan kullarım! Allah’ın rahmetinden ümidinizi kesmeyin.”',
+    mealEn: '“Say: O My servants who have transgressed against themselves, do not despair of the mercy of Allah.”',
+    mealDe: '„Sag: O Meine Diener, die ihr gegen euch selbst maßlos gewesen seid, verliert nicht die Hoffnung auf Allahs Barmherzigkeit!“',
+    mealFr: '« Dis : Ô Mes serviteurs qui avez commis des excès à votre propre détriment, ne désespérez pas de la miséricorde d’Allah. »',
+    kaynakTr: 'Zümer Suresi, 53. Ayet',
+    kaynakEn: 'Surah Az-Zumar, 53',
+    kaynakDe: 'Sure Az-Zumar, Vers 53',
+    kaynakFr: 'Sourate Az-Zoumar, 53',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'وَهُوَ مَعَكُمْ أَيْنَ مَا كُنْتُمْ ۚ وَاللَّهُ بِمَا تَعْمَلُونَ بَصِيرٌ',
+    mealTr: '“Nerede olursanız olun O sizinle beraberdir. Allah yaptıklarınızı hakkıyla görendir.”',
+    mealEn: '“And He is with you wherever you are. And Allah is Seeing of what you do.”',
+    mealDe: '„Und Er ist mit euch, wo immer ihr seid. Und Allah sieht wohl, was ihr tut.“',
+    mealFr: '« Et Il est avec vous où que vous soyez. Et Allah observe parfaitement ce que vous faites. »',
+    kaynakTr: 'Hadîd Suresi, 4. Ayet',
+    kaynakEn: 'Surah Al-Hadid, 4',
+    kaynakDe: 'Sure Al-Hadid, Vers 4',
+    kaynakFr: 'Sourate Al-Hadid, 4',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ',
+    mealTr: '“Allah bize yeter! O ne güzel vekildir.”',
+    mealEn: '“Sufficient for us is Allah, and He is the best Disposer of affairs.”',
+    mealDe: '„Allah genügt uns, und wie trefflich ist der Sachwalter!“',
+    mealFr: '« Allah nous suffit ; Il est notre meilleur garant. »',
+    kaynakTr: 'Âl-i İmrân Suresi, 173. Ayet',
+    kaynakEn: 'Surah Ali ’Imran, 173',
+    kaynakDe: 'Sure Al-Imran, Vers 173',
+    kaynakFr: 'Sourate Al-Imran, 173',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'إِنَّ اللَّهَ يَأْمُرُ بِالْعَدْلِ وَالْإِحْسَانِ وَإِيتَاءِ ذِي الْقُرْبَىٰ',
+    mealTr: '“Şüphesiz Allah adaleti, iyilik yapmayı ve yakınlara yardım etmeyi emreder.”',
+    mealEn: '“Indeed, Allah orders justice and good conduct and giving to relatives.”',
+    mealDe: '„Gewiss, Allah gebietet Gerechtigkeit, gütiges Handeln und Freigebigkeit gegenüber den Verwandten.“',
+    mealFr: '« Certes, Allah commande l’équité, la bienfaisance et l’assistance aux proches. »',
+    kaynakTr: 'Nahl Suresi, 90. Ayet',
+    kaynakEn: 'Surah An-Nahl, 90',
+    kaynakDe: 'Sure An-Nahl, Vers 90',
+    kaynakFr: 'Sourate An-Nahl, 90',
+  ),
+  GunlukWidgetAyetModel(
+    arapca: 'وَلَسَوْفَ يُعْطِيكَ رَبُّكَ فَتَرْضَىٰ',
+    mealTr: '“Şüphesiz Rabbin sana (nice nimetler) verecek ve sen de hoşnut olacaksın.”',
+    mealEn: '“And your Lord is going to give you, and you will be satisfied.”',
+    mealDe: '„Und dein Herr wird dir gewiss geben, und du wirst zufrieden sein.“',
+    mealFr: '« Ton Seigneur t’accordera certes Ses faveurs, et alors tu seras satisfait. »',
+    kaynakTr: 'Duhâ Suresi, 5. Ayet',
+    kaynakEn: 'Surah Ad-Duhaa, 5',
+    kaynakDe: 'Sure Ad-Duha, Vers 5',
+    kaynakFr: 'Sourate Ad-Douha, 5',
+  ),
 ];
 
 class WidgetAyarlariModel {
@@ -270,6 +369,27 @@ class VaktiHuzurWidgetServisi {
     );
   }
 
+  /// Hedef namaz vaktinin tam sistem zaman damgasını (epoch milliseconds) hesaplar
+  static int _hedefVakitTimestampMsHesapla(CanliNamazVakitleriModel v, DateTime simdi) {
+    final saatler = [v.imsak, v.gunes, v.ogle, v.ikindi, v.aksam, v.yatsi];
+    for (final s in saatler) {
+      final parcalar = s.trim().split(':');
+      if (parcalar.length >= 2) {
+        final h = int.tryParse(parcalar[0]) ?? 0;
+        final m = int.tryParse(parcalar[1]) ?? 0;
+        final aday = DateTime(simdi.year, simdi.month, simdi.day, h, m);
+        if (aday.isAfter(simdi)) {
+          return aday.millisecondsSinceEpoch;
+        }
+      }
+    }
+    final imsakParca = v.imsak.trim().split(':');
+    final ih = imsakParca.length >= 2 ? (int.tryParse(imsakParca[0]) ?? 5) : 5;
+    final im = imsakParca.length >= 2 ? (int.tryParse(imsakParca[1]) ?? 48) : 48;
+    final yarin = simdi.add(const Duration(days: 1));
+    return DateTime(yarin.year, yarin.month, yarin.day, ih, im).millisecondsSinceEpoch;
+  }
+
   /// Hem Android hem iOS ana ekran & kilit ekranı widget'larının verilerini senkronize eder
   static Future<bool> widgetVerileriniSenkronizeEt({
     required CanliNamazVakitleriModel vakitModel,
@@ -353,12 +473,14 @@ class VaktiHuzurWidgetServisi {
 
       final simdi = DateTime.now();
       final dayOfYear = simdi.difference(DateTime(simdi.year, 1, 1)).inDays + 1;
+      final hedefTimestampMs = _hedefVakitTimestampMsHesapla(vakitModel, simdi);
 
       await Future.wait([
-        // Dil ve Günlük Rotasyon Bilgileri
+        // Dil, Günlük Rotasyon ve Hedef Vakit Timestamp (Milisaniye) Bilgileri
         HomeWidget.saveWidgetData<String>('widget_dil', dil),
         HomeWidget.saveWidgetData<String>('widget_offset', ayar.seciliIndeksOffset.toString()),
         HomeWidget.saveWidgetData<String>('widget_son_gun', dayOfYear.toString()),
+        HomeWidget.saveWidgetData<String>('widget_hedef_timestamp_ms', hedefTimestampMs.toString()),
 
         // Temel Namaz Vakitleri & Sıradaki Vakit
         HomeWidget.saveWidgetData<String>('widget_konum', vakitModel.konumAdi),

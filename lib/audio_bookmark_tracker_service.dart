@@ -11,6 +11,7 @@ import 'web_shim_io.dart' if (dart.library.js_interop) 'package:web/web.dart' as
 import 'quran_api_service.dart';
 import 'quran_hadith_data.dart';
 import 'translations_and_logo.dart';
+import 'widget_ve_kilit_ekrani_servisi.dart';
 
 // ============================================================================
 // 1. SESLİ KUR'AN-I KERİM DİNLEME SERVİSİ (ÇOKLU HAFIZ MP3 OYNATICI)
@@ -1519,8 +1520,8 @@ class BildirimAyarlariServisi {
   static const String _storageKey = 'nur_huzur_bildirim_ayarlari_v3';
 
   // 3 Farklı Ses Kanalı (Android 8.0+ kanal sesleri oluşturulduktan sonra değiştirilemediği için her ses moduna özel kanal):
-  // 1. Tam Ezan Sesi Kanalı -> android/app/src/main/res/raw/adhan.mp3 (Yüksek sesli Medine Ezanı için vakti_beraat_medine_ezan_v3)
-  static const String _kanalTamEzanId = 'vakti_beraat_medine_ezan_v3';
+  // 1. Tam Ezan Sesi Kanalı -> android/app/src/main/res/raw/adhan.mp3 (Türk Makamı Ezan sesi için vakti_beraat_turk_ezan_v4)
+  static const String _kanalTamEzanId = 'vakti_beraat_turk_ezan_v4';
   // 2. Kısa Uyarı Sesi Kanalı -> android/app/src/main/res/raw/adhan_short.wav
   static const String _kanalKisaUyariId = 'vakti_huzur_kisa_uyari_v2';
   // 3. Sessiz Bildirim Kanalı -> playSound: false
@@ -1869,6 +1870,7 @@ class BildirimAyarlariServisi {
         required String icerik,
         required tz.TZDateTime zaman,
         required NotificationDetails detay,
+        bool gunlukTekrar = true,
       }) async {
         try {
           await _plugin.zonedSchedule(
@@ -1878,7 +1880,7 @@ class BildirimAyarlariServisi {
             scheduledDate: zaman,
             notificationDetails: detay,
             androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            matchDateTimeComponents: DateTimeComponents.time,
+            matchDateTimeComponents: gunlukTekrar ? DateTimeComponents.time : null,
           );
         } catch (_) {
           try {
@@ -1889,7 +1891,7 @@ class BildirimAyarlariServisi {
               scheduledDate: zaman,
               notificationDetails: detay,
               androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-              matchDateTimeComponents: DateTimeComponents.time,
+              matchDateTimeComponents: gunlukTekrar ? DateTimeComponents.time : null,
             );
           } catch (_) {}
         }
@@ -1976,28 +1978,37 @@ class BildirimAyarlariServisi {
         }
       }
 
-      // 3. GÜNÜN AYETİ & HADİSİ BİLDİRİMİ (Her gün 10:00 — ID: 300)
-      if (ayar.gununAyetiBildirimi) {
-        final ayetZaman = gelecekZamanOlustur(10, 0);
-        await guvenliZamanla(
-          id: 300,
-          baslik: Ceviri.sec(
+      // 3. GÜNÜN AYETİ BİLDİRİMİ (Her gün 10:00 — ID: 300..316, her gün farklı ayet!)
+      if (ayar.gununAyetiBildirimi && kSecmeWidgetAyetleri.isNotEmpty) {
+        final ilkAyetZaman = gelecekZamanOlustur(10, 0);
+        final kisaDetay = _sesModunaGoreDetayOlustur('kisa');
+        final toplamGun = kSecmeWidgetAyetleri.length;
+
+        for (int gunOffset = 0; gunOffset < toplamGun; gunOffset++) {
+          final hedefZaman = ilkAyetZaman.add(Duration(days: gunOffset));
+          final yilinGunu =
+              hedefZaman.difference(tz.TZDateTime(tz.local, hedefZaman.year, 1, 1)).inDays + 1;
+          final ayetIdx = (yilinGunu + gunOffset) % kSecmeWidgetAyetleri.length;
+          final seciliAyet = kSecmeWidgetAyetleri[ayetIdx];
+
+          final baslik = Ceviri.sec(
             dil,
-            tr: '✨ Vakt-i Beraat • Günün Ayeti ve Hadis-i Şerifi',
-            en: '✨ Vakt-i Beraat • Verse & Hadith of the Day',
-            de: '✨ Vakt-i Beraat • Vers & Hadith des Tages',
-            fr: '✨ Vakt-i Beraat • Verset & Hadith du Jour',
-          ),
-          icerik: Ceviri.sec(
-            dil,
-            tr: '“Biliniz ki, kalpler ancak Allah’ı anmakla (zikirle) huzur bulur.” (Ra’d Suresi, 28. Ayet)',
-            en: '“Verily, in the remembrance of Allah do hearts find rest.” (Surah Ar-Ra’d, 28)',
-            de: '„Wahrlich, im Gedenken Allahs finden die Herzen Ruhe.“ (Sure Ar-Ra’d, Vers 28)',
-            fr: '« N’est-ce point par l’évocation d’Allah que se tranquillisent les cœurs ? » (Sourate Ar-Ra’d, 28)',
-          ),
-          zaman: ayetZaman,
-          detay: _sesModunaGoreDetayOlustur('kisa'),
-        );
+            tr: 'Vakt-i Beraat • Günün Ayeti (${seciliAyet.kaynak(dil)})',
+            en: 'Vakt-i Beraat • Verse of the Day (${seciliAyet.kaynak(dil)})',
+            de: 'Vakt-i Beraat • Vers des Tages (${seciliAyet.kaynak(dil)})',
+            fr: 'Vakt-i Beraat • Verset du Jour (${seciliAyet.kaynak(dil)})',
+          );
+          final icerik = '${seciliAyet.meal(dil)} — ${seciliAyet.kaynak(dil)}';
+
+          await guvenliZamanla(
+            id: 300 + gunOffset,
+            baslik: baslik,
+            icerik: icerik,
+            zaman: hedefZaman,
+            detay: kisaDetay,
+            gunlukTekrar: false,
+          );
+        }
       }
     } catch (_) {}
   }

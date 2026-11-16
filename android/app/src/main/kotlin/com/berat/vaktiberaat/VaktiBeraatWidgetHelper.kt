@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
+import es.antonborri.home_widget.HomeWidgetPlugin
 import java.util.Calendar
 import kotlin.math.abs
 
@@ -41,10 +42,12 @@ data class GunlukMetin(
 data class SiradakiVakitBilgisi(
     val baslik: String,
     val kalanMs: Long,
-    val hedefEpochMs: Long
+    val hedefEpochMs: Long,
+    val kalanMetin: String
 )
 
 object VaktiBeraatWidgetHelper {
+    const val ACTION_WIDGET_TICK = "com.berat.vaktiberaat.ACTION_WIDGET_TICK"
     private val emojiler = listOf("✨", "☪️", "☪", "⏳", "📿", "🕌", "🔊")
 
     val ayetHavuzu = listOf(
@@ -124,6 +127,39 @@ object VaktiBeraatWidgetHelper {
             kaynakEn = "Surah Al-Baqarah, 201",
             kaynakDe = "Sure Al-Baqara, Vers 201",
             kaynakFr = "Sourate Al-Baqara, 201"
+        ),
+        GunlukMetin(
+            arapca = "وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ ۚ عَلَيْهِ تَوَكَّلْتُ وَإِلَيْهِ أُنِيبُ",
+            tr = "“Başarım ancak Allah’ın yardımı iledir. Ben yalnızca O’na tevekkül ettim ve ancak O’na yöneliyorum.”",
+            en = "“And my success is not but through Allah. Upon Him I have relied, and to Him I return.”",
+            de = "„Und mein Erfolg liegt nur bei Allah. Auf Ihn verlasse ich mich, und zu Ihm wende ich mich reumütig.“",
+            fr = "« Et ma réussite ne dépend que d’Allah. En Lui je place ma confiance, et c’est vers Lui que je reviens repentant. »",
+            kaynakTr = "Hûd Suresi, 88. Ayet",
+            kaynakEn = "Surah Hud, 88",
+            kaynakDe = "Sure Hud, Vers 88",
+            kaynakFr = "Sourate Houd, 88"
+        ),
+        GunlukMetin(
+            arapca = "وَقُلْ رَبِّ زِدْنِي عِلْمًا",
+            tr = "“De ki: Rabbim! İlmimi ve hikmetimi artır.”",
+            en = "“And say: My Lord, increase me in knowledge.”",
+            de = "„Und sag: Mein Herr, mehre mein Wissen!“",
+            fr = "« Et dis : Ô mon Seigneur, accrois mes connaissances ! »",
+            kaynakTr = "Tâhâ Suresi, 114. Ayet",
+            kaynakEn = "Surah Ta-Ha, 114",
+            kaynakDe = "Sure Ta-Ha, Vers 114",
+            kaynakFr = "Sourate Ta-Ha, 114"
+        ),
+        GunlukMetin(
+            arapca = "حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ",
+            tr = "“Allah bize yeter! O ne güzel vekildir.”",
+            en = "“Sufficient for us is Allah, and He is the best Disposer of affairs.”",
+            de = "„Allah genügt uns, und wie trefflich ist der Sachwalter!“",
+            fr = "« Allah nous suffit ; Il est notre meilleur garant. »",
+            kaynakTr = "Âl-i İmrân Suresi, 173. Ayet",
+            kaynakEn = "Surah Ali ’Imran, 173",
+            kaynakDe = "Sure Al-Imran, Vers 173",
+            kaynakFr = "Sourate Al-Imran, 173"
         )
     )
 
@@ -230,6 +266,19 @@ object VaktiBeraatWidgetHelper {
         return Pair(h.coerceIn(0, 23), m.coerceIn(0, 59))
     }
 
+    private fun sureFormatla(farkMs: Long): String {
+        val toplamSn = (farkMs / 1000L).coerceAtLeast(0L)
+        val saat = toplamSn / 3600L
+        val dk = (toplamSn % 3600L) / 60L
+        val sn = toplamSn % 60L
+        return String.format("%02d:%02d:%02d", saat, dk, sn)
+    }
+
+    /**
+     * Doğrudan hedef namaz vaktinin zaman damgasını (timestamp) baz alır ve
+     * mevcut sistem saatinden (System.currentTimeMillis()) farkını hesaplar.
+     * Böylece cihaz uykudan uyandığında hiçbir kayma olmadan gerçek kalan süreyi verir.
+     */
     fun hesaplaSiradakiVakit(prefs: SharedPreferences): SiradakiVakitBilgisi {
         val dil = oku(prefs, "widget_dil", "TR").uppercase()
         val onEk = when (dil) {
@@ -262,33 +311,45 @@ object VaktiBeraatWidgetHelper {
             Pair(etYatsi, yatsi)
         )
 
-        val simdi = Calendar.getInstance()
-        val simdiMs = simdi.timeInMillis
+        val simdiMs = System.currentTimeMillis()
+        val simdiTakvim = Calendar.getInstance().apply { timeInMillis = simdiMs }
 
         for ((ad, saatStr) in vakitler) {
             val hm = saatParcala(saatStr) ?: continue
-            val aday = (simdi.clone() as Calendar).apply {
+            val hedefTakvim = (simdiTakvim.clone() as Calendar).apply {
                 set(Calendar.HOUR_OF_DAY, hm.first)
                 set(Calendar.MINUTE, hm.second)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }
-            if (aday.timeInMillis > simdiMs) {
-                val farkMs = (aday.timeInMillis - simdiMs).coerceAtLeast(1000L)
-                return SiradakiVakitBilgisi("$onEk $ad", farkMs, aday.timeInMillis)
+            val hedefEpochMs = hedefTakvim.timeInMillis
+            if (hedefEpochMs > simdiMs) {
+                val farkMs = (hedefEpochMs - simdiMs).coerceAtLeast(1000L)
+                return SiradakiVakitBilgisi(
+                    baslik = "$onEk $ad ($saatStr)",
+                    kalanMs = farkMs,
+                    hedefEpochMs = hedefEpochMs,
+                    kalanMetin = sureFormatla(farkMs)
+                )
             }
         }
 
         val ilkHm = saatParcala(imsak) ?: Pair(5, 48)
-        val yarinImsak = (simdi.clone() as Calendar).apply {
+        val yarinImsak = (simdiTakvim.clone() as Calendar).apply {
             add(Calendar.DAY_OF_YEAR, 1)
             set(Calendar.HOUR_OF_DAY, ilkHm.first)
             set(Calendar.MINUTE, ilkHm.second)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        val farkMs = (yarinImsak.timeInMillis - simdiMs).coerceAtLeast(1000L)
-        return SiradakiVakitBilgisi("$onEk $etImsak", farkMs, yarinImsak.timeInMillis)
+        val hedefEpochMs = yarinImsak.timeInMillis
+        val farkMs = (hedefEpochMs - simdiMs).coerceAtLeast(1000L)
+        return SiradakiVakitBilgisi(
+            baslik = "$onEk $etImsak ($imsak)",
+            kalanMs = farkMs,
+            hedefEpochMs = hedefEpochMs,
+            kalanMetin = sureFormatla(farkMs)
+        )
     }
 
     fun gunlukAyetGetir(prefs: SharedPreferences): Array<String> {
@@ -339,6 +400,10 @@ object VaktiBeraatWidgetHelper {
         return arrayOf(baslik, arapca, meal, kaynak)
     }
 
+    /**
+     * Her dakika başında ve hedef vakit geçişinde sistem saatinden (System.currentTimeMillis())
+     * yeniden hesaplama yapmak üzere AlarmManager zamanlayıcısı kurar.
+     */
     fun zamanlayiciKur(context: Context, providerClass: Class<*>, hedefMs: Long, requestCode: Int) {
         try {
             val mgr = AppWidgetManager.getInstance(context)
@@ -346,14 +411,45 @@ object VaktiBeraatWidgetHelper {
             if (ids.isEmpty()) return
 
             val intent = Intent(context, providerClass).apply {
-                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                action = ACTION_WIDGET_TICK
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
             }
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or
                 (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
             val pi = PendingIntent.getBroadcast(context, requestCode, intent, flags)
             val alarm = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-            alarm.set(AlarmManager.RTC, hedefMs + 1500L, pi)
+
+            val simdi = System.currentTimeMillis()
+            val sonrakiDakikaBasi = ((simdi / 60000L) + 1L) * 60000L + 500L
+            val tetikZamani = minOf(sonrakiDakikaBasi, hedefMs + 1000L)
+
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarm.setExact(AlarmManager.RTC, tetikZamani, pi)
+                } else {
+                    alarm.set(AlarmManager.RTC, tetikZamani, pi)
+                }
+            } catch (_: SecurityException) {
+                alarm.set(AlarmManager.RTC, tetikZamani, pi)
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    fun tumSayacWidgetlariniSimdiYenile(context: Context) {
+        try {
+            val mgr = AppWidgetManager.getInstance(context)
+            val prefs = HomeWidgetPlugin.getData(context)
+
+            val namazIds = mgr.getAppWidgetIds(ComponentName(context, VaktiHuzurNamazWidgetProvider::class.java))
+            if (namazIds.isNotEmpty()) {
+                VaktiHuzurNamazWidgetProvider().onUpdate(context, mgr, namazIds, prefs)
+            }
+
+            val siradakiIds = mgr.getAppWidgetIds(ComponentName(context, VaktiHuzurSiradakiWidgetProvider::class.java))
+            if (siradakiIds.isNotEmpty()) {
+                VaktiHuzurSiradakiWidgetProvider().onUpdate(context, mgr, siradakiIds, prefs)
+            }
         } catch (_: Exception) {
         }
     }

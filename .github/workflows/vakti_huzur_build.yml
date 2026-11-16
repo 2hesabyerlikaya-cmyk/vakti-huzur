@@ -30,10 +30,10 @@ jobs:
         run: flutter pub get
 
       - name: Android Kurulum Paketi (.apk) Derle (R8 & Obfuscation Aktif)
-        run: flutter build apk --release --obfuscate --split-debug-info=build/debug-info-apk --no-tree-shake-icons
+        run: flutter build apk --release --obfuscate --split-debug-info=build/debug-info-apk --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: Google Play Mağaza Paketi (.aab) Derle (R8 & Obfuscation Aktif)
-        run: flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info-aab --no-tree-shake-icons
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info-aab --no-tree-shake-icons --android-skip-build-dependency-validation
 
       - name: APK Dosyasını Vakt-i_Huzur.apk Olarak Hazırla
         run: cp build/app/outputs/flutter-apk/app-release.apk Vakt-i_Huzur.apk

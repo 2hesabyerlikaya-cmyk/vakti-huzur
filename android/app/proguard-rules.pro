@@ -37,7 +37,12 @@
     @androidx.annotation.Keep <methods>;
 }
 
-# 5. Google Mobile Ads (AdMob) Sınıflarını Koru ve Uyarıları Bastır
+# 5. Google Mobile Ads (AdMob) & Flutter Play Core Deferred Components Uyarılarını Bastır
 -keep class com.google.android.gms.ads.** { *; }
+-dontwarn com.google.android.play.core.**
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn org.codehaus.mojo.animal_sniffer.**
+-dontwarn javax.annotation.**
+-dontwarn org.conscrypt.**
+-dontwarn org.openjsse.**
+-dontwarn org.bouncycastle.**
